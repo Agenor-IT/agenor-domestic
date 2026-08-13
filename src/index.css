@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #f4f6f8;
+  --panel: #ffffff;
+  --text: #172033;
+  --muted: #6b7280;
+  --line: #e5e7eb;
+  --navy: #12355b;
+  --green: #0f8a5f;
+  --greenSoft: #e9f7f1;
+  --red: #b54747;
+  --redSoft: #fff0f0;
+  --purple: #6d4db3;
+  --purpleSoft: #f3efff;
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #0f172a;
+  --panel: #1e293b;
+  --text: #f8fafc;
+  --muted: #94a3b8;
+  --line: #334155;
+  --navy: #38bdf8;
+  --green: #10b981;
+  --greenSoft: #064e3b;
+  --red: #f87171;
+  --redSoft: #7f1d1d;
+  --purple: #a855f7;
+  --purpleSoft: #581c87;
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.table-cell-num {
+  font-variant-numeric: tabular-nums;
+}
