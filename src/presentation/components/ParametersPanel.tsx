@@ -33,7 +33,7 @@ export const ParametersPanel: React.FC<ParametersPanelProps> = ({ ipcRates, onIp
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-slate-700/60">
             <tr>
-              <td className="py-2.5 px-3 font-semibold text-gray-900 dark:text-slate-100 bg-gray-50 dark:bg-slate-750">IPC Mensual (%)</td>
+              <td className="py-2.5 px-3 font-semibold text-gray-900 dark:text-slate-100 bg-gray-50 dark:bg-slate-700/80">IPC Mensual (%)</td>
               {ipcRates.map((rate, idx) => (
                 <td key={idx} className="py-2 px-1 text-center">
                   <input

@@ -58,24 +58,24 @@ export const ProjectionTable: React.FC<ProjectionTableProps> = ({
     let rowBg = 'bg-white dark:bg-slate-800';
     let stickyBg = 'bg-white dark:bg-slate-800';
     if (node.flowType === 'group') {
-      rowBg = 'bg-gray-50/70 dark:bg-slate-700/50 font-semibold';
-      stickyBg = 'bg-gray-50 dark:bg-slate-750';
+      rowBg = 'bg-gray-50/80 dark:bg-slate-700/80 font-bold';
+      stickyBg = 'bg-gray-50 dark:bg-slate-700';
     }
     if (node.flowType === 'initialBalance') {
-      rowBg = 'bg-blue-50/60 dark:bg-sky-950/50 font-bold border-l-4 border-blue-600 dark:border-sky-400';
-      stickyBg = 'bg-blue-50/60 dark:bg-sky-950/80';
+      rowBg = 'bg-blue-50/60 dark:bg-sky-950/70 font-bold border-l-4 border-blue-600 dark:border-sky-400';
+      stickyBg = 'bg-blue-50/60 dark:bg-sky-950/90';
     }
     if (node.flowType === 'finalBalance') {
-      rowBg = 'bg-emerald-50/70 dark:bg-emerald-950/50 font-bold border-l-4 border-emerald-600 dark:border-emerald-400';
-      stickyBg = 'bg-emerald-50/70 dark:bg-emerald-950/80';
+      rowBg = 'bg-emerald-50/70 dark:bg-emerald-950/70 font-bold border-l-4 border-emerald-600 dark:border-emerald-400';
+      stickyBg = 'bg-emerald-50/70 dark:bg-emerald-950/90';
     }
     if (node.flowType === 'net') {
-      rowBg = 'bg-purple-50/60 dark:bg-purple-950/50 font-bold border-l-4 border-purple-600 dark:border-purple-400';
-      stickyBg = 'bg-purple-50/60 dark:bg-purple-950/80';
+      rowBg = 'bg-purple-50/60 dark:bg-purple-950/70 font-bold border-l-4 border-purple-600 dark:border-purple-400';
+      stickyBg = 'bg-purple-50/60 dark:bg-purple-950/90';
     }
     if (node.flowType === 'extraNeeded') {
-      rowBg = 'bg-amber-50/70 dark:bg-amber-950/50 font-bold border-l-4 border-amber-600 dark:border-amber-400';
-      stickyBg = 'bg-amber-50/70 dark:bg-amber-950/80';
+      rowBg = 'bg-amber-50/70 dark:bg-amber-950/70 font-bold border-l-4 border-amber-600 dark:border-amber-400';
+      stickyBg = 'bg-amber-50/70 dark:bg-amber-950/90';
     }
     if (node.flowType === 'income') rowBg += ' hover:bg-emerald-50/30 dark:hover:bg-emerald-950/30';
     if (node.flowType === 'expense') rowBg += ' hover:bg-red-50/30 dark:hover:bg-rose-950/30';

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Navbar } from './presentation/components/Navbar';
+import { Sidebar } from './presentation/components/Sidebar';
 import { MetricsHeader } from './presentation/components/MetricsHeader';
 import { ActualTrackingPanel } from './presentation/components/ActualTrackingPanel';
 import { NoExtraScenarioPanel } from './presentation/components/NoExtraScenarioPanel';
@@ -23,6 +23,7 @@ export const AppContent: React.FC = () => {
   const [priorities, setPriorities] = useState<PaymentPriority[]>(DEFAULT_PAYMENT_PRIORITIES);
   const [selectedMethods, setSelectedMethods] = useState<Record<string, PaymentMethodType>>({});
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
 
   const useCase = useMemo(() => new ProjectCashFlowUseCase(), []);
 
@@ -62,14 +63,17 @@ export const AppContent: React.FC = () => {
   const extraNeeded = projection.extraNeeded.reduce((sum, m) => sum.add(m), Money.zero());
 
   return (
-    <div className="min-h-screen bg-[#f4f6f8] dark:bg-slate-900 text-[#172033] dark:text-slate-100 transition-colors">
-      <Navbar
+    <div className="min-h-screen flex bg-[#f4f6f8] dark:bg-slate-900 text-[#172033] dark:text-slate-100 transition-colors">
+      <Sidebar
         currentTab={currentTab}
         onTabChange={setCurrentTab}
         onOpenNewTransaction={() => setIsModalOpen(true)}
+        collapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(prev => !prev)}
       />
 
-      <main className="max-w-[1850px] mx-auto px-4 md:px-6 py-6">
+      <div className="flex-1 min-w-0 flex flex-col">
+        <main className="flex-1 max-w-[1850px] w-full mx-auto px-4 md:px-8 py-6">
         <MetricsHeader
           totalIncome={totalIncome}
           totalExpense={totalExpense}
@@ -114,7 +118,8 @@ export const AppContent: React.FC = () => {
         {currentTab === 'atrasos' && (
           <OverduesPanel />
         )}
-      </main>
+        </main>
+      </div>
 
       <TransactionModal
         isOpen={isModalOpen}
