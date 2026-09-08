@@ -1,0 +1,12 @@
+-- Exact rollback for 20260908201528_dom_fk_indexes.
+drop index if exists public.dom_scenario_results_scenario_idx;
+drop index if exists public.dom_card_installments_purchase_idx;
+drop index if exists public.dom_card_purchases_card_idx;
+drop index if exists public.dom_debt_payments_debt_idx;
+drop index if exists public.dom_debt_installments_debt_idx;
+drop index if exists public.dom_projected_transactions_category_idx;
+drop index if exists public.dom_transactions_category_idx;
+drop index if exists public.dom_transactions_account_idx;
+drop index if exists public.dom_entries_unidad_negocio_idx;
+drop index if exists public.dom_categories_unidad_negocio_idx;
+drop index if exists public.dom_accounts_unidad_negocio_idx;
