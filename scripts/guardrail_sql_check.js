@@ -38,7 +38,9 @@ const CHECK_RULES = [
   },
   {
     name: 'UPDATE TABLE',
-    regex: /UPDATE\s+([a-zA-Z0-9_.]+)/gi
+    // Excluye clausulas de trigger y UPSERT; ninguna identifica la tabla
+    // modificada. Las sentencias UPDATE reales siguen siendo verificadas.
+    regex: /(?<!BEFORE\s)(?<!AFTER\s)(?<!DO\s)UPDATE\s+([a-zA-Z0-9_.]+)/gi
   },
   {
     name: 'DELETE FROM',
