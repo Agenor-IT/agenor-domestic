@@ -1,4 +1,15 @@
 <!-- AGENOR-GLOBAL-AGENTS-CORE:START v5 -->
+<!-- AGENOR-UNICO-PRODUCTOR:START v1 -->
+## Productor único del artefacto y validación proporcional
+- Antes de validar o publicar, identificar un único productor del artefacto: local o CI/proveedor.
+- Si CI/proveedor ejecuta el build, es el único productor. Queda prohibido ejecutar o exigir build local como precondición rutinaria. Localmente se ejecutan sólo pruebas DDD focalizadas y typecheck únicamente cuando el diff lo justifique.
+- Si el entorno local fabrica el artefacto publicable, CI/proveedor debe desplegar exactamente ese artefacto inmutable por digest y no reconstruirlo.
+- Nunca modificar el publicador para satisfacer dos builds. Resolver el conflicto eligiendo el productor único según el pipeline vigente.
+- El build global de CI es fabricación productiva; no amplía alcance DDD ni autoriza suites, inspecciones o correcciones de módulos ajenos.
+- Un fallo de transporte o publicación no invalida gates de código ya verdes. Revalidar sólo la etapa y los inputs afectados.
+- Este bloque prevalece sobre cualquier texto genérico de este archivo que parezca exigir build local y build remoto para el mismo árbol. Los anexos específicos conservan validez cuando no contradicen al productor único.
+<!-- AGENOR-UNICO-PRODUCTOR:END v1 -->
+
 # Núcleo operativo compacto v5
 
 Este núcleo prioriza velocidad con seguridad proporcional. Los anexos locales aplican solamente a su proyecto y nivel de riesgo.

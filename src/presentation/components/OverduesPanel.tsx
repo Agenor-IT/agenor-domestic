@@ -1,90 +1,126 @@
 import React, { useState } from 'react';
-import { INITIAL_MONTHS } from '../../domain/shared/initialSeedData';
+import { INITIAL_ACTUAL_STATE } from '../../domain/shared/initialSeedData';
 import { Money } from '../../domain/shared/Money';
-import { ShieldAlert } from 'lucide-react';
+import { TableSearchFilter } from './TableSearchFilter';
+import { AlertTriangle, CheckCircle } from 'lucide-react';
 
 export const OverduesPanel: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'payments' | 'balances'>('payments');
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'pending' | 'receivables'>('pending');
 
-  const overduesData = {
-    payments: [
-      { label: "Monotributo ARCA", values: [0,0,0,0,0,0,0,0,0,0,1265993.26,0,0,0,0,0,0] },
-      { label: "Nación solo firma", values: [0,0,0,0,0,0,0,0,0,0,439807.57,2160192.43,0,0,0,0,0] },
-      { label: "Préstamo Supervielle", values: [0,0,0,0,0,0,0,0,0,0,0,365267.47,0,0,0,0,0] },
-      { label: "Hipotecario 2", values: [0,0,0,0,0,0,0,0,0,0,0,74318.11,103647.09,0,0,0,0] },
-      { label: "Hipotecario 1", values: [0,0,0,0,0,0,0,0,0,0,0,0,1236859.57,0,0,0,0] },
-      { label: "Nación SGR", values: [0,0,0,0,0,0,0,0,0,0,0,0,500000.00,0,0,0,0] }
-    ],
-    balances: [
-      { label: "Saldo ARCA", values: [1265993.26,1265993.26,1265993.26,1265993.26,1265993.26,1265993.26,1265993.26,1265993.26,1265993.26,1265993.26,0,0,0,0,0,0,0] },
-      { label: "Saldo firma", values: [2600000.00,2600000.00,2600000.00,2600000.00,2600000.00,2600000.00,2600000.00,2600000.00,2600000.00,2600000.00,2160192.43,0,0,0,0,0,0] },
-      { label: "Saldo Supervielle", values: [365267.47,365267.47,365267.47,365267.47,365267.47,365267.47,365267.47,365267.47,365267.47,365267.47,365267.47,0,0,0,0,0,0] },
-      { label: "Saldo Hipotecario 2", values: [177965.20,177965.20,177965.20,177965.20,177965.20,177965.20,177965.20,177965.20,177965.20,177965.20,177965.20,103647.09,0,0,0,0,0] },
-      { label: "Saldo Hipotecario 1", values: [1236859.57,1236859.57,1236859.57,1236859.57,1236859.57,1236859.57,1236859.57,1236859.57,1236859.57,1236859.57,1236859.57,1236859.57,0,0,0,0,0] },
-      { label: "Saldo SGR", values: [500000.00,500000.00,500000.00,500000.00,500000.00,500000.00,500000.00,500000.00,500000.00,500000.00,500000.00,500000.00,0,0,0,0,0] }
-    ]
-  };
-
-  const currentRows = activeTab === 'payments' ? overduesData.payments : overduesData.balances;
+  const pendingList = INITIAL_ACTUAL_STATE.pending_required.filter(item =>
+    item.label.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  const receivablesList = INITIAL_ACTUAL_STATE.receivables.filter(item =>
+    item.label.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden mb-6 p-6 transition-colors">
-      <div className="flex justify-between items-center gap-3 mb-4 pb-3 border-b border-gray-200 dark:border-slate-700">
-        <div>
-          <h2 className="text-lg font-bold text-[#172033] dark:text-slate-100 flex items-center gap-2">
-            <ShieldAlert className="w-5 h-5 text-[#b54747] dark:text-rose-400" />
-            Control de Atrasos y Moras Proyectadas
-          </h2>
-          <p className="text-xs text-gray-500 dark:text-slate-400">Plan de regularización de compromisos vencidos por mes</p>
-        </div>
+    <div className="space-y-6">
+      <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm overflow-hidden">
+        <TableSearchFilter
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          placeholder="Buscar compromiso o cobro..."
+          extraControls={
+            <div className="flex bg-gray-200/80 dark:bg-gray-800 p-1 rounded-xl">
+              <button
+                onClick={() => setActiveTab('pending')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  activeTab === 'pending'
+                    ? 'bg-[#12355b] dark:bg-[#0088FF] text-white shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                Pagar Prioritario ({pendingList.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('receivables')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  activeTab === 'receivables'
+                    ? 'bg-[#12355b] dark:bg-[#0088FF] text-white shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                Cobros Pendientes ({receivablesList.length})
+              </button>
+            </div>
+          }
+        />
 
-        <div className="flex gap-1.5 bg-gray-100 dark:bg-slate-700 p-1 rounded-xl">
-          <button
-            onClick={() => setActiveTab('payments')}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
-              activeTab === 'payments'
-                ? 'bg-[#12355b] dark:bg-sky-600 text-white'
-                : 'text-gray-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
-            }`}
-          >
-            Pagos Proyectados
-          </button>
-          <button
-            onClick={() => setActiveTab('balances')}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
-              activeTab === 'balances'
-                ? 'bg-[#12355b] dark:bg-sky-600 text-white'
-                : 'text-gray-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
-            }`}
-          >
-            Saldos Restantes
-          </button>
+        <div className="p-6">
+          {activeTab === 'pending' ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-gray-100 dark:bg-gray-800/80 text-gray-700 dark:text-gray-300 font-bold uppercase tracking-wider border-b border-gray-200 dark:border-gray-800">
+                    <th className="py-3 px-4">Prioridad / Compromiso</th>
+                    <th className="py-3 px-4">Estado / Vencimiento</th>
+                    <th className="py-3 px-4 text-right">Monto Pendiente</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+                  {pendingList.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-red-50/20 dark:hover:bg-red-950/20 transition-colors">
+                      <td className="py-3 px-4 font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
+                        {item.label}
+                      </td>
+                      <td className="py-3 px-4 font-medium text-red-700 dark:text-red-400">
+                        {item.note || 'Pendiente de cancelación'}
+                      </td>
+                      <td className="py-3 px-4 text-right font-bold text-[#b54747] dark:text-red-400 table-cell-num text-sm">
+                        {Money.fromAmount(item.amount).toFormattedString()}
+                      </td>
+                    </tr>
+                  ))}
+                  {pendingList.length === 0 && (
+                    <tr>
+                      <td colSpan={3} className="text-center py-8 text-gray-400 font-medium">
+                        No se encontraron obligaciones pendientes coincidentes.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-gray-100 dark:bg-gray-800/80 text-gray-700 dark:text-gray-300 font-bold uppercase tracking-wider border-b border-gray-200 dark:border-gray-800">
+                    <th className="py-3 px-4">Cliente / Deudor</th>
+                    <th className="py-3 px-4">Estado</th>
+                    <th className="py-3 px-4 text-right">Monto a Cobrar</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+                  {receivablesList.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-emerald-50/20 dark:hover:bg-emerald-950/20 transition-colors">
+                      <td className="py-3 px-4 font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+                        {item.label}
+                      </td>
+                      <td className="py-3 px-4 font-medium text-emerald-700 dark:text-emerald-400">
+                        Pendiente de cobro
+                      </td>
+                      <td className="py-3 px-4 text-right font-bold text-[#0f8a5f] dark:text-emerald-400 table-cell-num text-sm">
+                        {Money.fromAmount(item.amount).toFormattedString()}
+                      </td>
+                    </tr>
+                  ))}
+                  {receivablesList.length === 0 && (
+                    <tr>
+                      <td colSpan={3} className="text-center py-8 text-gray-400 font-medium">
+                        No se encontraron cobros pendientes coincidentes.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="w-full text-xs text-left">
-          <thead className="bg-[#12355b] dark:bg-slate-900 text-white uppercase font-bold">
-            <tr>
-              <th className="py-2.5 px-3 min-w-[220px]">Deuda / Compromiso</th>
-              {INITIAL_MONTHS.map((m, idx) => (
-                <th key={idx} className="py-2.5 px-2 text-right min-w-[100px]">{m}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-slate-700/60">
-            {currentRows.map((row, rIdx) => (
-              <tr key={rIdx} className="hover:bg-gray-50 dark:hover:bg-slate-700/40">
-                <td className="py-2.5 px-3 font-semibold text-gray-900 dark:text-slate-100">{row.label}</td>
-                {row.values.map((v, vIdx) => (
-                  <td key={vIdx} className="py-2.5 px-2 text-right table-cell-num font-medium text-gray-800 dark:text-slate-200">
-                    {v === 0 ? '—' : Money.fromAmount(v).toFormattedString()}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </div>
     </div>
   );

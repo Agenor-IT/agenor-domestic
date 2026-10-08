@@ -1,74 +1,283 @@
-import React from 'react';
-import { INITIAL_MONTHS } from '../../domain/shared/initialSeedData';
-import { Money } from '../../domain/shared/Money';
-import { Sliders } from 'lucide-react';
+import React, { useState } from 'react';
+import { TableSearchFilter } from './TableSearchFilter';
+import { CustomPaymentMethod } from '../../domain/shared/PaymentMethod';
+import { Plus, CreditCard, Building2, Wallet, Trash2, CheckCircle2, XCircle, Eye, Pencil } from 'lucide-react';
+import { FiscalYearsSection } from './FiscalYearsSection';
+import { PaymentMethodModal } from './PaymentMethodModal';
+import { FormattedNumberInput } from './FormattedNumberInput';
+import { DomAccountDTO } from '../../domain/repositories/IAccountingRepository';
 
 interface ParametersPanelProps {
   ipcRates: number[];
   onIpcChange: (index: number, val: number) => void;
+  paymentMethods: CustomPaymentMethod[];
+  accounts?: DomAccountDTO[];
+  onSavePaymentMethod: (data: {
+    id?: string;
+    name: string;
+    type: 'cash' | 'bank' | 'card';
+    active: boolean;
+    accountId?: number;
+    accountCode?: string;
+    accountName?: string;
+    creditLimit?: number;
+    initialAvailable?: number;
+    initialBalance?: number;
+  }) => void;
+  onTogglePaymentMethod: (id: string) => void;
+  onDeletePaymentMethod: (id: string) => void;
 }
 
-export const ParametersPanel: React.FC<ParametersPanelProps> = ({ ipcRates, onIpcChange }) => {
+const MONTH_NAMES = [
+  'Ago-26', 'Sep-26', 'Oct-26', 'Nov-26', 'Dic-26', 'Ene-27',
+  'Feb-27', 'Mar-27', 'Abr-27', 'May-27', 'Jun-27', 'Jul-27',
+  'Ago-27', 'Sep-27', 'Oct-27', 'Nov-27', 'Dic-27'
+];
+
+export const ParametersPanel: React.FC<ParametersPanelProps> = ({
+  ipcRates,
+  onIpcChange,
+  paymentMethods,
+  accounts = [],
+  onSavePaymentMethod,
+  onTogglePaymentMethod,
+  onDeletePaymentMethod
+}) => {
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [modalMode, setModalMode] = useState<'nuevo' | 'editar' | 'ver'>('nuevo');
+  const [selectedMethod, setSelectedMethod] = useState<CustomPaymentMethod | null>(null);
+
+  const filteredRates = MONTH_NAMES.map((name, idx) => ({
+    index: idx,
+    month: name,
+    rate: ipcRates[idx] || 0
+  })).filter(item => item.month.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  const handleOpenNuevoModal = () => {
+    setSelectedMethod(null);
+    setModalMode('nuevo');
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditarModal = (method: CustomPaymentMethod) => {
+    setSelectedMethod(method);
+    setModalMode('editar');
+    setIsModalOpen(true);
+  };
+
+  const handleOpenVerModal = (method: CustomPaymentMethod) => {
+    setSelectedMethod(method);
+    setModalMode('ver');
+    setIsModalOpen(true);
+  };
+
+  const getMethodIcon = (type: 'cash' | 'bank' | 'card') => {
+    switch (type) {
+      case 'cash': return <Wallet className="w-4 h-4 text-emerald-500" />;
+      case 'bank': return <Building2 className="w-4 h-4 text-blue-500" />;
+      case 'card': return <CreditCard className="w-4 h-4 text-amber-500" />;
+    }
+  };
+
+  const getMethodTypeName = (type: 'cash' | 'bank' | 'card') => {
+    switch (type) {
+      case 'cash': return 'Efectivo';
+      case 'bank': return 'Caja de Ahorro / Banco';
+      case 'card': return 'Tarjeta de Crédito';
+    }
+  };
+
   return (
-    <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden mb-6 p-6 transition-colors">
-      <div className="flex justify-between items-center gap-3 mb-4 pb-3 border-b border-gray-200 dark:border-slate-700">
-        <div>
-          <h2 className="text-lg font-bold text-[#172033] dark:text-slate-100 flex items-center gap-2">
-            <Sliders className="w-5 h-5 text-[#12355b] dark:text-sky-400" />
-            Parámetros Mensuales y Reajustes por IPC
+    <div className="space-y-8">
+      {/* SECCIÓN 1: CONFIGURACIÓN DE MEDIOS DE PAGO */}
+      <section className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-200 dark:border-gray-800 pb-4">
+          <div>
+            <h2 className="text-lg font-bold text-[#172033] dark:text-white flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-[#0088FF]" />
+              1. Configuración de Medios de Pago
+            </h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              Administración de cuentas, efectivo, límites de tarjetas, saldos iniciales e imputación contable
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleOpenNuevoModal}
+            className="px-4 py-2.5 bg-[#0088FF] hover:bg-blue-600 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Nuevo Medio de Pago</span>
+          </button>
+        </div>
+
+        {/* TABLA DE MEDIOS DE PAGO CONFIGURADOS */}
+        <div className="overflow-x-auto border border-gray-200 dark:border-gray-800 rounded-xl">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-gray-50 dark:bg-[#1E293B]/60 text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
+                <th className="py-3 px-4">Nombre del Medio</th>
+                <th className="py-3 px-4">Tipo de Medio</th>
+                <th className="py-3 px-4">Límite Otorgado</th>
+                <th className="py-3 px-4">Disponible / Saldo Inicial</th>
+                <th className="py-3 px-4">Cuenta Contable Asignada</th>
+                <th className="py-3 px-4 text-center">Estado</th>
+                <th className="py-3 px-4 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-800 text-xs">
+              {paymentMethods.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-gray-400">
+                    No hay medios de pago configurados. Haz clic en "Nuevo Medio de Pago" para agregar uno.
+                  </td>
+                </tr>
+              ) : (
+                paymentMethods.map((pm) => (
+                  <tr key={pm.id} className="hover:bg-gray-50/50 dark:hover:bg-[#1E293B]/40 transition-colors">
+                    <td className="py-3 px-4 font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                      <div className="p-1.5 bg-gray-100 dark:bg-[#0F172A] rounded-lg shrink-0">
+                        {getMethodIcon(pm.type)}
+                      </div>
+                      <span>{pm.name}</span>
+                    </td>
+                    <td className="py-3 px-4 text-gray-600 dark:text-gray-300 font-medium">
+                      {getMethodTypeName(pm.type)}
+                    </td>
+                    <td className="py-3 px-4">
+                      {pm.type === 'card' ? (
+                        <span className="font-mono text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                          $ {(pm.creditLimit || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 italic text-[11px]">N/A</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="font-mono text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                        $ {(pm.type === 'card' ? (pm.initialAvailable ?? pm.creditLimit ?? 0) : (pm.initialBalance || 0)).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      {pm.accountCode ? (
+                        <span className="font-mono text-[11px] px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-[#0088FF] dark:text-blue-400 rounded-lg border border-blue-200 dark:border-blue-900/50 font-semibold">
+                          {pm.accountCode} - {pm.accountName}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 italic text-[11px]">Por defecto del tipo</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                        pm.active
+                          ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300'
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+                      }`}>
+                        {pm.active ? 'Activo' : 'Inactivo'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenVerModal(pm)}
+                          title="Ver detalle"
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors cursor-pointer"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditarModal(pm)}
+                          title="Editar medio de pago"
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors cursor-pointer"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => onTogglePaymentMethod(pm.id)}
+                          title={pm.active ? 'Desactivar medio' : 'Activar medio'}
+                          className={`p-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                            pm.active
+                              ? 'text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
+                              : 'text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
+                          }`}
+                        >
+                          {pm.active ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <XCircle className="w-4 h-4" />}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => onDeletePaymentMethod(pm.id)}
+                          title="Eliminar medio de pago"
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* SECCIÓN 2: PARÁMETROS IPC */}
+      <section className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-800">
+          <h2 className="text-lg font-bold text-[#172033] dark:text-white">
+            2. Índices de Inflación e IPC Mensual
           </h2>
-          <p className="text-xs text-gray-500 dark:text-slate-400">Configuración de IPC proyectado por mes. Modificar un mes recalcula automáticamente Alquiler (cuatrimestral) y Monotributo (semestral).</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            Tasas de ajuste IPC proyectadas para los 17 períodos del modelo
+          </p>
         </div>
-      </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-xs text-left">
-          <thead className="bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 uppercase font-bold border-b border-gray-200 dark:border-slate-700">
-            <tr>
-              <th className="py-2.5 px-3 min-w-[200px]">Parámetro</th>
-              {INITIAL_MONTHS.map((m, idx) => (
-                <th key={idx} className="py-2.5 px-2 text-center min-w-[85px]">{m}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-slate-700/60">
-            <tr>
-              <td className="py-2.5 px-3 font-semibold text-gray-900 dark:text-slate-100 bg-gray-50 dark:bg-slate-700/80">IPC Mensual (%)</td>
-              {ipcRates.map((rate, idx) => (
-                <td key={idx} className="py-2 px-1 text-center">
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={(rate * 100).toFixed(2)}
-                    onChange={(e) => onIpcChange(idx, (parseFloat(e.target.value) || 0) / 100)}
-                    className="w-16 text-center text-xs font-bold border border-gray-300 dark:border-slate-600 rounded py-1 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 focus:border-[#12355b] dark:focus:border-sky-400 outline-none"
+        <TableSearchFilter
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          placeholder="Buscar mes o período de inflación IPC..."
+        />
+
+        <div className="p-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {filteredRates.map((item) => (
+              <div key={item.index} className="bg-gray-50 dark:bg-[#1E293B]/70 border border-gray-200 dark:border-gray-800 rounded-xl p-3 flex flex-col justify-between">
+                <span className="text-xs font-bold text-[#12355b] dark:text-blue-400">{item.month}</span>
+                <div className="mt-2 flex items-center gap-1">
+                  <FormattedNumberInput
+                    decimals={1}
+                    value={item.rate}
+                    onChange={(val) => onIpcChange(item.index, val)}
+                    className="w-full text-xs border border-gray-300 dark:border-gray-700 rounded px-2 py-1 bg-white dark:bg-[#0F172A] text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#0088FF]"
                   />
-                </td>
-              ))}
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-        <div className="border border-gray-200 dark:border-slate-700 rounded-xl p-4 bg-gray-50/50 dark:bg-slate-900/40">
-          <span className="text-xs font-semibold text-gray-500 dark:text-slate-400 block">Base Contrato Alquiler</span>
-          <strong className="text-xl font-bold text-[#12355b] dark:text-sky-400 block mt-1">{Money.fromAmount(550000).toFormattedString()}</strong>
-          <p className="text-[11px] text-gray-500 dark:text-slate-400 mt-2">Reajuste cada 4 meses acumulando los 4 IPCs previos. Desde Sep-26.</p>
+                  <span className="text-xs font-bold text-gray-500 dark:text-gray-400">%</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
+      </section>
 
-        <div className="border border-gray-200 dark:border-slate-700 rounded-xl p-4 bg-gray-50/50 dark:bg-slate-900/40">
-          <span className="text-xs font-semibold text-gray-500 dark:text-slate-400 block">Base Cuota Monotributo</span>
-          <strong className="text-xl font-bold text-[#12355b] dark:text-sky-400 block mt-1">{Money.fromAmount(91714.67).toFormattedString()}</strong>
-          <p className="text-[11px] text-gray-500 dark:text-slate-400 mt-2">Fijo por semestre. Ajustes en Enero y Julio por IPC semestral acumulado.</p>
-        </div>
+      {/* SECCIÓN 3: GESTIÓN DE EJERCICIOS ECONÓMICOS Y SALDOS INICIALES */}
+      <FiscalYearsSection />
 
-        <div className="border border-gray-200 dark:border-slate-700 rounded-xl p-4 bg-gray-50/50 dark:bg-slate-900/40">
-          <span className="text-xs font-semibold text-gray-500 dark:text-slate-400 block">Crecimiento Mensual Emprendimiento</span>
-          <strong className="text-xl font-bold text-[#0f8a5f] dark:text-emerald-400 block mt-1">{Money.fromAmount(200000).toFormattedString()} / mes</strong>
-          <p className="text-[11px] text-gray-500 dark:text-slate-400 mt-2">Sumado al IPC acumulado sobre la base de $2.165.000 (Ago-26).</p>
-        </div>
-      </div>
+      {/* MODAL MEDIO DE PAGO */}
+      <PaymentMethodModal
+        isOpen={isModalOpen}
+        mode={modalMode}
+        initialData={selectedMethod}
+        accounts={accounts}
+        onClose={() => setIsModalOpen(false)}
+        onSave={onSavePaymentMethod}
+      />
     </div>
   );
 };

@@ -37,11 +37,11 @@ export const INITIAL_SECTIONS: FlowNode[] = [
       {
         id: "income-business",
         label: "Emprendimiento",
-        origin: [2165000.0, 2386650.0, 2610516.5, 2836621.665, 3064987.88, 3295637.76, 3528594.14, 3763880.08, 4001518.88, 4241534.07, 4483949.41, 4728788.90, 4976076.79, 5225837.56, 5478095.94, 5732876.90, 5990205.66],
+        origin: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         flowType: "income",
         defaultMethod: "cash",
         allowedMethods: ["cash", "card"],
-        note: "Proyección corregida desde Ago-26: $2.165.000; luego IPC mensual + crecimiento adicional.",
+        note: "Suma dinámica calculada en tiempo real desde el módulo Emprendimientos & Proyectos.",
         children: []
       },
       {
@@ -211,39 +211,21 @@ export const INITIAL_SECTIONS: FlowNode[] = [
 ];
 
 export const INITIAL_ACTUAL_STATE = {
-  cutoff: "12/08/2026",
+  cutoff: new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
   availability: [
-    { label: "Cuenta Naranja X", amount: 435637.37 },
-    { label: "Efectivo pesos", amount: 200.0 }
+    { label: "Cuenta Naranja X", amount: 0.00 },
+    { label: "Efectivo pesos", amount: 0.00 }
   ],
-  receivables: [
-    { label: "Mayra Llanos", amount: 91000.0 },
-    { label: "Clever Contreras", amount: 56000.0 }
-  ],
-  pending_required: [
-    { label: "Tarjeta Supervielle", amount: 193955.0, priority: 1 },
-    { label: "Médicos Bruno", amount: 140000.0, priority: 2 },
-    { label: "Monotributo corriente", amount: 91714.67, priority: 3, note: "Vence 20/08." },
-    { label: "Hipotecario 1", amount: 254032.05, priority: 4 },
-    { label: "Hipotecario 2", amount: 44491.30, priority: 5 },
-    { label: "Préstamo Supervielle", amount: 148647.58, priority: 6 },
-    { label: "Nación solo firma", amount: 650000.0 },
-    { label: "Nación SGR", amount: 125000.0 },
-    { label: "Bancor — saldo base para cierre", amount: 39999.17, note: "Verificar saldo al 24/08." }
-  ],
+  receivables: [] as { label: string; amount: number }[],
+  pending_required: [] as { label: string; amount: number; priority?: number; note?: string }[],
   scenario_no_extra: {
     title: "Escenario sin ingreso extra",
-    note: "Usa caja actual + cobros Mayra/Clever. Prioriza según dom_payment_priorities (Supervielle tarjeta, Bruno, Monotributo y préstamos).",
+    note: "Calculado dinámicamente según estado contable en vivo y prioridades de pago en Supabase.",
     august: {
-      available_after_receivables: 582837.37,
-      carryover_total: 1105002.40
+      available_after_receivables: 0.00,
+      carryover_total: 0.00
     },
-    monthly: [
-      { month: "Sep-26", income: 2936650.0, base_expense: 3147910.3, monthly_gap: 211260.3, accumulated_gap: 1316262.7 },
-      { month: "Oct-26", income: 3160516.5, base_expense: 3299396.68, monthly_gap: 138880.18, accumulated_gap: 1455142.88 },
-      { month: "Nov-26", income: 3386621.67, base_expense: 3536210.65, monthly_gap: 149588.98, accumulated_gap: 1604731.87 },
-      { month: "Dic-26", income: 3614987.88, base_expense: 3773302.76, monthly_gap: 158314.88, accumulated_gap: 1763046.74 }
-    ],
-    debt_stock_total: 12931828.88
+    monthly: [] as { month: string; income: number; base_expense: number; monthly_gap: number; accumulated_gap: number }[],
+    debt_stock_total: 0.00
   }
 };

@@ -1,0 +1,274 @@
+name: Deploy Hostinger - Agenor Domestic
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: "SHA exacto validado para despliegue de Agenor Domestic (opcional, por defecto HEAD)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: domestic-production
+  cancel-in-progress: false
+
+env:
+  APP_NAME: agenor-domestic
+  BUILD_DIR: dist
+  DEPLOY_STAGING_DIR: tmp/atomic-deploy
+  NODE_VERSION: "22"
+
+jobs:
+  build-and-deploy:
+    name: Build and deploy SPA
+    if: github.repository == 'Agenor-IT/agenor-domestic'
+    runs-on: ubuntu-latest
+
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      HOSTINGER_SSH_HOST: 195.200.3.12
+      HOSTINGER_SSH_PORT: "65002"
+      HOSTINGER_SSH_USER: u711511061
+      HOSTINGER_SSH_PRIVATE_KEY_FILE: /home/runner/.ssh/domestic_ed25519
+      HOSTINGER_SSH_KNOWN_HOSTS_FILE: /home/runner/.ssh/known_hosts
+      HOSTINGER_TARGET_DIR: /home/u711511061/domains/agenorsoft.app/public_html/domestic
+      HOSTINGER_PRODUCTION_URL: https://domestic.agenorsoft.app
+      DEPLOY_SHA: ${{ inputs.expected_sha || github.sha }}
+      VITE_APP_COMMIT: ${{ inputs.expected_sha || github.sha }}
+      VITE_APP_BRANCH: main
+      VITE_APP_RUN_ID: ${{ github.run_id }}
+
+    steps:
+      - name: Validate publication contract
+        shell: bash
+        run: |
+          if [[ ! "$DEPLOY_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::DEPLOY_SHA must be a full 40-character commit SHA"
+            exit 1
+          fi
+
+          if [[ -n "${{ inputs.expected_sha }}" && "${{ github.sha }}" != "$DEPLOY_SHA" ]]; then
+            echo "::error::Workflow ref does not match DEPLOY_SHA"
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+
+      - name: Verify exact checkout
+        shell: bash
+        run: |
+          actual_sha="$(git rev-parse HEAD)"
+          if [[ "$actual_sha" != "$DEPLOY_SHA" ]]; then
+            echo "::error::Checked-out SHA $actual_sha differs from expected SHA $DEPLOY_SHA"
+            exit 1
+          fi
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Export application version
+        shell: bash
+        run: node -e "console.log('VITE_APP_VERSION=' + require('./package.json').version)" >> "$GITHUB_ENV"
+
+      - name: Automated Tests
+        run: npm run test
+
+      - name: Build
+        run: npm run build
+
+      - name: Validate public environment bundle
+        run: node scripts/validate-public-env-bundle.mjs "$BUILD_DIR"
+
+      - name: Verify generated service worker
+        shell: bash
+        run: |
+          sw="$BUILD_DIR/sw.js"
+
+          if [ ! -f "$sw" ]; then
+            echo "::error::Generated service worker not found at $sw"
+            exit 1
+          fi
+
+          if ! grep -q 'skipWaiting' "$sw"; then
+            echo "::error::sw.js is missing skipWaiting"
+            exit 1
+          fi
+
+      - name: Generate version.json
+        shell: bash
+        run: |
+          mkdir -p "$BUILD_DIR"
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+
+          const buildDir = process.env.BUILD_DIR || 'dist';
+          const version = {
+            app: process.env.APP_NAME || 'agenor-domestic',
+            version: process.env.VITE_APP_VERSION,
+            branch: 'main',
+            commit: process.env.DEPLOY_SHA,
+            run_id: process.env.GITHUB_RUN_ID,
+            source_repository: 'Agenor-IT/agenor-domestic',
+            deployed_at: new Date().toISOString()
+          };
+
+          fs.writeFileSync(
+            path.join(buildDir, 'version.json'),
+            `${JSON.stringify(version, null, 2)}\n`
+          );
+          NODE
+          cat "$BUILD_DIR/version.json"
+
+      - name: Verify expected SHA is still main
+        shell: bash
+        run: |
+          current_sha="$(git ls-remote --exit-code origin refs/heads/main | awk '{print $1}')"
+          if [[ "$current_sha" != "$DEPLOY_SHA" ]]; then
+            echo "::error::main advanced to $current_sha; refusing to deploy stale SHA $DEPLOY_SHA"
+            exit 1
+          fi
+
+      - name: Validate deploy configuration
+        shell: bash
+        env:
+          HOSTINGER_SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          HOSTINGER_SSH_KNOWN_HOSTS: ${{ secrets.HOSTINGER_SSH_KNOWN_HOSTS }}
+        run: |
+          missing=0
+          for name in HOSTINGER_SSH_HOST HOSTINGER_SSH_PORT HOSTINGER_SSH_USER HOSTINGER_TARGET_DIR HOSTINGER_SSH_PRIVATE_KEY HOSTINGER_SSH_KNOWN_HOSTS HOSTINGER_PRODUCTION_URL VITE_SUPABASE_URL VITE_SUPABASE_ANON_KEY; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is required"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+          if [[ "$HOSTINGER_SSH_HOST" != "195.200.3.12" \
+            || "$HOSTINGER_SSH_PORT" != "65002" \
+            || "$HOSTINGER_SSH_USER" != "u711511061" \
+            || "$HOSTINGER_TARGET_DIR" != "/home/u711511061/domains/agenorsoft.app/public_html/domestic" ]]; then
+            echo "::error::SSH destination differs from the verified Hostinger contract"
+            exit 1
+          fi
+
+      - name: Configure pinned SSH client
+        shell: bash
+        env:
+          HOSTINGER_SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          HOSTINGER_SSH_KNOWN_HOSTS: ${{ secrets.HOSTINGER_SSH_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$HOSTINGER_SSH_PRIVATE_KEY" > "$HOSTINGER_SSH_PRIVATE_KEY_FILE"
+          printf '%s\n' "$HOSTINGER_SSH_KNOWN_HOSTS" > "$HOSTINGER_SSH_KNOWN_HOSTS_FILE"
+          chmod 600 "$HOSTINGER_SSH_PRIVATE_KEY_FILE" "$HOSTINGER_SSH_KNOWN_HOSTS_FILE"
+          ssh-keygen -y -f "$HOSTINGER_SSH_PRIVATE_KEY_FILE" >/dev/null
+          ssh-keygen -F "[$HOSTINGER_SSH_HOST]:$HOSTINGER_SSH_PORT" \
+            -f "$HOSTINGER_SSH_KNOWN_HOSTS_FILE" >/dev/null
+
+      - name: Prepare atomic deploy
+        env:
+          DOMESTIC_BUILD_DIR: ${{ env.BUILD_DIR }}
+          DOMESTIC_DEPLOY_STAGING_DIR: ${{ env.DEPLOY_STAGING_DIR }}
+        run: node scripts/prepare-atomic-deploy.mjs
+
+      - name: Verify SSH authentication and production path
+        shell: bash
+        run: bash scripts/deploy-hostinger-ssh.sh check
+
+      - name: Publish Agenor Domestic through pinned SSH
+        id: ssh_deploy
+        shell: bash
+        env:
+          DOMESTIC_BASE_URL: ${{ env.HOSTINGER_PRODUCTION_URL }}
+          DOMESTIC_ASSET_PROPAGATION_DELAY_MS: "15000"
+        run: bash scripts/deploy-hostinger-ssh.sh deploy
+
+      - name: Verify production version
+        shell: bash
+        run: |
+          url="${HOSTINGER_PRODUCTION_URL%/}/version.json"
+          echo "Checking $url"
+          curl --fail --show-error --silent --location "$url?t=$(date +%s)" --output /tmp/domestic-version.json
+          cat /tmp/domestic-version.json
+
+          node <<'NODE'
+          const fs = require('fs');
+
+          const version = JSON.parse(fs.readFileSync('/tmp/domestic-version.json', 'utf8'));
+
+          if (version.commit !== process.env.DEPLOY_SHA) {
+            console.error(`version.json commit mismatch: expected ${process.env.DEPLOY_SHA}, got ${version.commit}`);
+            process.exit(1);
+          }
+
+          for (const key of ['app', 'version', 'branch', 'commit', 'run_id', 'source_repository', 'deployed_at']) {
+            if (!version[key]) {
+              console.error(`version.json missing ${key}`);
+              process.exit(1);
+            }
+          }
+
+          if (version.app !== 'agenor-domestic' || version.source_repository !== 'Agenor-IT/agenor-domestic') {
+            console.error('version.json identifies an unexpected application or source repository');
+            process.exit(1);
+          }
+          NODE
+
+      - name: Verify production cache headers
+        shell: bash
+        run: |
+          base="${HOSTINGER_PRODUCTION_URL%/}"
+
+          check_no_store_header() {
+            local path="$1"
+            local url="${base}${path}"
+            local headers
+            headers="$(mktemp)"
+
+            echo "Checking headers for $url"
+            curl --fail --show-error --silent --head --location "$url" | tee "$headers"
+
+            if ! grep -qi '^cache-control: .*no-cache' "$headers" \
+              || ! grep -qi '^cache-control: .*no-store' "$headers" \
+              || ! grep -qi '^cache-control: .*must-revalidate' "$headers"; then
+              echo "::error::$path must use Cache-Control: no-cache, no-store, must-revalidate"
+              exit 1
+            fi
+
+            if [ "$path" = "/sw.js" ] && ! grep -qi '^service-worker-allowed: */' "$headers"; then
+              echo "::error::sw.js must use Service-Worker-Allowed: /"
+              exit 1
+            fi
+          }
+
+          check_no_store_header "/index.html"
+          check_no_store_header "/sw.js"
+          check_no_store_header "/manifest.webmanifest"
+          check_no_store_header "/version.json"
+
+      - name: Smoke production application
+        env:
+          DOMESTIC_BASE_URL: ${{ env.HOSTINGER_PRODUCTION_URL }}
+          DOMESTIC_EXPECTED_COMMIT: ${{ env.DEPLOY_SHA }}
+        run: node scripts/production-smoke.mjs
+
+      - name: Roll back mutable shell after failed verification
+        if: failure() && steps.ssh_deploy.outcome == 'success'
+        shell: bash
+        run: bash scripts/deploy-hostinger-ssh.sh rollback
