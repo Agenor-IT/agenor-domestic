@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Sidebar } from './presentation/components/Sidebar';
+import { Navbar } from './presentation/components/Navbar';
 import { Header } from './presentation/components/Header';
 import { PageHeader } from './presentation/components/PageHeader';
 import { MainDashboardKPIs } from './presentation/components/MainDashboardKPIs';
@@ -53,6 +54,7 @@ import { PaymentPriority } from './domain/priorities/PaymentPriority';
 export const App: React.FC = () => {
   const { darkMode, toggleDarkMode } = useDarkMode();
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [openingBalance, setOpeningBalance] = useState<number>(0);
   const [ipcRates, setIpcRates] = useState<number[]>(INITIAL_DEFAULT_IPC);
   const [priorities, setPriorities] = useState<PaymentPriority[]>(DEFAULT_PAYMENT_PRIORITIES);
@@ -690,10 +692,20 @@ export const App: React.FC = () => {
         onTabChange={setCurrentTab}
         darkMode={darkMode}
         onToggleDarkMode={toggleDarkMode}
+        mobileOpen={mobileMenuOpen}
+        onCloseMobile={() => setMobileMenuOpen(false)}
       />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <main className="flex-1 p-6 max-w-[1850px] w-full mx-auto">
+        <Navbar
+          currentTab={currentTab}
+          onOpenSidebar={() => setMobileMenuOpen(true)}
+          onOpenNewTransaction={handleOpenNewTransactionModal}
+          darkMode={darkMode}
+          onToggleDarkMode={toggleDarkMode}
+        />
+
+        <main className="flex-1 p-3 sm:p-4 md:p-6 max-w-[1850px] w-full mx-auto">
           {/* MÓDULO HOME */}
           {currentTab === 'dashboard' && (
             <>

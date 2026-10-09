@@ -70,30 +70,30 @@ export const AdjustmentModal: React.FC<AdjustmentModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden transition-all">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4">
+      <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-t-2xl sm:rounded-3xl shadow-2xl max-w-lg w-full max-h-[92dvh] sm:max-h-[90vh] overflow-hidden transition-all flex flex-col">
         {/* HEADER MODAL */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-[#1E293B]/50">
-          <div className="flex items-center gap-3">
-            <div className="bg-[#00A86B] text-white p-2.5 rounded-xl shadow-md">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-[#1E293B]/50 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="bg-[#00A86B] text-white p-2 sm:p-2.5 rounded-xl shadow-md shrink-0">
               <SlidersHorizontal className="w-5 h-5" />
             </div>
-            <div>
-              <h3 className="text-base font-bold text-gray-900 dark:text-white">Nuevo Ajuste Contable</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Reconciliación de saldos en Resultados y Patrimonio</p>
+            <div className="min-w-0">
+              <h3 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white truncate">Nuevo Ajuste Contable</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">Reconciliación de saldos en Resultados y Patrimonio</p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors shrink-0 ml-2"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* CONTENIDO Y FORMULARIO */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
           {successMsg ? (
             <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-2xl flex items-center gap-3 text-emerald-800 dark:text-emerald-300 text-xs font-bold">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
@@ -205,17 +205,17 @@ export const AdjustmentModal: React.FC<AdjustmentModalProps> = ({
               </div>
 
               {/* BOTONES ACCION */}
-              <div className="flex gap-3 pt-3">
+              <div className="flex flex-col-reverse sm:flex-row gap-2.5 sm:gap-3 pt-3">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex-1 py-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                  className="w-full sm:flex-1 py-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold text-xs rounded-xl transition-colors cursor-pointer text-center"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3 bg-[#00A86B] hover:bg-[#008f5b] text-white font-bold text-xs rounded-xl transition-all shadow-md cursor-pointer"
+                  className="w-full sm:flex-1 py-3 bg-[#00A86B] hover:bg-[#008f5b] text-white font-bold text-xs rounded-xl transition-all shadow-md cursor-pointer text-center"
                 >
                   Aplicar Ajuste Contable
                 </button>

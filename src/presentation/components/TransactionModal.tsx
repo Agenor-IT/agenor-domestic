@@ -186,22 +186,22 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-white dark:bg-[#0F172A] rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden border border-gray-200 dark:border-gray-800 transition-all flex flex-col my-8">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 overflow-y-auto">
+      <div className="bg-white dark:bg-[#0F172A] rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-4xl max-h-[92dvh] sm:max-h-[90vh] overflow-hidden border border-gray-200 dark:border-gray-800 transition-all flex flex-col my-0 sm:my-8">
         {/* HEADER AGRANDADO */}
-        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50/80 dark:bg-[#1E293B]">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-[#0088FF]/10 text-[#0088FF] dark:text-blue-400 rounded-xl">
+        <div className="flex justify-between items-center px-4 sm:px-6 py-3.5 sm:py-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50/80 dark:bg-[#1E293B] shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2 sm:p-2.5 bg-[#0088FF]/10 text-[#0088FF] dark:text-blue-400 rounded-xl shrink-0">
               <FileText className="w-5 h-5" />
             </div>
-            <div>
-              <h2 className="text-base font-bold text-[#172033] dark:text-white flex items-center gap-2">
-                <span>
+            <div className="min-w-0">
+              <h2 className="text-sm sm:text-base font-bold text-[#172033] dark:text-white flex items-center gap-2 flex-wrap">
+                <span className="truncate">
                   {mode === 'nuevo' && 'Registrar Operación Contable'}
                   {mode === 'editar' && 'Editar Operación Contable'}
                   {mode === 'ver' && 'Ver Detalle de Operación'}
                 </span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
                   direction === 'income'
                     ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
                     : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
@@ -209,20 +209,20 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                   {direction === 'income' ? 'Ingreso' : 'Egreso'}
                 </span>
               </h2>
-              <p className="text-[11px] text-gray-500 dark:text-gray-400">
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
                 Imputación en Partida Doble y sincronización con el Valor Actual de la estructura
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl text-gray-500 dark:text-gray-400 cursor-pointer"
+            className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl text-gray-500 dark:text-gray-400 cursor-pointer shrink-0 ml-2"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 text-xs">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-5 text-xs overflow-y-auto flex-1">
           {/* SECCIÓN 1: TIPO DE OPERACIÓN Y CONDICIÓN DE PAGO */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -269,13 +269,13 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           </div>
 
           {/* SECCIÓN 2: VÍNCULO CON ESTRUCTURA (COMPRA -> EGRESOS, VENTA -> FUENTES DE INGRESO) */}
-          <div className="bg-gray-50/70 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 rounded-xl p-4 space-y-2.5">
+          <div className="bg-gray-50/70 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 rounded-xl p-3 sm:p-4 space-y-2.5">
             {direction === 'expense' ? (
               <>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                   <label className="text-[11px] font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1.5 uppercase tracking-wider">
-                    <ShoppingCart className="w-4 h-4" />
-                    <span>Concepto / Egreso a Vincular y Actualizar Precio</span>
+                    <ShoppingCart className="w-4 h-4 shrink-0" />
+                    <span>Concepto / Egreso a Vincular</span>
                   </label>
                   <span className="text-[10px] text-gray-500">
                     Sincroniza el Valor Actual en Estructura de Egresos
@@ -301,8 +301,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 </select>
 
                 {selectedExpenseObj && (
-                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300 text-[11px] font-medium animate-in fade-in duration-150">
-                    <Info className="w-4 h-4 shrink-0 text-rose-500" />
+                  <div className="flex items-start sm:items-center gap-2 p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300 text-[11px] font-medium animate-in fade-in duration-150">
+                    <Info className="w-4 h-4 shrink-0 text-rose-500 mt-0.5 sm:mt-0" />
                     <span>
                       Al guardar esta operación, el <strong>Valor Actual</strong> de <strong>"{selectedExpenseObj.supplierName} - {selectedExpenseObj.concept}"</strong> se actualizará al monto ingresado, impactando automáticamente en las proyecciones financieras.
                     </span>
@@ -311,10 +311,10 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               </>
             ) : (
               <>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                   <label className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 uppercase tracking-wider">
-                    <TrendingUp className="w-4 h-4" />
-                    <span>Fuente de Ingreso / Concepto a Vincular y Actualizar</span>
+                    <TrendingUp className="w-4 h-4 shrink-0" />
+                    <span>Fuente de Ingreso / Concepto a Vincular</span>
                   </label>
                   <span className="text-[10px] text-gray-500">
                     Sincroniza el Valor Actual en Fuentes de Ingresos
@@ -336,8 +336,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 </select>
 
                 {selectedVentureObj && (
-                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[11px] font-medium animate-in fade-in duration-150">
-                    <Info className="w-4 h-4 shrink-0 text-emerald-500" />
+                  <div className="flex items-start sm:items-center gap-2 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[11px] font-medium animate-in fade-in duration-150">
+                    <Info className="w-4 h-4 shrink-0 text-emerald-500 mt-0.5 sm:mt-0" />
                     <span>
                       Al guardar esta operación, el <strong>Valor Actual</strong> de <strong>"{selectedVentureObj.clientName} - {selectedVentureObj.projectName}"</strong> se actualizará al monto ingresado, impactando automáticamente en el flujo y proyección de ingresos.
                     </span>
@@ -453,18 +453,18 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           </div>
 
           {/* ACCIONES */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors cursor-pointer"
+              className="w-full sm:w-auto px-5 py-2.5 font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors cursor-pointer text-center"
             >
               Cancelar
             </button>
             {mode !== 'ver' && (
               <button
                 type="submit"
-                className="flex items-center gap-2 px-6 py-2.5 font-bold text-white bg-[#0088FF] hover:bg-[#0077EE] rounded-xl shadow-md transition-all cursor-pointer"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 font-bold text-white bg-[#0088FF] hover:bg-[#0077EE] rounded-xl shadow-md transition-all cursor-pointer"
               >
                 <Save className="w-4 h-4" />
                 <span>Guardar Operación</span>

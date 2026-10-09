@@ -91,12 +91,12 @@ export const ParametersPanel: React.FC<ParametersPanelProps> = ({
   return (
     <div className="space-y-8">
       {/* SECCIÓN 1: CONFIGURACIÓN DE MEDIOS DE PAGO */}
-      <section className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm space-y-6">
+      <section className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-200 dark:border-gray-800 pb-4">
           <div>
-            <h2 className="text-lg font-bold text-[#172033] dark:text-white flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-[#0088FF]" />
-              1. Configuración de Medios de Pago
+            <h2 className="text-base sm:text-lg font-bold text-[#172033] dark:text-white flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-[#0088FF] shrink-0" />
+              <span>1. Configuración de Medios de Pago</span>
             </h2>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
               Administración de cuentas, efectivo, límites de tarjetas, saldos iniciales e imputación contable
@@ -106,7 +106,7 @@ export const ParametersPanel: React.FC<ParametersPanelProps> = ({
           <button
             type="button"
             onClick={handleOpenNuevoModal}
-            className="px-4 py-2.5 bg-[#0088FF] hover:bg-blue-600 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+            className="w-full sm:w-auto px-4 py-2.5 bg-[#0088FF] hover:bg-blue-600 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0 text-center"
           >
             <Plus className="w-4 h-4" />
             <span>Nuevo Medio de Pago</span>
@@ -114,11 +114,11 @@ export const ParametersPanel: React.FC<ParametersPanelProps> = ({
         </div>
 
         {/* TABLA DE MEDIOS DE PAGO CONFIGURADOS */}
-        <div className="overflow-x-auto border border-gray-200 dark:border-gray-800 rounded-xl">
-          <table className="w-full text-left border-collapse">
+        <div className="overflow-x-auto border border-gray-200 dark:border-gray-800 rounded-xl scrollbar-thin">
+          <table className="w-full text-left border-collapse min-w-[680px]">
             <thead>
               <tr className="bg-gray-50 dark:bg-[#1E293B]/60 text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
-                <th className="py-3 px-4">Nombre del Medio</th>
+                <th className="py-3 px-4 sticky left-0 bg-gray-50 dark:bg-[#1E293B] z-10">Nombre del Medio</th>
                 <th className="py-3 px-4">Tipo de Medio</th>
                 <th className="py-3 px-4">Límite Otorgado</th>
                 <th className="py-3 px-4">Disponible / Saldo Inicial</th>
@@ -137,16 +137,16 @@ export const ParametersPanel: React.FC<ParametersPanelProps> = ({
               ) : (
                 paymentMethods.map((pm) => (
                   <tr key={pm.id} className="hover:bg-gray-50/50 dark:hover:bg-[#1E293B]/40 transition-colors">
-                    <td className="py-3 px-4 font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <td className="py-3 px-4 font-bold text-gray-900 dark:text-white flex items-center gap-2 sticky left-0 bg-white dark:bg-[#0F172A] z-10">
                       <div className="p-1.5 bg-gray-100 dark:bg-[#0F172A] rounded-lg shrink-0">
                         {getMethodIcon(pm.type)}
                       </div>
-                      <span>{pm.name}</span>
+                      <span className="truncate">{pm.name}</span>
                     </td>
-                    <td className="py-3 px-4 text-gray-600 dark:text-gray-300 font-medium">
+                    <td className="py-3 px-4 text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">
                       {getMethodTypeName(pm.type)}
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-3 px-4 whitespace-nowrap">
                       {pm.type === 'card' ? (
                         <span className="font-mono text-[11px] font-bold text-amber-600 dark:text-amber-400">
                           $ {(pm.creditLimit || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
@@ -155,12 +155,12 @@ export const ParametersPanel: React.FC<ParametersPanelProps> = ({
                         <span className="text-gray-400 italic text-[11px]">N/A</span>
                       )}
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-3 px-4 whitespace-nowrap">
                       <span className="font-mono text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
                         $ {(pm.type === 'card' ? (pm.initialAvailable ?? pm.creditLimit ?? 0) : (pm.initialBalance || 0)).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                       </span>
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-3 px-4 whitespace-nowrap">
                       {pm.accountCode ? (
                         <span className="font-mono text-[11px] px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-[#0088FF] dark:text-blue-400 rounded-lg border border-blue-200 dark:border-blue-900/50 font-semibold">
                           {pm.accountCode} - {pm.accountName}
@@ -169,7 +169,7 @@ export const ParametersPanel: React.FC<ParametersPanelProps> = ({
                         <span className="text-gray-400 italic text-[11px]">Por defecto del tipo</span>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-center">
+                    <td className="py-3 px-4 text-center whitespace-nowrap">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                         pm.active
                           ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300'
@@ -178,7 +178,7 @@ export const ParametersPanel: React.FC<ParametersPanelProps> = ({
                         {pm.active ? 'Activo' : 'Inactivo'}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-right">
+                    <td className="py-3 px-4 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1">
                         <button
                           type="button"
@@ -231,8 +231,8 @@ export const ParametersPanel: React.FC<ParametersPanelProps> = ({
 
       {/* SECCIÓN 2: PARÁMETROS IPC */}
       <section className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-800">
-          <h2 className="text-lg font-bold text-[#172033] dark:text-white">
+        <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-800">
+          <h2 className="text-base sm:text-lg font-bold text-[#172033] dark:text-white">
             2. Índices de Inflación e IPC Mensual
           </h2>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
@@ -246,8 +246,8 @@ export const ParametersPanel: React.FC<ParametersPanelProps> = ({
           placeholder="Buscar mes o período de inflación IPC..."
         />
 
-        <div className="p-6">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <div className="p-4 sm:p-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-4">
             {filteredRates.map((item) => (
               <div key={item.index} className="bg-gray-50 dark:bg-[#1E293B]/70 border border-gray-200 dark:border-gray-800 rounded-xl p-3 flex flex-col justify-between">
                 <span className="text-xs font-bold text-[#12355b] dark:text-blue-400">{item.month}</span>

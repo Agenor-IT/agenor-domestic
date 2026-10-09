@@ -310,20 +310,20 @@ export const FixedAssetsPanel: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* HEADER DEL MÓDULO BIENES DE USO */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-[#0F172A] p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-[#0F172A] p-4 sm:p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
         <div>
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-indigo-50 dark:bg-indigo-950/50 rounded-xl text-indigo-600 dark:text-indigo-400">
-              <Building2 className="w-6 h-6" />
+            <div className="p-2.5 sm:p-3 bg-indigo-50 dark:bg-indigo-950/50 rounded-xl text-indigo-600 dark:text-indigo-400 shrink-0">
+              <Building2 className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white tracking-tight">
                 Gestión de Bienes de Uso (Activos Fijos)
               </h2>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                Seguimiento de Bienes de Uso, Amortización Acumulada y Asientos Automáticos al Libro Diario
+                Seguimiento de Bienes de Uso, Amortización Acumulada y Asientos al Diario
               </p>
             </div>
           </div>
@@ -331,7 +331,7 @@ export const FixedAssetsPanel: React.FC = () => {
 
         <button
           onClick={handleOpenNewModal}
-          className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>+ Nuevo Bien de Uso</span>
@@ -339,54 +339,54 @@ export const FixedAssetsPanel: React.FC = () => {
       </div>
 
       {/* CARDS DE RESUMEN KPI */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div className="bg-white dark:bg-[#0F172A] p-5 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-5">
+        <div className="bg-white dark:bg-[#0F172A] p-4 sm:p-5 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between">
+          <div className="min-w-0">
+            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block truncate">
               Valor de Origen Total ($)
             </span>
-            <span className="text-2xl font-black text-gray-900 dark:text-white mt-1 block">
+            <span className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white mt-1 block truncate">
               {Money.fromAmount(totalAcquisitionCost).toFormattedString()}
             </span>
-            <span className="text-[11px] text-gray-400 mt-1 block">
-              Costo de adquisición de activos fijos
+            <span className="text-[11px] text-gray-400 mt-1 block truncate">
+              Costo de adquisición de activos
             </span>
           </div>
-          <div className="p-3 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-xl">
+          <div className="p-3 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-xl shrink-0 ml-2">
             <Layers className="w-6 h-6" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-[#0F172A] p-5 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">
+        <div className="bg-white dark:bg-[#0F172A] p-4 sm:p-5 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between">
+          <div className="min-w-0">
+            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block truncate">
               Amortización Acumulada ($)
             </span>
-            <span className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1 block">
+            <span className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 mt-1 block truncate">
               {Money.fromAmount(totalAccumulatedDepreciation).toFormattedString()}
             </span>
-            <span className="text-[11px] text-gray-400 mt-1 block">
-              Depreciación ordinaria regularizadora
+            <span className="text-[11px] text-gray-400 mt-1 block truncate">
+              Depreciación ordinaria
             </span>
           </div>
-          <div className="p-3 bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 rounded-xl">
+          <div className="p-3 bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 rounded-xl shrink-0 ml-2">
             <TrendingDown className="w-6 h-6" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-[#0F172A] p-5 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">
+        <div className="bg-white dark:bg-[#0F172A] p-4 sm:p-5 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between sm:col-span-2 lg:col-span-1">
+          <div className="min-w-0">
+            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block truncate">
               Valor Neto en Libros ($)
             </span>
-            <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 block">
+            <span className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 block truncate">
               {Money.fromAmount(totalNetBookValue).toFormattedString()}
             </span>
-            <span className="text-[11px] text-gray-400 mt-1 block">
-              Valor residual contable actual (RT 17)
+            <span className="text-[11px] text-gray-400 mt-1 block truncate">
+              Valor residual contable actual
             </span>
           </div>
-          <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-xl">
+          <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-xl shrink-0 ml-2">
             <Building2 className="w-6 h-6" />
           </div>
         </div>
@@ -394,8 +394,8 @@ export const FixedAssetsPanel: React.FC = () => {
 
       {/* SECCIÓN DE FILTROS Y TABLA DE BIENES */}
       <div className="bg-white dark:bg-[#0F172A] rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex flex-col md:flex-row justify-between items-center gap-4 bg-gray-50/50 dark:bg-gray-900/30">
-          <div className="relative w-full md:w-80">
+        <div className="p-3.5 sm:p-4 border-b border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4 bg-gray-50/50 dark:bg-gray-900/30">
+          <div className="relative w-full sm:w-72 md:w-80">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
@@ -414,12 +414,12 @@ export const FixedAssetsPanel: React.FC = () => {
             )}
           </div>
 
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            <span className="text-xs text-gray-500 font-medium">Categoría:</span>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <span className="text-xs text-gray-500 font-medium shrink-0">Categoría:</span>
             <select
               value={categoryFilter}
               onChange={e => setCategoryFilter(e.target.value)}
-              className="px-3 py-2 bg-white dark:bg-[#1E293B] border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-900 dark:text-gray-100 outline-none cursor-pointer"
+              className="w-full sm:w-auto px-3 py-2 bg-white dark:bg-[#1E293B] border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-900 dark:text-gray-100 outline-none cursor-pointer"
             >
               <option value="all">Todas las categorías</option>
               <option value="inmuebles">Inmuebles</option>
@@ -433,11 +433,11 @@ export const FixedAssetsPanel: React.FC = () => {
         </div>
 
         {/* TABLA DE BIENES */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+        <div className="overflow-x-auto scrollbar-thin">
+          <table className="w-full text-left text-xs min-w-[780px]">
             <thead className="bg-gray-100/70 dark:bg-[#1E293B]/70 text-gray-600 dark:text-gray-300 font-semibold border-b border-gray-200 dark:border-gray-800">
               <tr>
-                <th className="py-3.5 px-4">Código / Bien</th>
+                <th className="py-3.5 px-4 sticky left-0 bg-gray-100 dark:bg-[#1E293B] z-10">Código / Bien</th>
                 <th className="py-3.5 px-4">Categoría</th>
                 <th className="py-3.5 px-4 text-center">Alta / Vida Útil</th>
                 <th className="py-3.5 px-4 text-right">Valor Origen ($)</th>
@@ -560,18 +560,18 @@ export const FixedAssetsPanel: React.FC = () => {
 
       {/* MODAL: NUEVO O EDITAR BIEN DE USO */}
       {isNewAssetModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-[#0F172A] rounded-2xl max-w-xl w-full p-6 border border-gray-200 dark:border-gray-800 shadow-2xl space-y-4">
-            <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-800">
-              <div className="flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-indigo-600" />
-                <h3 className="text-base font-bold text-gray-900 dark:text-white">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
+          <div className="bg-white dark:bg-[#0F172A] rounded-t-2xl sm:rounded-2xl max-w-xl w-full p-4 sm:p-6 border border-gray-200 dark:border-gray-800 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto flex flex-col">
+            <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-800 shrink-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <Building2 className="w-5 h-5 text-indigo-600 shrink-0" />
+                <h3 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white truncate">
                   {editingAsset ? 'Editar Bien de Uso' : 'Alta de Bien de Uso'}
                 </h3>
               </div>
               <button
                 onClick={() => setIsNewAssetModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 cursor-pointer"
+                className="p-1.5 text-gray-400 hover:text-gray-600 cursor-pointer shrink-0 ml-2"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -579,7 +579,7 @@ export const FixedAssetsPanel: React.FC = () => {
 
             {feedback && (
               <div
-                className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
+                className={`p-3 rounded-xl text-xs flex items-center gap-2 shrink-0 ${
                   feedback.type === 'success'
                     ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300'
                     : 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300'
@@ -594,8 +594,8 @@ export const FixedAssetsPanel: React.FC = () => {
               </div>
             )}
 
-            <form onSubmit={handleCreateOrUpdateAsset} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+            <form onSubmit={handleCreateOrUpdateAsset} className="space-y-4 flex-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 block mb-1">
                     Código Identificador *
@@ -643,7 +643,7 @@ export const FixedAssetsPanel: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 block mb-1">
                     Fecha Alta *
@@ -683,7 +683,7 @@ export const FixedAssetsPanel: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 block mb-1">
                     Valor Rescate / Recuperable ($)
@@ -774,11 +774,11 @@ export const FixedAssetsPanel: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 pt-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsNewAssetModalOpen(false)}
-                  className="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-semibold cursor-pointer"
+                  className="w-full sm:w-auto px-4 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-semibold cursor-pointer text-center"
                 >
                   Cancelar
                 </button>
@@ -786,7 +786,7 @@ export const FixedAssetsPanel: React.FC = () => {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 cursor-pointer flex items-center gap-2"
+                  className="w-full sm:w-auto px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 cursor-pointer flex items-center justify-center gap-2 text-center"
                 >
                   {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   <span>{editingAsset ? 'Guardar Cambios' : 'Guardar Bien de Uso'}</span>
@@ -799,31 +799,31 @@ export const FixedAssetsPanel: React.FC = () => {
 
       {/* MODAL: REGISTRAR AMORTIZACIÓN */}
       {isAmortizeModalOpen && selectedAssetForAmort && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-[#0F172A] rounded-2xl max-w-md w-full p-6 border border-gray-200 dark:border-gray-800 shadow-2xl space-y-4">
-            <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-800">
-              <div className="flex items-center gap-2">
-                <Calculator className="w-5 h-5 text-amber-500" />
-                <h3 className="text-base font-bold text-gray-900 dark:text-white">
-                  Registrar Asiento de Amortización
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
+          <div className="bg-white dark:bg-[#0F172A] rounded-t-2xl sm:rounded-2xl max-w-md w-full p-4 sm:p-6 border border-gray-200 dark:border-gray-800 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto flex flex-col">
+            <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-800 shrink-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <Calculator className="w-5 h-5 text-amber-500 shrink-0" />
+                <h3 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white truncate">
+                  Registrar Amortización
                 </h3>
               </div>
               <button
                 onClick={() => setIsAmortizeModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 cursor-pointer"
+                className="p-1.5 text-gray-400 hover:text-gray-600 cursor-pointer shrink-0 ml-2"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-xl text-xs space-y-1 text-amber-800 dark:text-amber-300">
-              <p className="font-bold">{selectedAssetForAmort.code} - {selectedAssetForAmort.name}</p>
-              <p>Valor Origen: {Money.fromAmount(selectedAssetForAmort.acquisitionCost).toFormattedString()} | Vida Útil: {selectedAssetForAmort.usefulLifeYears} años</p>
+            <div className="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-xl text-xs space-y-1 text-amber-800 dark:text-amber-300 shrink-0">
+              <p className="font-bold truncate">{selectedAssetForAmort.code} - {selectedAssetForAmort.name}</p>
+              <p className="truncate">Valor Origen: {Money.fromAmount(selectedAssetForAmort.acquisitionCost).toFormattedString()} | Vida Útil: {selectedAssetForAmort.usefulLifeYears} años</p>
             </div>
 
             {feedback && (
               <div
-                className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
+                className={`p-3 rounded-xl text-xs flex items-center gap-2 shrink-0 ${
                   feedback.type === 'success'
                     ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300'
                     : 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300'
@@ -838,7 +838,7 @@ export const FixedAssetsPanel: React.FC = () => {
               </div>
             )}
 
-            <form onSubmit={handleApplyAmortization} className="space-y-4">
+            <form onSubmit={handleApplyAmortization} className="space-y-4 flex-1">
               <div>
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 block mb-1">
                   Monto de Amortización a Contabilizar ($) *
@@ -850,7 +850,7 @@ export const FixedAssetsPanel: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 block mb-1">
                     Fecha del Asiento *
@@ -878,11 +878,11 @@ export const FixedAssetsPanel: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 pt-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsAmortizeModalOpen(false)}
-                  className="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-semibold cursor-pointer"
+                  className="w-full sm:w-auto px-4 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-semibold cursor-pointer text-center"
                 >
                   Cancelar
                 </button>
@@ -890,10 +890,10 @@ export const FixedAssetsPanel: React.FC = () => {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold shadow-md shadow-amber-500/20 cursor-pointer flex items-center gap-2"
+                  className="w-full sm:w-auto px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold shadow-md shadow-amber-500/20 cursor-pointer flex items-center justify-center gap-2 text-center"
                 >
                   {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>Confirmar & Registrar Asiento</span>
+                  <span>Confirmar & Registrar</span>
                 </button>
               </div>
             </form>

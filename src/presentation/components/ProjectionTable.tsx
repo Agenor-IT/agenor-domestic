@@ -84,21 +84,21 @@ export const ProjectionTable: React.FC<ProjectionTableProps> = ({
       <React.Fragment key={node.id}>
         <tr className={`border-b border-gray-200 dark:border-gray-800 text-xs transition-colors ${rowBg}`}>
           {/* Concepto (Sticky) */}
-          <td className="sticky left-0 bg-white dark:bg-[#0F172A] z-10 py-2.5 px-3 min-w-[320px] max-w-[380px] shadow-[2px_0_5px_rgba(0,0,0,0.03)] dark:shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
-            <div className="flex items-center gap-1.5" style={{ paddingLeft: `${paddingLeft}px` }}>
+          <td className="sticky left-0 bg-white dark:bg-[#0F172A] z-10 py-2.5 px-2 sm:px-3 min-w-[190px] max-w-[230px] sm:min-w-[320px] sm:max-w-[380px] shadow-[2px_0_5px_rgba(0,0,0,0.03)] dark:shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+            <div className="flex items-center gap-1.5 min-w-0" style={{ paddingLeft: `${paddingLeft}px` }}>
               {hasChildren ? (
                 <button
                   onClick={() => toggleExpand(node.id)}
-                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-800 rounded transition-colors text-gray-500 dark:text-gray-400"
+                  className="shrink-0 p-2 sm:p-1 hover:bg-gray-200 dark:hover:bg-gray-800 rounded transition-colors text-gray-500 dark:text-gray-400"
                 >
                   {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                 </button>
               ) : (
-                <span className="w-5" />
+                <span className="shrink-0 w-[30px] sm:w-5" />
               )}
               <span className="truncate font-medium text-gray-900 dark:text-gray-100">{node.label}</span>
-              {node.status === 'current' && <span className="ml-2 px-1.5 py-0.5 text-[9px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 rounded">SIN MORA</span>}
-              {node.status === 'arrears' && <span className="ml-2 px-1.5 py-0.5 text-[9px] font-bold bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-300 rounded">CON MORA</span>}
+              {node.status === 'current' && <span className="shrink-0 whitespace-nowrap ml-1 sm:ml-2 px-1.5 py-0.5 text-[9px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 rounded">SIN MORA</span>}
+              {node.status === 'arrears' && <span className="shrink-0 whitespace-nowrap ml-1 sm:ml-2 px-1.5 py-0.5 text-[9px] font-bold bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-300 rounded">CON MORA</span>}
             </div>
           </td>
 
@@ -145,7 +145,7 @@ export const ProjectionTable: React.FC<ProjectionTableProps> = ({
 
             const val = (node.origin && node.origin[mIdx]) || 0;
             return (
-              <td key={mIdx} className="py-2.5 px-3 text-right table-cell-num font-medium text-gray-800 dark:text-gray-200 min-w-[110px]">
+              <td key={mIdx} className="py-2.5 px-3 text-right table-cell-num font-medium text-gray-800 dark:text-gray-200 min-w-[110px] whitespace-nowrap">
                 {val === 0 ? '—' : Money.fromAmount(val).toFormattedString()}
               </td>
             );

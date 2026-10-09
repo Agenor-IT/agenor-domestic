@@ -107,20 +107,20 @@ export const FinancialChart: React.FC<FinancialChartProps> = ({
   const pointsNet = chartData.map((d, i) => `${i * itemWidth + itemWidth / 2},${getY(Math.max(0, d.net.toAmount()))}`).join(' ');
 
   return (
-    <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm mb-6">
+    <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-3.5 sm:p-5 lg:p-6 shadow-sm mb-6">
       {/* HEADER DE GRÁFICO Y FILTROS DE PERÍODO */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-100 dark:border-gray-800">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-gray-100 dark:border-gray-800">
         <div>
-          <h2 className="text-lg font-bold text-[#172033] dark:text-white flex items-center gap-2">
-            <LineChart className="w-5 h-5 text-[#0088FF]" />
-            Evolución Financiera (Líneas Dinámicas)
+          <h2 className="text-base sm:text-lg font-bold text-[#172033] dark:text-white flex items-center gap-2">
+            <LineChart className="w-5 h-5 text-[#0088FF] shrink-0" />
+            <span>Evolución Financiera (Líneas Dinámicas)</span>
           </h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Desplazamiento horizontal por período y rango de fechas</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Desplazamiento horizontal por período y rango de fechas</p>
         </div>
 
         {/* SELECTOR DÍA / SEMANA / MES / AÑO / RANGO */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+        <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
+          <div className="flex items-center bg-gray-100 dark:bg-gray-800 p-1 rounded-xl overflow-x-auto max-w-full shrink-0">
             {(['day', 'week', 'month', 'year', 'range'] as PeriodFilterType[]).map((p) => {
               const labels: Record<PeriodFilterType, string> = {
                 day: 'Día',
@@ -173,18 +173,18 @@ export const FinancialChart: React.FC<FinancialChartProps> = ({
           )}
 
           {/* LEYENDA */}
-          <div className="flex items-center gap-4 text-xs font-semibold pl-2">
+          <div className="flex flex-wrap items-center gap-3 text-xs font-semibold pl-1 sm:pl-2">
             <div className="flex items-center gap-1.5 text-[#0f8a5f] dark:text-emerald-400">
-              <span className="w-3 h-3 rounded-full bg-[#0f8a5f] dark:bg-emerald-400" />
-              Ingresos
+              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#0f8a5f] dark:bg-emerald-400 shrink-0" />
+              <span>Ingresos</span>
             </div>
             <div className="flex items-center gap-1.5 text-[#b54747] dark:text-red-400">
-              <span className="w-3 h-3 rounded-full bg-[#b54747] dark:bg-red-400" />
-              Egresos
+              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#b54747] dark:bg-red-400 shrink-0" />
+              <span>Egresos</span>
             </div>
             <div className="flex items-center gap-1.5 text-[#0088FF] dark:text-blue-400">
-              <span className="w-3 h-3 rounded-full bg-[#0088FF] dark:bg-blue-400" />
-              Flujo Neto
+              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#0088FF] dark:bg-blue-400 shrink-0" />
+              <span>Flujo Neto</span>
             </div>
           </div>
         </div>

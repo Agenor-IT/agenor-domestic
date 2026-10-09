@@ -326,20 +326,20 @@ export const InventoryPanel: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* HEADER DEL MÓDULO BIENES DE CAMBIO */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-[#0F172A] p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-[#0F172A] p-4 sm:p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
         <div>
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-blue-50 dark:bg-blue-950/50 rounded-xl text-blue-600 dark:text-blue-400">
-              <Package className="w-6 h-6" />
+            <div className="p-2.5 sm:p-3 bg-blue-50 dark:bg-blue-950/50 rounded-xl text-blue-600 dark:text-blue-400 shrink-0">
+              <Package className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white tracking-tight">
                 Gestión de Bienes de Cambio (Inventarios & Stock)
               </h2>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                Control de Stock, Valuación a Costo de Reposición y Asientos Automáticos de Ventas y CMV
+                Control de Stock, Valuación y Asientos de Ventas y CMV
               </p>
             </div>
           </div>
@@ -347,62 +347,62 @@ export const InventoryPanel: React.FC = () => {
 
         <button
           onClick={handleOpenNewModal}
-          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 transition-all cursor-pointer"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 transition-all cursor-pointer"
         >
           <Plus className="w-4 h-4" />
-          <span>+ Nuevo Producto / Mercadería</span>
+          <span>+ Nuevo Producto</span>
         </button>
       </div>
 
       {/* CARDS KPI */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div className="bg-white dark:bg-[#0F172A] p-5 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-5">
+        <div className="bg-white dark:bg-[#0F172A] p-4 sm:p-5 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between">
+          <div className="min-w-0">
+            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block truncate">
               Valuación Total Inventario ($)
             </span>
-            <span className="text-2xl font-black text-gray-900 dark:text-white mt-1 block">
+            <span className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white mt-1 block truncate">
               {Money.fromAmount(totalInventoryValuation).toFormattedString()}
             </span>
-            <span className="text-[11px] text-gray-400 mt-1 block">
+            <span className="text-[11px] text-gray-400 mt-1 block truncate">
               Total mercaderías a precio de costo
             </span>
           </div>
-          <div className="p-3 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-xl">
+          <div className="p-3 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-xl shrink-0 ml-2">
             <Boxes className="w-6 h-6" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-[#0F172A] p-5 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">
+        <div className="bg-white dark:bg-[#0F172A] p-4 sm:p-5 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between">
+          <div className="min-w-0">
+            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block truncate">
               Stock Total en Almacén
             </span>
-            <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1 block">
+            <span className="text-xl sm:text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1 block truncate">
               {totalStockUnits.toLocaleString()} unidades
             </span>
-            <span className="text-[11px] text-gray-400 mt-1 block">
+            <span className="text-[11px] text-gray-400 mt-1 block truncate">
               Unidades físicas disponibles
             </span>
           </div>
-          <div className="p-3 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-xl">
+          <div className="p-3 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-xl shrink-0 ml-2">
             <Package className="w-6 h-6" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-[#0F172A] p-5 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">
+        <div className="bg-white dark:bg-[#0F172A] p-4 sm:p-5 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between sm:col-span-2 lg:col-span-1">
+          <div className="min-w-0">
+            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block truncate">
               Alertas de Stock Mínimo
             </span>
-            <span className={`text-2xl font-black mt-1 block ${lowStockCount > 0 ? 'text-amber-500' : 'text-emerald-500'}`}>
+            <span className={`text-xl sm:text-2xl font-black mt-1 block truncate ${lowStockCount > 0 ? 'text-amber-500' : 'text-emerald-500'}`}>
               {lowStockCount} artículos
             </span>
-            <span className="text-[11px] text-gray-400 mt-1 block">
-              {lowStockCount > 0 ? 'Requieren reposición de compra' : 'Niveles de stock óptimos'}
+            <span className="text-[11px] text-gray-400 mt-1 block truncate">
+              {lowStockCount > 0 ? 'Requieren reposición' : 'Stock óptimo'}
             </span>
           </div>
-          <div className={`p-3 rounded-xl ${lowStockCount > 0 ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400'}`}>
+          <div className={`p-3 rounded-xl shrink-0 ml-2 ${lowStockCount > 0 ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400'}`}>
             <AlertTriangle className="w-6 h-6" />
           </div>
         </div>
@@ -410,8 +410,8 @@ export const InventoryPanel: React.FC = () => {
 
       {/* TABLA DE PRODUCTOS */}
       <div className="bg-white dark:bg-[#0F172A] rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex flex-col md:flex-row justify-between items-center gap-4 bg-gray-50/50 dark:bg-gray-900/30">
-          <div className="relative w-full md:w-80">
+        <div className="p-3.5 sm:p-4 border-b border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4 bg-gray-50/50 dark:bg-gray-900/30">
+          <div className="relative w-full sm:w-72 md:w-80">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
@@ -431,11 +431,11 @@ export const InventoryPanel: React.FC = () => {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+        <div className="overflow-x-auto scrollbar-thin">
+          <table className="w-full text-left text-xs min-w-[760px]">
             <thead className="bg-gray-100/70 dark:bg-[#1E293B]/70 text-gray-600 dark:text-gray-300 font-semibold border-b border-gray-200 dark:border-gray-800">
               <tr>
-                <th className="py-3.5 px-4">SKU / Producto</th>
+                <th className="py-3.5 px-4 sticky left-0 bg-gray-100 dark:bg-[#1E293B] z-10">SKU / Producto</th>
                 <th className="py-3.5 px-4">Categoría</th>
                 <th className="py-3.5 px-4 text-center">Stock Actual</th>
                 <th className="py-3.5 px-4 text-right">Costo Unit. ($)</th>
@@ -547,23 +547,23 @@ export const InventoryPanel: React.FC = () => {
 
       {/* MODAL NUEVO / EDITAR PRODUCTO */}
       {isNewItemModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-[#0F172A] rounded-2xl max-w-xl w-full p-6 border border-gray-200 dark:border-gray-800 shadow-2xl space-y-4">
-            <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-800">
-              <div className="flex items-center gap-2">
-                <Package className="w-5 h-5 text-blue-600" />
-                <h3 className="text-base font-bold text-gray-900 dark:text-white">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
+          <div className="bg-white dark:bg-[#0F172A] rounded-t-2xl sm:rounded-2xl max-w-xl w-full p-4 sm:p-6 border border-gray-200 dark:border-gray-800 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto flex flex-col">
+            <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-800 shrink-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <Package className="w-5 h-5 text-blue-600 shrink-0" />
+                <h3 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white truncate">
                   {editingItem ? 'Editar Producto / Mercadería' : 'Alta de Producto / Mercadería'}
                 </h3>
               </div>
-              <button onClick={() => setIsNewItemModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setIsNewItemModalOpen(false)} className="p-1.5 text-gray-400 hover:text-gray-600 cursor-pointer shrink-0 ml-2">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {feedback && (
               <div
-                className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
+                className={`p-3 rounded-xl text-xs flex items-center gap-2 shrink-0 ${
                   feedback.type === 'success'
                     ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300'
                     : 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300'
@@ -578,8 +578,8 @@ export const InventoryPanel: React.FC = () => {
               </div>
             )}
 
-            <form onSubmit={handleCreateOrUpdateItem} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+            <form onSubmit={handleCreateOrUpdateItem} className="space-y-4 flex-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 block mb-1">SKU *</label>
                   <input
@@ -619,7 +619,7 @@ export const InventoryPanel: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 block mb-1">Unidad Medida</label>
                   <input
@@ -649,7 +649,7 @@ export const InventoryPanel: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 block mb-1">Costo Unitario ($)</label>
                   <FormattedNumberInput
@@ -733,18 +733,18 @@ export const InventoryPanel: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 pt-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsNewItemModalOpen(false)}
-                  className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-semibold"
+                  className="w-full sm:w-auto px-4 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-semibold cursor-pointer text-center"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 flex items-center gap-2"
+                  className="w-full sm:w-auto px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 cursor-pointer text-center"
                 >
                   {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   <span>{editingItem ? 'Guardar Cambios' : 'Guardar Producto'}</span>
@@ -757,36 +757,36 @@ export const InventoryPanel: React.FC = () => {
 
       {/* MODAL REGISTRAR MOVIMIENTO (COMPRA / VENTA) */}
       {isMovementModalOpen && selectedItemForMovement && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-[#0F172A] rounded-2xl max-w-md w-full p-6 border border-gray-200 dark:border-gray-800 shadow-2xl space-y-4">
-            <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-800">
-              <div className="flex items-center gap-2">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
+          <div className="bg-white dark:bg-[#0F172A] rounded-t-2xl sm:rounded-2xl max-w-md w-full p-4 sm:p-6 border border-gray-200 dark:border-gray-800 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto flex flex-col">
+            <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-800 shrink-0">
+              <div className="flex items-center gap-2 min-w-0">
                 {movementType === 'purchase' ? (
-                  <ArrowDownLeft className="w-5 h-5 text-emerald-600" />
+                  <ArrowDownLeft className="w-5 h-5 text-emerald-600 shrink-0" />
                 ) : (
-                  <ArrowUpRight className="w-5 h-5 text-indigo-600" />
+                  <ArrowUpRight className="w-5 h-5 text-indigo-600 shrink-0" />
                 )}
-                <h3 className="text-base font-bold text-gray-900 dark:text-white">
-                  Registrar {movementType === 'purchase' ? 'Compra de Stock' : 'Venta & Devengamiento CMV'}
+                <h3 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white truncate">
+                  Registrar {movementType === 'purchase' ? 'Compra de Stock' : 'Venta & CMV'}
                 </h3>
               </div>
-              <button onClick={() => setIsMovementModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setIsMovementModalOpen(false)} className="p-1.5 text-gray-400 hover:text-gray-600 cursor-pointer shrink-0 ml-2">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-3 bg-gray-50 dark:bg-gray-900/60 rounded-xl text-xs space-y-1">
-              <p className="font-bold text-gray-900 dark:text-white">
+            <div className="p-3 bg-gray-50 dark:bg-gray-900/60 rounded-xl text-xs space-y-1 shrink-0">
+              <p className="font-bold text-gray-900 dark:text-white truncate">
                 {selectedItemForMovement.sku} - {selectedItemForMovement.name}
               </p>
-              <p className="text-gray-500">
+              <p className="text-gray-500 truncate">
                 Stock actual: {selectedItemForMovement.currentStock} {selectedItemForMovement.unitMeasure} | Costo Reposición: {Money.fromAmount(selectedItemForMovement.unitCost).toFormattedString()}
               </p>
             </div>
 
             {feedback && (
               <div
-                className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
+                className={`p-3 rounded-xl text-xs flex items-center gap-2 shrink-0 ${
                   feedback.type === 'success'
                     ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300'
                     : 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300'
@@ -801,8 +801,8 @@ export const InventoryPanel: React.FC = () => {
               </div>
             )}
 
-            <form onSubmit={handleRecordMovement} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+            <form onSubmit={handleRecordMovement} className="space-y-4 flex-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 block mb-1">
                     Cantidad ({selectedItemForMovement.unitMeasure}) *
@@ -856,18 +856,18 @@ export const InventoryPanel: React.FC = () => {
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 pt-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsMovementModalOpen(false)}
-                  className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-semibold"
+                  className="w-full sm:w-auto px-4 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-semibold cursor-pointer text-center"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className={`px-4 py-2 text-white rounded-xl text-xs font-bold shadow-md flex items-center gap-2 ${
+                  className={`w-full sm:w-auto px-4 py-2.5 text-white rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-2 cursor-pointer text-center ${
                     movementType === 'purchase'
                       ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
                       : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/20'

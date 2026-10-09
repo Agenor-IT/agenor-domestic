@@ -682,11 +682,11 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
       {/* SECCIÓN PRINCIPAL: BUSQUEDA, FILTROS Y TABLA */}
       <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm overflow-hidden">
         {/* SEGMENTED TAB SELECTOR: TODOS / DOMÉSTICOS / EMPRENDIMIENTO / EXTRAORDINARIOS */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex bg-gray-200/80 dark:bg-gray-800 p-1 rounded-xl">
+        <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex bg-gray-200/80 dark:bg-gray-800 p-1 rounded-xl overflow-x-auto max-w-full scrollbar-none">
             <button
               onClick={() => { setActiveSourceTab('todos'); setCurrentPage(1); }}
-              className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+              className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 activeSourceTab === 'todos'
                   ? 'bg-rose-600 text-white shadow-sm'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
@@ -696,35 +696,35 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
             </button>
             <button
               onClick={() => { setActiveSourceTab('domestico'); setCurrentPage(1); }}
-              className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
                 activeSourceTab === 'domestico'
                   ? 'bg-amber-600 text-white shadow-sm'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
-              <Home className="w-3.5 h-3.5" />
+              <Home className="w-3.5 h-3.5 shrink-0" />
               Domésticos ({tabCounts.domestico})
             </button>
             <button
               onClick={() => { setActiveSourceTab('emprendimiento'); setCurrentPage(1); }}
-              className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
                 activeSourceTab === 'emprendimiento'
                   ? 'bg-blue-600 text-white shadow-sm'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
-              <Briefcase className="w-3.5 h-3.5" />
+              <Briefcase className="w-3.5 h-3.5 shrink-0" />
               Emprendimiento ({tabCounts.emprendimiento})
             </button>
             <button
               onClick={() => { setActiveSourceTab('extraordinario'); setCurrentPage(1); }}
-              className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
                 activeSourceTab === 'extraordinario'
                   ? 'bg-purple-600 text-white shadow-sm'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5" />
+              <Sparkles className="w-3.5 h-3.5 shrink-0" />
               Extraordinarios ({tabCounts.extraordinario})
             </button>
           </div>
@@ -1060,10 +1060,10 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
 
       {/* MODAL NUEVO / EDITAR EGRESO */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl w-full max-w-4xl max-h-[calc(100vh-2rem)] shadow-2xl overflow-hidden flex flex-col">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-t-2xl sm:rounded-2xl w-full max-w-4xl max-h-[92dvh] sm:max-h-[calc(100vh-2rem)] shadow-2xl overflow-hidden flex flex-col">
             {/* MODAL HEADER */}
-            <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/40">
+            <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/40">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-rose-500/10 text-rose-600 rounded-xl">
                   <Receipt className="w-5 h-5" />
@@ -1371,11 +1371,11 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
               </div>
 
               {/* FOOTER ACCIONES */}
-              <div className="pt-4 border-t border-gray-200 dark:border-gray-800 flex items-center justify-end gap-3">
+              <div className="pt-4 border-t border-gray-200 dark:border-gray-800 flex flex-col-reverse sm:flex-row items-center justify-end gap-2.5 sm:gap-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-bold hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                  className="w-full sm:w-auto px-4 py-2.5 sm:py-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-bold hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer text-center"
                 >
                   {modalMode === 'ver' ? 'Cerrar' : 'Cancelar'}
                 </button>
@@ -1383,7 +1383,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                    className="w-full sm:w-auto px-5 py-2.5 sm:py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                   >
                     {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                     <span>{modalMode === 'nuevo' ? 'Crear Egreso' : 'Guardar Cambios'}</span>

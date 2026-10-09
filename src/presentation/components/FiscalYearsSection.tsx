@@ -351,8 +351,8 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
 
       {/* MODAL CONFIGURACIÓN DE SALDOS INICIALES Y ASIENTO DE APERTURA */}
       {isOpeningModalOpen && openingTargetYear && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl space-y-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 max-w-2xl w-full max-h-[92dvh] sm:max-h-[90vh] flex flex-col shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-3">
               <div>
                 <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -396,8 +396,8 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
             </div>
 
             {/* LISTADO DE CUENTAS PATRIMONIALES CON INPUT */}
-            <div className="flex-1 overflow-y-auto max-h-[50vh] space-y-2 pr-1">
-              <table className="w-full text-xs text-left">
+            <div className="flex-1 overflow-y-auto overflow-x-auto max-h-[50vh] space-y-2 pr-1">
+              <table className="w-full min-w-[500px] text-xs text-left">
                 <thead className="bg-gray-50 dark:bg-[#1E293B] text-gray-500 dark:text-gray-400 sticky top-0 uppercase font-bold text-[10px]">
                   <tr>
                     <th className="py-2 px-3">Código / Cuenta</th>
@@ -509,8 +509,8 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
 
       {/* MODAL CREAR NUEVO EJERCICIO */}
       {isNewModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-6 max-w-md w-full shadow-xl space-y-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 max-w-md w-full shadow-xl space-y-4">
             <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
               <Calendar className="w-5 h-5 text-[#0088FF]" />
               Abrir Nuevo Ejercicio Económico
@@ -582,8 +582,8 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
 
       {/* MODAL CONFIRMACIÓN REFUNDICIÓN DE RESULTADOS */}
       {closingYearTarget && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 w-full sm:max-w-lg max-h-[100dvh] sm:max-h-[90vh] overflow-y-auto shadow-2xl space-y-4">
             <div className="flex items-center gap-3 text-rose-600 dark:text-rose-400">
               <RotateCcw className="w-6 h-6 shrink-0" />
               <h3 className="text-base font-bold text-gray-900 dark:text-white">

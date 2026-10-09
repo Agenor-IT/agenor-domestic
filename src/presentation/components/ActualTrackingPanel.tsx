@@ -337,90 +337,90 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
   return (
     <div className="space-y-8">
       {/* NAVEGADOR DE SECCIONES (ESTADOS FINANCIEROS, LIBRO DIARIO Y LIBRO MAYOR) */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-2 bg-gray-200/80 dark:bg-[#1E293B] rounded-2xl">
-        <div className="flex flex-wrap gap-2">
+      <div className="p-1.5 sm:p-2 bg-gray-200/80 dark:bg-[#1E293B] rounded-2xl overflow-hidden">
+        <div className="flex overflow-x-auto scrollbar-none gap-1.5 sm:gap-2 pb-0.5 sm:pb-0">
           <button
             onClick={() => setActiveSection('all')}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeSection === 'all'
                 ? 'bg-[#12355b] dark:bg-[#0088FF] text-white shadow-md'
                 : 'text-gray-700 dark:text-gray-300 hover:bg-gray-300/50 dark:hover:bg-gray-800'
             }`}
           >
-            <PieChart className="w-4 h-4" />
+            <PieChart className="w-4 h-4 shrink-0" />
             <span>Vista Completa</span>
           </button>
 
           <button
             onClick={() => setActiveSection('results')}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeSection === 'results'
                 ? 'bg-[#12355b] dark:bg-[#0088FF] text-white shadow-md'
                 : 'text-gray-700 dark:text-gray-300 hover:bg-gray-300/50 dark:hover:bg-gray-800'
             }`}
           >
-            <Receipt className="w-4 h-4" />
-            <span>1. Estado de Resultados</span>
+            <Receipt className="w-4 h-4 shrink-0" />
+            <span>1. Resultados</span>
           </button>
 
           <button
             onClick={() => setActiveSection('balance')}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeSection === 'balance'
                 ? 'bg-[#12355b] dark:bg-[#0088FF] text-white shadow-md'
                 : 'text-gray-700 dark:text-gray-300 hover:bg-gray-300/50 dark:hover:bg-gray-800'
             }`}
           >
-            <Landmark className="w-4 h-4" />
-            <span>2. Situación Patrimonial</span>
+            <Landmark className="w-4 h-4 shrink-0" />
+            <span>2. Balance</span>
           </button>
 
           <button
             onClick={() => setActiveSection('journal')}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeSection === 'journal'
                 ? 'bg-[#12355b] dark:bg-[#0088FF] text-white shadow-md'
                 : 'text-gray-700 dark:text-gray-300 hover:bg-gray-300/50 dark:hover:bg-gray-800'
             }`}
           >
-            <BookOpen className="w-4 h-4" />
+            <BookOpen className="w-4 h-4 shrink-0" />
             <span>3. Libro Diario</span>
           </button>
 
           <button
             onClick={() => setActiveSection('ledger')}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeSection === 'ledger'
                 ? 'bg-[#12355b] dark:bg-[#0088FF] text-white shadow-md'
                 : 'text-gray-700 dark:text-gray-300 hover:bg-gray-300/50 dark:hover:bg-gray-800'
             }`}
           >
-            <FileSpreadsheet className="w-4 h-4" />
+            <FileSpreadsheet className="w-4 h-4 shrink-0" />
             <span>4. Libro Mayor</span>
           </button>
 
           <button
             onClick={() => setActiveSection('chart_of_accounts')}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeSection === 'chart_of_accounts'
                 ? 'bg-[#12355b] dark:bg-[#0088FF] text-white shadow-md'
                 : 'text-gray-700 dark:text-gray-300 hover:bg-gray-300/50 dark:hover:bg-gray-800'
             }`}
           >
-            <ListTree className="w-4 h-4" />
+            <ListTree className="w-4 h-4 shrink-0" />
             <span>5. Plan de Cuentas</span>
           </button>
 
           <button
             onClick={() => setActiveSection('proyeccion')}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeSection === 'proyeccion'
                 ? 'bg-[#12355b] dark:bg-[#0088FF] text-white shadow-md'
                 : 'text-gray-700 dark:text-gray-300 hover:bg-gray-300/50 dark:hover:bg-gray-800'
             }`}
           >
-            <TableProperties className="w-4 h-4" />
-            <span>6. Proyección & Flujo</span>
+            <TableProperties className="w-4 h-4 shrink-0" />
+            <span>6. Proyección</span>
           </button>
         </div>
       </div>
@@ -1118,11 +1118,11 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
             placeholder="Buscar por N° asiento, concepto o cuenta contable..."
           />
 
-          <div className="overflow-x-auto border border-gray-200 dark:border-gray-800 rounded-xl">
-            <table className="w-full text-left border-collapse">
+          <div className="overflow-x-auto border border-gray-200 dark:border-gray-800 rounded-xl scrollbar-thin">
+            <table className="w-full text-left border-collapse min-w-[700px]">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-800 bg-gray-100/70 dark:bg-[#1E293B] text-[11px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                  <th className="py-3 px-4">N° Asiento</th>
+                  <th className="py-3 px-4 sticky left-0 bg-gray-100 dark:bg-[#1E293B] z-10">N° Asiento</th>
                   <th className="py-3 px-4">Fecha</th>
                   <th className="py-3 px-4">Concepto / Leyenda</th>
                   <th className="py-3 px-4">Cuentas Involucradas (Debe / Haber)</th>
@@ -1140,7 +1140,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                 ) : (
                   filteredJournalEntries.map((entry) => (
                     <tr key={entry.id} className="hover:bg-gray-50/80 dark:hover:bg-[#1E293B]/50 transition-colors">
-                      <td className="py-3 px-4 font-bold text-[#12355b] dark:text-blue-400 whitespace-nowrap">
+                      <td className="py-3 px-4 font-bold text-[#12355b] dark:text-blue-400 whitespace-nowrap sticky left-0 bg-white dark:bg-[#0F172A] z-10">
                         {entry.id}
                       </td>
                       <td className="py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
@@ -1290,11 +1290,11 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
             placeholder={`Buscar movimiento en mayor de ${currentLedgerAccount.name}...`}
           />
 
-          <div className="overflow-x-auto border border-gray-200 dark:border-gray-800 rounded-xl">
-            <table className="w-full text-left border-collapse">
+          <div className="overflow-x-auto border border-gray-200 dark:border-gray-800 rounded-xl scrollbar-thin">
+            <table className="w-full text-left border-collapse min-w-[700px]">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-800 bg-gray-100/70 dark:bg-[#1E293B] text-[11px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                  <th className="py-3 px-4">Fecha</th>
+                  <th className="py-3 px-4 sticky left-0 bg-gray-100 dark:bg-[#1E293B] z-10">Fecha</th>
                   <th className="py-3 px-4">N° Asiento</th>
                   <th className="py-3 px-4">Concepto / Leyenda</th>
                   <th className="py-3 px-4">Contrapartida</th>
@@ -1605,11 +1605,11 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
           )}
 
           {/* TABLA PLAN DE CUENTAS */}
-          <div className="overflow-x-auto border border-gray-200 dark:border-gray-800 rounded-xl">
-            <table className="w-full text-left border-collapse">
+          <div className="overflow-x-auto border border-gray-200 dark:border-gray-800 rounded-xl scrollbar-thin">
+            <table className="w-full text-left border-collapse min-w-[750px]">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-800 bg-gray-100/70 dark:bg-[#1E293B] text-[11px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                  <th className="py-3 px-4">Código</th>
+                  <th className="py-3 px-4 sticky left-0 bg-gray-100 dark:bg-[#1E293B] z-10">Código</th>
                   <th className="py-3 px-4">Nombre de la Cuenta Contable</th>
                   <th className="py-3 px-4">Subrubro / Clasificación</th>
                   <th className="py-3 px-4">Rubro / Grupo</th>
@@ -1644,7 +1644,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                         key={acc.id}
                         className="hover:bg-blue-50/60 dark:hover:bg-blue-950/40 transition-colors"
                       >
-                        <td className="py-3.5 px-4 font-bold text-[#12355b] dark:text-blue-400 whitespace-nowrap">
+                        <td className="py-3.5 px-4 font-bold text-[#12355b] dark:text-blue-400 whitespace-nowrap sticky left-0 bg-white dark:bg-[#0F172A] z-10">
                           {acc.code}
                         </td>
                         <td className="py-3.5 px-4 font-bold text-gray-900 dark:text-white">
@@ -1730,11 +1730,11 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
 
       {/* MODAL EDITAR CUENTA CONTABLE */}
       {editingAccount && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Pencil className="w-5 h-5 text-amber-500" />
-              Editar Cuenta Contable
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 max-w-md w-full max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto shadow-2xl space-y-4 flex flex-col">
+            <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2 shrink-0">
+              <Pencil className="w-5 h-5 text-amber-500 shrink-0" />
+              <span>Editar Cuenta Contable</span>
             </h3>
 
             <form
@@ -1748,7 +1748,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                   alert(err.message || 'Error al actualizar cuenta contable');
                 }
               }}
-              className="space-y-3"
+              className="space-y-3 flex-1"
             >
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Código Nomenclador</label>
@@ -1795,17 +1795,17 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                 </select>
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-gray-200 dark:border-gray-800">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-2 pt-3 border-t border-gray-200 dark:border-gray-800 shrink-0">
                 <button
                   type="button"
                   onClick={() => setEditingAccount(null)}
-                  className="px-4 py-2 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800"
+                  className="w-full sm:w-auto px-4 py-2.5 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer text-center"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-sm cursor-pointer"
+                  className="w-full sm:w-auto px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-sm cursor-pointer text-center"
                 >
                   Guardar Cambios
                 </button>
@@ -1817,8 +1817,8 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
 
       {/* MODAL CONFIRMACIÓN ELIMINAR CUENTA CONTABLE */}
       {deletingAccount && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 max-w-md w-full shadow-2xl space-y-4">
             <div className="flex items-center gap-3 text-rose-600">
               <AlertTriangle className="w-6 h-6 shrink-0" />
               <h3 className="text-base font-bold text-gray-900 dark:text-white">
@@ -1834,11 +1834,11 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
               Esta cuenta no registra saldos ni movimientos contables. Se desactivará del Plan de Cuentas.
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-gray-200 dark:border-gray-800">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-2 pt-2 border-t border-gray-200 dark:border-gray-800">
               <button
                 type="button"
                 onClick={() => setDeletingAccount(null)}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="w-full sm:w-auto px-4 py-2.5 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer text-center"
               >
                 Cancelar
               </button>
@@ -1853,7 +1853,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                     alert(err.message || 'Error al eliminar cuenta contable');
                   }
                 }}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-sm cursor-pointer"
+                className="w-full sm:w-auto px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-sm cursor-pointer text-center"
               >
                 Eliminar Cuenta
               </button>

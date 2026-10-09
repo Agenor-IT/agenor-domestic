@@ -104,27 +104,27 @@ export const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
   const implicitDebt = Math.max(0, creditLimit - initialAvailable);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
-      <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-6 relative animate-in fade-in zoom-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 overflow-y-auto">
+      <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-t-2xl sm:rounded-2xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-6 relative animate-in fade-in zoom-in duration-150 max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto flex flex-col">
         
         {/* HEADER MODAL */}
-        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-blue-50 dark:bg-blue-950/60 text-[#0088FF] rounded-xl">
+        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-3 sm:pb-4 shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="p-2 bg-blue-50 dark:bg-blue-950/60 text-[#0088FF] rounded-xl shrink-0">
               <CreditCard className="w-5 h-5" />
             </div>
-            <div>
-              <h3 className="text-base font-bold text-[#172033] dark:text-white">
+            <div className="min-w-0">
+              <h3 className="text-sm sm:text-base font-bold text-[#172033] dark:text-white truncate">
                 {getTitle()}
               </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                Configuración del canal financiero, límite otorgado, disponible e imputación contable
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                Configuración del canal financiero e imputación contable
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors shrink-0 ml-2"
           >
             <X className="w-5 h-5" />
           </button>
@@ -258,11 +258,11 @@ export const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
           </div>
 
           {/* ACCIONES FOOTER */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
+          <div className="flex flex-col-reverse sm:flex-row items-center sm:justify-end gap-2.5 sm:gap-3 pt-4 border-t border-gray-200 dark:border-gray-800 shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors cursor-pointer"
+              className="w-full sm:w-auto px-4 py-2.5 text-xs font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors cursor-pointer text-center"
             >
               {mode === 'ver' ? 'Cerrar' : 'Cancelar'}
             </button>
@@ -270,7 +270,7 @@ export const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
             {mode !== 'ver' && (
               <button
                 type="submit"
-                className="px-4 py-2 bg-[#0088FF] hover:bg-blue-600 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                className="w-full sm:w-auto px-4 py-2.5 bg-[#0088FF] hover:bg-blue-600 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center"
               >
                 <Save className="w-4 h-4" />
                 <span>Guardar Medio</span>
