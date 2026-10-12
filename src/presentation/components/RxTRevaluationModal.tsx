@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { X, TrendingUp, TrendingDown, Calculator, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { X, TrendingUp, TrendingDown, Calculator, CheckCircle2, AlertCircle, Loader2, Search } from 'lucide-react';
 import { SupabaseDomAccountingRepository } from '../../infrastructure/SupabaseDomAccountingRepository';
 import { DomAccountDTO } from '../../domain/repositories/IAccountingRepository';
 import { Money } from '../../domain/shared/Money';
@@ -11,6 +11,9 @@ interface RxTRevaluationModalProps {
   accounts: DomAccountDTO[];
   onSuccess?: () => void;
 }
+
+const normalizeAccountSearch = (value: string) =>
+  value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es-AR').trim();
 
 export const RxTRevaluationModal: React.FC<RxTRevaluationModalProps> = ({
   isOpen,
@@ -25,10 +28,11 @@ export const RxTRevaluationModal: React.FC<RxTRevaluationModalProps> = ({
     return accounts.filter(a => a.kind === 'asset');
   }, [accounts]);
 
-  const [selectedAccountId, setSelectedAccountId] = useState<number>(() => {
-    const usdAcc = assetAccounts.find(a => a.code === '1.1.02.03') || assetAccounts[0];
-    return usdAcc ? usdAcc.id : 0;
-  });
+  const [selectedAccountId, setSelectedAccountId] = useState<number | null>(null);
+  const [accountQuery, setAccountQuery] = useState('');
+  const [accountListOpen, setAccountListOpen] = useState(false);
+  const [activeAccountIndex, setActiveAccountIndex] = useState(-1);
+  const accountPickerRef = useRef<HTMLDivElement>(null);
 
   const [unitsCount, setUnitsCount] = useState<number>(1000);
   const [unitRate, setUnitRate] = useState<number>(1350);
@@ -38,22 +42,54 @@ export const RxTRevaluationModal: React.FC<RxTRevaluationModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    setSelectedAccountId(null);
+    setAccountQuery('');
+    setAccountListOpen(false);
+    setActiveAccountIndex(-1);
+    setFeedback(null);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !accountListOpen) return;
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      if (!accountPickerRef.current?.contains(event.target as Node)) setAccountListOpen(false);
+    };
+    document.addEventListener('pointerdown', closeOnOutsideClick);
+    return () => document.removeEventListener('pointerdown', closeOnOutsideClick);
+  }, [isOpen, accountListOpen]);
+
   if (!isOpen) return null;
 
-  const currentAccount = assetAccounts.find(a => a.id === selectedAccountId) || assetAccounts[0];
+  const currentAccount = assetAccounts.find(a => a.id === selectedAccountId);
   const bookBalance = currentAccount ? currentAccount.currentBalance : 0;
+  const normalizedQuery = normalizeAccountSearch(accountQuery);
+  const filteredAccounts = assetAccounts.filter(account =>
+    normalizeAccountSearch(`${account.code} ${account.name}`).includes(normalizedQuery)
+  );
+  const chooseAccount = (account: DomAccountDTO) => {
+    setSelectedAccountId(account.id);
+    setAccountQuery('');
+    setAccountListOpen(false);
+    setActiveAccountIndex(-1);
+    setFeedback(null);
+  };
 
   // Calculate Market Target Value
   const calculatedMarketValue = useUnitCalculator
     ? (unitsCount || 0) * (unitRate || 0)
     : (targetTotalValue || 0);
 
-  const rxtDifference = calculatedMarketValue - bookBalance;
+  const rxtDifference = currentAccount ? calculatedMarketValue - bookBalance : 0;
   const isGain = rxtDifference >= 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentAccount) return;
+    if (!currentAccount) {
+      setFeedback({ text: 'Seleccioná una cuenta de activo para revaluar.', type: 'error' });
+      return;
+    }
     if (Math.abs(rxtDifference) < 0.01) {
       setFeedback({ text: 'No existe diferencia entre el valor de mercado y el valor en libros.', type: 'error' });
       return;
@@ -177,21 +213,68 @@ export const RxTRevaluationModal: React.FC<RxTRevaluationModalProps> = ({
         {/* FORMULARIO */}
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
           {/* SELECTOR CUENTA DE ACTIVO */}
-          <div>
-            <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
+          <div ref={accountPickerRef} className="relative">
+            <label htmlFor="rxt-account-search" className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
               Cuenta de Activo a Revaluar
             </label>
-            <select
-              value={selectedAccountId}
-              onChange={(e) => setSelectedAccountId(parseInt(e.target.value))}
-              className="w-full text-xs font-semibold p-3 border border-gray-300 dark:border-gray-700 rounded-xl bg-white dark:bg-[#1E293B] text-gray-900 dark:text-white focus:ring-2 focus:ring-[#0088FF] outline-none"
-            >
-              {assetAccounts.map((acc) => (
-                <option key={acc.id} value={acc.id}>
-                  {acc.code} - {acc.name} (Saldo actual: {Money.fromAmount(acc.currentBalance).toFormattedString()})
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+              <input
+                id="rxt-account-search"
+                type="search"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-expanded={accountListOpen}
+                aria-controls="rxt-account-options"
+                aria-activedescendant={accountListOpen && activeAccountIndex >= 0 && filteredAccounts.length ? `rxt-account-option-${filteredAccounts[Math.min(activeAccountIndex, filteredAccounts.length - 1)].id}` : undefined}
+                autoComplete="off"
+                value={accountQuery}
+                onFocus={() => { setAccountListOpen(true); setActiveAccountIndex(-1); }}
+                onChange={event => { setAccountQuery(event.target.value); setSelectedAccountId(null); setAccountListOpen(true); setActiveAccountIndex(-1); }}
+                onKeyDown={event => {
+                  if (event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    setAccountListOpen(true);
+                    setActiveAccountIndex(index => Math.min(index + 1, Math.max(filteredAccounts.length - 1, 0)));
+                  } else if (event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    setActiveAccountIndex(index => Math.max(index - 1, 0));
+                  } else if (event.key === 'Enter') {
+                    event.preventDefault();
+                    if (accountListOpen && filteredAccounts.length) chooseAccount(filteredAccounts[Math.min(Math.max(activeAccountIndex, 0), filteredAccounts.length - 1)]);
+                  } else if (event.key === 'Escape' || event.key === 'Tab') {
+                    setAccountListOpen(false);
+                  }
+                }}
+                placeholder="Buscar por código o nombre"
+                className="w-full rounded-xl border border-gray-300 bg-white py-3 pl-10 pr-3 text-base text-gray-900 outline-none focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/25 dark:border-gray-700 dark:bg-[#1E293B] dark:text-white"
+              />
+            </div>
+            {currentAccount && (
+              <p className="mt-2 break-words text-xs font-semibold text-blue-700 dark:text-blue-300">
+                Seleccionada: {currentAccount.code} · {currentAccount.name}
+              </p>
+            )}
+            {accountListOpen && (
+              <div id="rxt-account-options" role="listbox" aria-label="Cuentas de activo" className="absolute left-0 right-0 top-full z-20 mt-1 max-h-56 overflow-y-auto overscroll-contain rounded-xl border border-gray-200 bg-white p-1 shadow-xl dark:border-gray-700 dark:bg-[#1E293B]">
+                {filteredAccounts.length ? filteredAccounts.map((account, index) => (
+                  <button
+                    key={account.id}
+                    id={`rxt-account-option-${account.id}`}
+                    type="button"
+                    role="option"
+                    aria-selected={account.id === selectedAccountId}
+                    onClick={() => chooseAccount(account)}
+                    className={`flex w-full min-w-0 flex-col gap-0.5 rounded-lg px-3 py-2.5 text-left text-xs hover:bg-blue-50 dark:hover:bg-blue-950/50 ${index === activeAccountIndex ? 'bg-blue-50 dark:bg-blue-950/50' : ''}`}
+                  >
+                    <span className="break-words font-bold text-gray-900 dark:text-white">{account.code} · {account.name}</span>
+                    <span className="text-gray-500 dark:text-gray-400">Saldo: {Money.fromAmount(account.currentBalance).toFormattedString()}</span>
+                  </button>
+                )) : (
+                  <p className="px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{assetAccounts.length ? 'No se encontraron cuentas.' : 'No hay cuentas de activo disponibles.'}</p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* VALOR EN LIBROS VS VALOR OBJETIVO */}
@@ -199,7 +282,7 @@ export const RxTRevaluationModal: React.FC<RxTRevaluationModalProps> = ({
             <div className="flex items-center justify-between text-xs">
               <span className="font-semibold text-gray-500 dark:text-gray-400">Saldo en Libros Contable:</span>
               <span className="font-bold text-gray-900 dark:text-white text-sm">
-                {Money.fromAmount(bookBalance).toFormattedString()}
+                {currentAccount ? Money.fromAmount(bookBalance).toFormattedString() : '—'}
               </span>
             </div>
 
@@ -273,7 +356,7 @@ export const RxTRevaluationModal: React.FC<RxTRevaluationModalProps> = ({
           </div>
 
           {/* RESULTADO POR TENENCIA CALCULADO */}
-          <div className={`p-4 rounded-2xl border flex items-center justify-between ${
+          {currentAccount ? <div className={`p-4 rounded-2xl border flex items-center justify-between ${
             isGain
               ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200'
               : 'bg-rose-50/80 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-900 dark:text-rose-200'
@@ -295,7 +378,9 @@ export const RxTRevaluationModal: React.FC<RxTRevaluationModalProps> = ({
                 {isGain ? '+' : ''}{Money.fromAmount(rxtDifference).toFormattedString()}
               </span>
             </div>
-          </div>
+          </div> : <p className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-xs font-semibold text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300">
+            Seleccioná una cuenta para calcular el resultado por tenencia.
+          </p>}
 
           {/* CONCEPTO DEL ASIENTO */}
           <div>
@@ -323,7 +408,7 @@ export const RxTRevaluationModal: React.FC<RxTRevaluationModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || Math.abs(rxtDifference) < 0.01}
+              disabled={isSubmitting || !currentAccount || Math.abs(rxtDifference) < 0.01}
               className="w-full sm:flex-1 py-3 bg-[#0088FF] hover:bg-blue-600 disabled:opacity-50 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer text-center"
             >
               {isSubmitting ? (

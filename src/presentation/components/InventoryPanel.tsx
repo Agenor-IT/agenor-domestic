@@ -431,8 +431,8 @@ export const InventoryPanel: React.FC = () => {
           </div>
         </div>
 
-        <div className="overflow-x-auto scrollbar-thin">
-          <table className="w-full text-left text-xs min-w-[760px]">
+        <div className="mobile-card-container overflow-x-auto scrollbar-thin">
+          <table className="mobile-record-table w-full text-left text-xs min-w-[760px]">
             <thead className="bg-gray-100/70 dark:bg-[#1E293B]/70 text-gray-600 dark:text-gray-300 font-semibold border-b border-gray-200 dark:border-gray-800">
               <tr>
                 <th className="py-3.5 px-4 sticky left-0 bg-gray-100 dark:bg-[#1E293B] z-10">SKU / Producto</th>
@@ -462,8 +462,8 @@ export const InventoryPanel: React.FC = () => {
                 filteredItems.map(item => {
                   const data = item.data;
                   return (
-                    <tr key={data.id} className="hover:bg-gray-50/80 dark:hover:bg-[#1E293B]/40 transition-colors">
-                      <td className="py-3.5 px-4">
+                    <tr key={data.id} className="record-row hover:bg-gray-50/80 dark:hover:bg-[#1E293B]/40 transition-colors">
+                      <td data-label="SKU / Producto" data-primary="true" className="py-3.5 px-4">
                         <div className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                           <span className="font-mono text-[11px] px-1.5 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 rounded">
                             {data.sku}
@@ -472,13 +472,13 @@ export const InventoryPanel: React.FC = () => {
                         </div>
                       </td>
 
-                      <td className="py-3.5 px-4">
+                      <td data-label="Categoría" data-mobile-hidden="true" className="py-3.5 px-4">
                         <span className="px-2 py-1 rounded-full text-[10px] font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
                           {data.category}
                         </span>
                       </td>
 
-                      <td className="py-3.5 px-4 text-center">
+                      <td data-label="Stock actual" className="py-3.5 px-4 text-center">
                         <span className={`font-bold ${item.isLowStock ? 'text-amber-500' : 'text-gray-900 dark:text-white'}`}>
                           {data.currentStock} {data.unitMeasure}
                         </span>
@@ -487,19 +487,19 @@ export const InventoryPanel: React.FC = () => {
                         )}
                       </td>
 
-                      <td className="py-3.5 px-4 text-right font-mono font-medium">
+                      <td data-label="Costo unitario" data-mobile-hidden="true" className="py-3.5 px-4 text-right font-mono font-medium">
                         {Money.fromAmount(data.unitCost).toFormattedString()}
                       </td>
 
-                      <td className="py-3.5 px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      <td data-label="Precio de venta" className="py-3.5 px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
                         {Money.fromAmount(data.sellingPrice).toFormattedString()}
                       </td>
 
-                      <td className="py-3.5 px-4 text-right font-mono font-bold">
+                      <td data-label="Valuación total" data-mobile-hidden="true" className="py-3.5 px-4 text-right font-mono font-bold">
                         {Money.fromAmount(item.totalValuation).toFormattedString()}
                       </td>
 
-                      <td className="py-3.5 px-4 text-center">
+                      <td data-label="Acciones" className="py-3.5 px-4 text-center">
                         <div className="flex items-center justify-center gap-1.5">
                           <button
                             onClick={() => handleOpenMovementModal(data, 'purchase')}

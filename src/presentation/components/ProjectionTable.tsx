@@ -157,6 +157,99 @@ export const ProjectionTable: React.FC<ProjectionTableProps> = ({
     );
   };
 
+  const renderMobileCard = (node: FlowNode, depth: number = 0): React.ReactNode => {
+    if (!filterNode(node)) return null;
+
+    const hasChildren = Boolean(node.children?.length);
+    const isExpanded = expandedNodes.has(node.id) || searchTerm !== '';
+    const firstAmountIndex = node.origin?.findIndex(value => value !== 0) ?? -1;
+    const highlightedMonth = firstAmountIndex >= 0 ? firstAmountIndex : 0;
+    const highlightedAmount = node.flowType === 'initialBalance'
+      ? openingBalance
+      : (node.origin?.[highlightedMonth] || 0);
+
+    return (
+      <React.Fragment key={node.id}>
+        <article
+          className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#0F172A] p-4 space-y-3 min-w-0"
+          style={{ marginLeft: `${Math.min(depth, 2) * 8}px` }}
+        >
+          <div className="flex items-start gap-2 min-w-0">
+            {hasChildren && (
+              <button
+                type="button"
+                onClick={() => toggleExpand(node.id)}
+                aria-label={`${isExpanded ? 'Contraer' : 'Expandir'} ${node.label}`}
+                aria-expanded={isExpanded}
+                className="shrink-0 p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300"
+              >
+                {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              </button>
+            )}
+            <div className="min-w-0 flex-1">
+              <strong className="block text-sm text-gray-900 dark:text-white break-words">{node.label}</strong>
+              {node.status === 'current' && <span className="inline-block mt-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-400">SIN MORA</span>}
+              {node.status === 'arrears' && <span className="inline-block mt-1 text-[10px] font-bold text-red-700 dark:text-red-400">CON MORA</span>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 border-t border-gray-200 dark:border-gray-800 pt-3">
+            <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400">{months[highlightedMonth] || 'Primer mes'}</span>
+            {node.flowType === 'initialBalance' ? (
+              <FormattedNumberInput
+                value={openingBalance}
+                onChange={onOpeningBalanceChange}
+                className="w-full min-w-0 text-right text-sm font-bold border border-blue-300 dark:border-blue-700 rounded-lg px-2 py-1 bg-white dark:bg-gray-900 text-blue-900 dark:text-blue-300"
+              />
+            ) : (
+              <strong className="text-right text-sm text-gray-900 dark:text-white table-cell-num break-words">
+                {highlightedAmount === 0 ? '—' : Money.fromAmount(highlightedAmount).toFormattedString()}
+              </strong>
+            )}
+          </div>
+
+          {(node.flowType === 'income' || node.flowType === 'expense') && node.allowedMethods && (
+            <div>
+              <label htmlFor={`mobile-method-${node.id}`} className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-1">Medio de pago / cobro</label>
+              <select
+                id={`mobile-method-${node.id}`}
+                value={selectedMethods[node.id] || node.defaultMethod || 'cash'}
+                onChange={event => onMethodChange(node.id, event.target.value as PaymentMethodType)}
+                className="w-full min-w-0 rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white"
+              >
+                {node.allowedMethods.map(method => (
+                  <option key={method} value={method}>
+                    {method === 'cash' ? 'Efectivo / Transfer' : method === 'card' ? 'Tarjeta (+1 mes)' : 'Débito Automático'}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {months.length > 1 && (
+            <details className="border-t border-gray-200 dark:border-gray-800 pt-3">
+              <summary className="text-xs font-bold text-blue-700 dark:text-blue-400 cursor-pointer">Ver todos los meses</summary>
+              <dl className="grid grid-cols-2 gap-x-3 gap-y-2 mt-3">
+                {months.map((month, index) => {
+                  const value = node.flowType === 'initialBalance' && index === 0 ? openingBalance : (node.origin?.[index] || 0);
+                  return (
+                    <div key={`${node.id}-${month}`} className="min-w-0">
+                      <dt className="text-[10px] text-gray-500 dark:text-gray-400">{month}</dt>
+                      <dd className="text-xs font-semibold text-gray-900 dark:text-white table-cell-num break-words">
+                        {value === 0 ? '—' : Money.fromAmount(value).toFormattedString()}
+                      </dd>
+                    </div>
+                  );
+                })}
+              </dl>
+            </details>
+          )}
+        </article>
+        {hasChildren && isExpanded && node.children!.map(child => renderMobileCard(child, depth + 1))}
+      </React.Fragment>
+    );
+  };
+
   return (
     <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm overflow-hidden mb-6">
       <TableSearchFilter
@@ -188,7 +281,11 @@ export const ProjectionTable: React.FC<ProjectionTableProps> = ({
         }
       />
 
-      <div className="overflow-x-auto">
+      <div className="lg:hidden p-3 space-y-3">
+        {nodes.map(node => renderMobileCard(node, 0))}
+      </div>
+
+      <div className="hidden lg:block overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-[#12355b] dark:bg-[#091E36] text-white text-xs font-bold uppercase tracking-wider border-b border-gray-800">

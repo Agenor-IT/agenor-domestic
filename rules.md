@@ -187,3 +187,13 @@ Aplica sólo cuando dependencias o herramientas fallan.
 - Español y modo telegráfico.
 - SI sólo con evidencia productiva. NO en cualquier otro caso.
 <!-- AGENOR-GLOBAL-RULES-CORE:END v5 -->
+
+## Modo Senior: destino efectivo y frontera productiva
+
+- La activación y la excepción local de NIVEL 1 se rigen por `AGENTS.md`; esta sección no concede permisos de producción.
+- Antes de ejecutar, comprobar directorio de trabajo, modo Vite, comando y variables heredadas. Resolver `VITE_SUPABASE_URL` y presencia de `VITE_SUPABASE_ANON_KEY`: las variables del proceso prevalecen sobre archivos; para modo `senior`, `.env.senior.local` prevalece sobre `.env.senior`, `.env.local` y `.env`. Confirmar el destino que consume `src/infrastructure/supabaseClient.ts`, sin depender de sus valores de respaldo.
+- Servir sólo en `http://localhost:8090` con `npm run dev -- --mode senior --host 127.0.0.1 --port 8090 --strictPort`. Usar la configuración autorizada existente sin copiar ni imprimir claves y sin modificar `.env*` para activar el modo. Confirmar host e identificador del proyecto contra la referencia productiva aprobada.
+- Un servidor o bundle anterior puede conservar otra configuración. Verificar el proceso, puerto y destino efectivo del cliente sin exportar credenciales, cabeceras, cuerpos ni datos personales. Informar únicamente fuente de configuración, modo, host/proyecto, puerto, clasificación del destino y estado de comprobación.
+- Para Supabase productivo, permitir sólo lecturas verificadas sin efectos laterales y con alcance autorizado. Revisar antes los efectos automáticos del cliente; GET, RPC o Edge Functions no son inocuos por su nombre. No usar formularios ni pruebas que escriban datos reales sin autorización específica.
+- Escrituras reales, migraciones, DDL, Auth, RLS, Storage, grants o permisos requieren autorización específica de ambiente, operación y recursos. No modificar la seguridad productiva para facilitar pruebas. El arranque del frontend por sí solo no autoriza esos flujos.
+- Si el destino efectivo es ambiguo, detener sólo el arranque o la prueba dependiente. No exigir preflight de Supabase local, Docker, baseline ni seed para esta conexión productiva. HTTP 200 confirma disponibilidad del servidor; para afirmar funcionamiento de la página también comprobar renderizado y destino efectivo.

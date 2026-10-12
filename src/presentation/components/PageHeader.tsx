@@ -7,6 +7,7 @@ interface PageHeaderProps {
   icon?: LucideIcon;
   iconBgColor?: string;
   action?: React.ReactNode;
+  actionContainerClassName?: string;
 }
 
 export const PageHeader: React.FC<PageHeaderProps> = ({
@@ -14,7 +15,8 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   subtitle,
   icon: Icon,
   iconBgColor = 'bg-[#12355b]',
-  action
+  action,
+  actionContainerClassName = 'flex'
 }) => {
   return (
     <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 sm:gap-4 mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-gray-200/80 dark:border-gray-800">
@@ -37,7 +39,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
       </div>
 
       {action && (
-        <div className="w-full lg:w-auto shrink-0 flex flex-wrap items-center gap-2">
+        <div className={`w-full lg:w-auto shrink-0 flex-wrap items-center gap-2 ${actionContainerClassName}`}>
           {action}
         </div>
       )}

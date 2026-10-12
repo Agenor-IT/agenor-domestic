@@ -114,8 +114,8 @@ export const ParametersPanel: React.FC<ParametersPanelProps> = ({
         </div>
 
         {/* TABLA DE MEDIOS DE PAGO CONFIGURADOS */}
-        <div className="overflow-x-auto border border-gray-200 dark:border-gray-800 rounded-xl scrollbar-thin">
-          <table className="w-full text-left border-collapse min-w-[680px]">
+        <div className="mobile-card-container overflow-x-auto border border-gray-200 dark:border-gray-800 rounded-xl scrollbar-thin">
+          <table className="mobile-record-table w-full text-left border-collapse min-w-[680px]">
             <thead>
               <tr className="bg-gray-50 dark:bg-[#1E293B]/60 text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
                 <th className="py-3 px-4 sticky left-0 bg-gray-50 dark:bg-[#1E293B] z-10">Nombre del Medio</th>
@@ -136,17 +136,19 @@ export const ParametersPanel: React.FC<ParametersPanelProps> = ({
                 </tr>
               ) : (
                 paymentMethods.map((pm) => (
-                  <tr key={pm.id} className="hover:bg-gray-50/50 dark:hover:bg-[#1E293B]/40 transition-colors">
-                    <td className="py-3 px-4 font-bold text-gray-900 dark:text-white flex items-center gap-2 sticky left-0 bg-white dark:bg-[#0F172A] z-10">
+                  <tr key={pm.id} className="record-row hover:bg-gray-50/50 dark:hover:bg-[#1E293B]/40 transition-colors">
+                    <td data-label="Medio de pago" data-primary="true" className="py-3 px-4 font-bold text-gray-900 dark:text-white sticky left-0 bg-white dark:bg-[#0F172A] z-10">
+                      <div className="flex items-center gap-2">
                       <div className="p-1.5 bg-gray-100 dark:bg-[#0F172A] rounded-lg shrink-0">
                         {getMethodIcon(pm.type)}
                       </div>
                       <span className="truncate">{pm.name}</span>
+                      </div>
                     </td>
-                    <td className="py-3 px-4 text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">
+                    <td data-label="Tipo" className="py-3 px-4 text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">
                       {getMethodTypeName(pm.type)}
                     </td>
-                    <td className="py-3 px-4 whitespace-nowrap">
+                    <td data-label="Límite otorgado" className="py-3 px-4 whitespace-nowrap">
                       {pm.type === 'card' ? (
                         <span className="font-mono text-[11px] font-bold text-amber-600 dark:text-amber-400">
                           $ {(pm.creditLimit || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
@@ -155,12 +157,12 @@ export const ParametersPanel: React.FC<ParametersPanelProps> = ({
                         <span className="text-gray-400 italic text-[11px]">N/A</span>
                       )}
                     </td>
-                    <td className="py-3 px-4 whitespace-nowrap">
+                    <td data-label="Disponible / Saldo inicial" className="py-3 px-4 whitespace-nowrap">
                       <span className="font-mono text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
                         $ {(pm.type === 'card' ? (pm.initialAvailable ?? pm.creditLimit ?? 0) : (pm.initialBalance || 0)).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                       </span>
                     </td>
-                    <td className="py-3 px-4 whitespace-nowrap">
+                    <td data-label="Cuenta contable" data-mobile-hidden="true" className="py-3 px-4 whitespace-nowrap">
                       {pm.accountCode ? (
                         <span className="font-mono text-[11px] px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-[#0088FF] dark:text-blue-400 rounded-lg border border-blue-200 dark:border-blue-900/50 font-semibold">
                           {pm.accountCode} - {pm.accountName}
@@ -169,7 +171,7 @@ export const ParametersPanel: React.FC<ParametersPanelProps> = ({
                         <span className="text-gray-400 italic text-[11px]">Por defecto del tipo</span>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-center whitespace-nowrap">
+                    <td data-label="Estado" className="py-3 px-4 text-center whitespace-nowrap">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                         pm.active
                           ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300'
@@ -178,7 +180,7 @@ export const ParametersPanel: React.FC<ParametersPanelProps> = ({
                         {pm.active ? 'Activo' : 'Inactivo'}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-right whitespace-nowrap">
+                    <td data-label="Acciones" className="py-3 px-4 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1">
                         <button
                           type="button"

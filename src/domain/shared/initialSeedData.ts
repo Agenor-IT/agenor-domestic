@@ -1,5 +1,4 @@
 import { FlowNode } from '../cashflow/CashFlowProjectionService';
-import { PaymentPriority } from '../priorities/PaymentPriority';
 
 export const INITIAL_MONTHS = [
   "Ago-26", "Sep-26", "Oct-26", "Nov-26", "Dic-26",
@@ -10,15 +9,6 @@ export const INITIAL_MONTHS = [
 
 export const INITIAL_DEFAULT_IPC = [
   0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01
-];
-
-export const DEFAULT_PAYMENT_PRIORITIES: PaymentPriority[] = [
-  new PaymentPriority(1, 'card', 'supervielle_card', 'Tarjeta Supervielle', 1),
-  new PaymentPriority(1, 'expense', 'bruno_medical', 'Médicos Bruno', 2),
-  new PaymentPriority(1, 'tax', 'monotributo', 'Monotributo corriente', 3),
-  new PaymentPriority(1, 'mortgage', 'hipotecario_1', 'Hipotecario 1', 4),
-  new PaymentPriority(1, 'mortgage', 'hipotecario_2', 'Hipotecario 2', 5),
-  new PaymentPriority(1, 'loan', 'supervielle_loan', 'Préstamo Supervielle', 6)
 ];
 
 export const INITIAL_SECTIONS: FlowNode[] = [
@@ -220,7 +210,7 @@ export const INITIAL_ACTUAL_STATE = {
   pending_required: [] as { label: string; amount: number; priority?: number; note?: string }[],
   scenario_no_extra: {
     title: "Escenario sin ingreso extra",
-    note: "Calculado dinámicamente según estado contable en vivo y prioridades de pago en Supabase.",
+    note: "Calculado dinámicamente según estado contable en vivo.",
     august: {
       available_after_receivables: 0.00,
       carryover_total: 0.00

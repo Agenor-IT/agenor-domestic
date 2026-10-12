@@ -338,7 +338,22 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
     <div className="space-y-8">
       {/* NAVEGADOR DE SECCIONES (ESTADOS FINANCIEROS, LIBRO DIARIO Y LIBRO MAYOR) */}
       <div className="p-1.5 sm:p-2 bg-gray-200/80 dark:bg-[#1E293B] rounded-2xl overflow-hidden">
-        <div className="flex overflow-x-auto scrollbar-none gap-1.5 sm:gap-2 pb-0.5 sm:pb-0">
+        <label htmlFor="report-section-mobile" className="block lg:hidden text-xs font-bold text-gray-700 dark:text-gray-200 px-1 pb-1">Sección del reporte</label>
+        <select
+          id="report-section-mobile"
+          value={activeSection}
+          onChange={(event) => setActiveSection(event.target.value as typeof activeSection)}
+          className="block lg:hidden w-full min-w-0 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#0F172A] px-3 py-2.5 text-sm font-semibold text-gray-900 dark:text-white"
+        >
+          <option value="all">Vista Completa</option>
+          <option value="results">1. Resultados</option>
+          <option value="balance">2. Balance</option>
+          <option value="journal">3. Libro Diario</option>
+          <option value="ledger">4. Libro Mayor</option>
+          <option value="chart_of_accounts">5. Plan de Cuentas</option>
+          <option value="proyeccion">6. Proyección</option>
+        </select>
+        <div className="hidden lg:flex lg:flex-wrap gap-1.5 sm:gap-2 pb-0.5 sm:pb-0">
           <button
             onClick={() => setActiveSection('all')}
             className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer shrink-0 whitespace-nowrap ${
@@ -427,7 +442,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
 
       {/* VISTA COMPLETA Y SECCIONES INDIVIDUALES (2 COLUMNAS LADO A LADO EN VISTA COMPLETA) */}
       {(activeSection === 'all' || activeSection === 'results' || activeSection === 'balance') && (
-        <div className={`grid gap-6 ${activeSection === 'all' ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
+        <div className={`grid gap-6 ${activeSection === 'all' ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1'}`}>
           {/* SECCIÓN 1 (IZQUIERDA EN VISTA COMPLETA): ESTADO DE SITUACIÓN PATRIMONIAL TRADICIONAL (TABLA 3 CUERPOS) */}
           {(activeSection === 'all' || activeSection === 'balance') && (
             <section className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm space-y-6 flex flex-col justify-between">
@@ -1056,7 +1071,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
 
       {/* SECCIÓN 3: LIBRO DIARIO (SOLO EN PESTAÑA LIBRO DIARIO) */}
       {activeSection === 'journal' && (
-        <section className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm space-y-6">
+        <section className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-4 gap-4">
             <div className="flex items-center gap-3">
               <div className="bg-[#12355b] text-white p-2.5 rounded-xl shadow-md">
@@ -1068,7 +1083,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto">
               <button
                 onClick={() => setJournalTypeFilter('all')}
                 className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
@@ -1118,8 +1133,8 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
             placeholder="Buscar por N° asiento, concepto o cuenta contable..."
           />
 
-          <div className="overflow-x-auto border border-gray-200 dark:border-gray-800 rounded-xl scrollbar-thin">
-            <table className="w-full text-left border-collapse min-w-[700px]">
+          <div className="mobile-card-container overflow-x-auto border border-gray-200 dark:border-gray-800 rounded-xl scrollbar-thin">
+            <table className="mobile-record-table w-full text-left border-collapse min-w-[700px]">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-800 bg-gray-100/70 dark:bg-[#1E293B] text-[11px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
                   <th className="py-3 px-4 sticky left-0 bg-gray-100 dark:bg-[#1E293B] z-10">N° Asiento</th>
@@ -1139,17 +1154,17 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                   </tr>
                 ) : (
                   filteredJournalEntries.map((entry) => (
-                    <tr key={entry.id} className="hover:bg-gray-50/80 dark:hover:bg-[#1E293B]/50 transition-colors">
-                      <td className="py-3 px-4 font-bold text-[#12355b] dark:text-blue-400 whitespace-nowrap sticky left-0 bg-white dark:bg-[#0F172A] z-10">
+                    <tr key={entry.id} className="record-row hover:bg-gray-50/80 dark:hover:bg-[#1E293B]/50 transition-colors">
+                      <td data-label="N° asiento" className="py-3 px-4 font-bold text-[#12355b] dark:text-blue-400 whitespace-nowrap sticky left-0 bg-white dark:bg-[#0F172A] z-10">
                         {entry.id}
                       </td>
-                      <td className="py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                      <td data-label="Fecha" className="py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
                         {entry.date}
                       </td>
-                      <td className="py-3 px-4 font-bold text-gray-900 dark:text-white">
+                      <td data-label="Concepto" data-primary="true" className="py-3 px-4 font-bold text-gray-900 dark:text-white">
                         {entry.concept}
                       </td>
-                      <td className="py-3 px-4 space-y-1">
+                      <td data-label="Cuentas" data-primary="true" className="py-3 px-4 space-y-1">
                         {entry.lines && entry.lines.length > 0 ? (
                           <div className="space-y-1">
                             {entry.lines.filter((l: any) => Number(l.debit) > 0).map((l: any, idx: number) => (
@@ -1192,10 +1207,10 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                           </>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-right font-bold text-emerald-600 dark:text-emerald-400 table-cell-num whitespace-nowrap">
+                      <td data-label="Debe" className="py-3 px-4 text-right font-bold text-emerald-600 dark:text-emerald-400 table-cell-num whitespace-nowrap">
                         {Money.fromAmount(entry.debitAmount).toFormattedString()}
                       </td>
-                      <td className="py-3 px-4 text-right font-bold text-blue-600 dark:text-blue-400 table-cell-num whitespace-nowrap">
+                      <td data-label="Haber" className="py-3 px-4 text-right font-bold text-blue-600 dark:text-blue-400 table-cell-num whitespace-nowrap">
                         {Money.fromAmount(entry.creditAmount).toFormattedString()}
                       </td>
                     </tr>
@@ -1204,13 +1219,13 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
               </tbody>
               <tfoot>
                 <tr className="bg-gray-100 dark:bg-[#1E293B] font-bold text-xs border-t border-gray-300 dark:border-gray-700">
-                  <td colSpan={4} className="py-3 px-4 text-gray-800 dark:text-gray-200">
+                  <td colSpan={4} data-label="Resumen" className="py-3 px-4 text-gray-800 dark:text-gray-200">
                     Suma Totales Partida Doble (Cuadre Contable)
                   </td>
-                  <td className="py-3 px-4 text-right text-emerald-700 dark:text-emerald-400 table-cell-num">
+                  <td data-label="Debe" className="py-3 px-4 text-right text-emerald-700 dark:text-emerald-400 table-cell-num">
                     {Money.fromAmount(totalJournalDebit).toFormattedString()}
                   </td>
-                  <td className="py-3 px-4 text-right text-blue-700 dark:text-blue-400 table-cell-num">
+                  <td data-label="Haber" className="py-3 px-4 text-right text-blue-700 dark:text-blue-400 table-cell-num">
                     {Money.fromAmount(totalJournalCredit).toFormattedString()}
                   </td>
                 </tr>
@@ -1254,7 +1269,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
           </div>
 
           {/* RESUMEN DE SALDOS DE LA CUENTA SELECCIONADA */}
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
             <div className="p-3.5 bg-gray-50/80 dark:bg-[#1E293B]/70 border border-gray-200 dark:border-gray-800 rounded-xl">
               <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">Saldo Inicial</span>
               <strong className="text-base font-bold text-gray-900 dark:text-white table-cell-num mt-1 block">
@@ -1290,8 +1305,8 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
             placeholder={`Buscar movimiento en mayor de ${currentLedgerAccount.name}...`}
           />
 
-          <div className="overflow-x-auto border border-gray-200 dark:border-gray-800 rounded-xl scrollbar-thin">
-            <table className="w-full text-left border-collapse min-w-[700px]">
+          <div className="mobile-card-container overflow-x-auto border border-gray-200 dark:border-gray-800 rounded-xl scrollbar-thin">
+            <table className="mobile-record-table w-full text-left border-collapse min-w-[700px]">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-800 bg-gray-100/70 dark:bg-[#1E293B] text-[11px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
                   <th className="py-3 px-4 sticky left-0 bg-gray-100 dark:bg-[#1E293B] z-10">Fecha</th>
@@ -1312,26 +1327,26 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                   </tr>
                 ) : (
                   ledgerMovements.map((mov) => (
-                    <tr key={mov.id} className="hover:bg-gray-50/80 dark:hover:bg-[#1E293B]/50 transition-colors">
-                      <td className="py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                    <tr key={mov.id} className="record-row hover:bg-gray-50/80 dark:hover:bg-[#1E293B]/50 transition-colors">
+                      <td data-label="Fecha" className="py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
                         {mov.date}
                       </td>
-                      <td className="py-3 px-4 font-bold text-[#12355b] dark:text-blue-400 whitespace-nowrap">
+                      <td data-label="N° asiento" className="py-3 px-4 font-bold text-[#12355b] dark:text-blue-400 whitespace-nowrap">
                         {mov.id}
                       </td>
-                      <td className="py-3 px-4 font-bold text-gray-900 dark:text-white">
+                      <td data-label="Concepto" data-primary="true" className="py-3 px-4 font-bold text-gray-900 dark:text-white">
                         {mov.concept}
                       </td>
-                      <td className="py-3 px-4 font-medium text-gray-600 dark:text-gray-400">
+                      <td data-label="Contrapartida" data-primary="true" className="py-3 px-4 font-medium text-gray-600 dark:text-gray-400">
                         {mov.contraAccount}
                       </td>
-                      <td className="py-3 px-4 text-right font-bold text-emerald-600 dark:text-emerald-400 table-cell-num whitespace-nowrap">
+                      <td data-label="Debe" data-empty={mov.debit > 0 ? undefined : 'true'} className="py-3 px-4 text-right font-bold text-emerald-600 dark:text-emerald-400 table-cell-num whitespace-nowrap">
                         {mov.debit > 0 ? Money.fromAmount(mov.debit).toFormattedString() : '-'}
                       </td>
-                      <td className="py-3 px-4 text-right font-bold text-blue-600 dark:text-blue-400 table-cell-num whitespace-nowrap">
+                      <td data-label="Haber" data-empty={mov.credit > 0 ? undefined : 'true'} className="py-3 px-4 text-right font-bold text-blue-600 dark:text-blue-400 table-cell-num whitespace-nowrap">
                         {mov.credit > 0 ? Money.fromAmount(mov.credit).toFormattedString() : '-'}
                       </td>
-                      <td className="py-3 px-4 text-right font-bold text-gray-900 dark:text-white table-cell-num whitespace-nowrap">
+                      <td data-label="Saldo" className="py-3 px-4 text-right font-bold text-gray-900 dark:text-white table-cell-num whitespace-nowrap">
                         {Money.fromAmount(mov.runningBalance).toFormattedString()}
                       </td>
                     </tr>
@@ -1536,7 +1551,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
               <h4 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
                 Nueva Cuenta en Plan de Cuentas (Supabase)
               </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
                 <input
                   type="text"
                   required
@@ -1605,8 +1620,8 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
           )}
 
           {/* TABLA PLAN DE CUENTAS */}
-          <div className="overflow-x-auto border border-gray-200 dark:border-gray-800 rounded-xl scrollbar-thin">
-            <table className="w-full text-left border-collapse min-w-[750px]">
+          <div className="mobile-card-container overflow-x-auto border border-gray-200 dark:border-gray-800 rounded-xl scrollbar-thin">
+            <table className="mobile-record-table w-full text-left border-collapse min-w-[750px]">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-800 bg-gray-100/70 dark:bg-[#1E293B] text-[11px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
                   <th className="py-3 px-4 sticky left-0 bg-gray-100 dark:bg-[#1E293B] z-10">Código</th>
@@ -1642,20 +1657,20 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                     return (
                       <tr
                         key={acc.id}
-                        className="hover:bg-blue-50/60 dark:hover:bg-blue-950/40 transition-colors"
+                        className="record-row hover:bg-blue-50/60 dark:hover:bg-blue-950/40 transition-colors"
                       >
-                        <td className="py-3.5 px-4 font-bold text-[#12355b] dark:text-blue-400 whitespace-nowrap sticky left-0 bg-white dark:bg-[#0F172A] z-10">
+                        <td data-label="Código" className="py-3.5 px-4 font-bold text-[#12355b] dark:text-blue-400 whitespace-nowrap sticky left-0 bg-white dark:bg-[#0F172A] z-10">
                           {acc.code}
                         </td>
-                        <td className="py-3.5 px-4 font-bold text-gray-900 dark:text-white">
+                        <td data-label="Cuenta" data-primary="true" className="py-3.5 px-4 font-bold text-gray-900 dark:text-white">
                           {acc.name}
                         </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
+                        <td data-label="Subrubro" className="py-3.5 px-4 whitespace-nowrap">
                           <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                             {acc.subrubro || 'General'}
                           </span>
                         </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
+                        <td data-label="Grupo" data-mobile-hidden="true" className="py-3.5 px-4 whitespace-nowrap">
                           <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
                             groupLabel === 'activo' ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300' :
                             groupLabel === 'pasivo' ? 'bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-300' :
@@ -1666,18 +1681,18 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                             {groupLabel}
                           </span>
                         </td>
-                        <td className="py-3.5 px-4 font-semibold text-gray-600 dark:text-gray-300">
+                        <td data-label="Naturaleza" data-mobile-hidden="true" className="py-3.5 px-4 font-semibold text-gray-600 dark:text-gray-300">
                           {acc.nature === 'debit' ? 'Deudor (+)' : 'Acreedor (-)'}
                         </td>
-                        <td className="py-3.5 px-4 text-right font-bold text-sm table-cell-num whitespace-nowrap text-gray-900 dark:text-white">
+                        <td data-label="Saldo" className="py-3.5 px-4 text-right font-bold text-sm table-cell-num whitespace-nowrap text-gray-900 dark:text-white">
                           {Money.fromAmount(acc.currentBalance).toFormattedString()}
                         </td>
-                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                        <td data-label="Estado" data-mobile-hidden="true" className="py-3.5 px-4 text-center whitespace-nowrap">
                           <span className="bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded text-[10px] font-bold">
                             Activa Imputable
                           </span>
                         </td>
-                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                        <td data-label="Acciones" className="py-3.5 px-4 text-center whitespace-nowrap">
                           <div className="flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                             {/* VER MAYOR / DETALLE */}
                             <button

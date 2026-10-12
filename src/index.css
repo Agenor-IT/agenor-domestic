@@ -42,6 +42,242 @@ body {
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
+html {
+  min-width: 320px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #0088ff;
+  outline-offset: 2px;
+}
+
+.kpi-card {
+  position: relative;
+  min-width: 0;
+  min-height: 112px;
+}
+
+.kpi-card > div:first-child {
+  min-width: 0;
+  width: 100%;
+}
+
+.kpi-card > div:first-child > span:first-child {
+  padding-right: 2.25rem;
+  white-space: normal;
+}
+
+.kpi-card > div:last-child {
+  position: absolute;
+  top: 0.875rem;
+  right: 0.875rem;
+}
+
+.kpi-card strong,
+.kpi-card > div:first-child > span:last-child {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 639px) {
+  .kpi-card strong {
+    font-size: clamp(1rem, 4.4vw, 1.25rem);
+  }
+}
+
+@media (max-width: 1535px) {
+  .dashboard-kpi-grid > :last-child {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 359px) {
+  .dashboard-kpi-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dashboard-kpi-grid > :last-child {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 1023px) {
+  .mobile-card-container {
+    overflow-x: visible !important;
+  }
+
+  button {
+    min-height: 40px;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px;
+    min-height: 44px;
+  }
+
+  .mobile-record-table {
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+  }
+
+  .mobile-record-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .mobile-record-table tbody {
+    display: grid;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .mobile-record-table tbody > tr.record-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--panel);
+  }
+
+  .mobile-record-table tbody > tr.record-row > td {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    min-width: 0;
+    padding: 0;
+    text-align: left;
+    white-space: normal;
+    max-width: none;
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+    position: static;
+    background: transparent;
+  }
+
+  .mobile-record-table tbody > tr.record-row > td::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--muted);
+    font-size: 10px;
+    line-height: 1.3;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .mobile-record-table tbody > tr.record-row > td[data-primary="true"],
+  .mobile-record-table tbody > tr.record-row > td[data-label="Acciones"] {
+    grid-column: 1 / -1;
+  }
+
+  .mobile-record-table tbody > tr.record-row > td[data-label="Acciones"] {
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+  }
+
+  .mobile-record-table tbody > tr.record-row > td[data-label="Acciones"] > div {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .mobile-record-table tbody > tr.record-row > td[data-empty="true"] {
+    display: none;
+  }
+
+  .mobile-record-table tbody > tr.record-row > td[data-mobile-hidden="true"] {
+    display: none;
+  }
+
+  .mobile-record-table tbody > tr.record-row > td[data-primary="true"] .truncate {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  .mobile-record-table tbody > tr.record-row > td[data-label="Cuentas"] .flex {
+    flex-wrap: wrap;
+    min-width: 0;
+    padding-left: 0;
+  }
+
+  .mobile-record-table tbody > tr.record-row > td[data-label="Cuentas"] .flex > span:first-child {
+    flex: none;
+    white-space: nowrap;
+  }
+
+  .mobile-record-table tbody > tr:not(.record-row),
+  .mobile-record-table tbody > tr:not(.record-row) > td {
+    display: block;
+    width: 100%;
+  }
+
+  .mobile-record-table tfoot {
+    display: grid;
+    padding: 12px;
+  }
+
+  .mobile-record-table tfoot > tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--panel);
+  }
+
+  .mobile-record-table tfoot > tr > td {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 0;
+    text-align: left;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .mobile-record-table tfoot > tr > td::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .mobile-record-table tfoot > tr > td:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 .table-cell-num {
   font-variant-numeric: tabular-nums;
 }

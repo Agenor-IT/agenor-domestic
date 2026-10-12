@@ -4,9 +4,7 @@ import {
   Briefcase,
   Receipt,
   BarChart3,
-  ListOrdered,
   Settings,
-  Clock,
   Sun,
   Moon,
   Wallet,
@@ -39,13 +37,11 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { id: 'transacciones', label: 'Transacciones', icon: ArrowLeftRight },
   { id: 'fuentes_ingresos', label: 'Fuentes de Ingresos', icon: Briefcase },
   { id: 'egresos', label: 'Estructura de Egresos', icon: Receipt },
-  { id: 'seguimiento', label: 'Reportes Contables', icon: BookOpen },
+  { id: 'seguimiento', label: 'Reportes y Dashboard', icon: BookOpen },
   { id: 'bienes_uso', label: 'Bienes de Uso', icon: Building2 },
   { id: 'bienes_cambio', label: 'Bienes de Cambio', icon: Package },
   { id: 'escenario', label: 'Escenario Sin Extra', icon: BarChart3 },
-  { id: 'prioridades', label: 'Ranking Prioridades', icon: ListOrdered },
   { id: 'parametros', label: 'Parámetros & IPC', icon: Settings },
-  { id: 'atrasos', label: 'Atrasos & Moras', icon: Clock },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -167,9 +163,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* FOOTER LATERAL (TOGGLE MODO CLARO/OSCURO Y NAMESPACE) */}
-      <div className="pt-4 border-t border-[#1E293B]/80 shrink-0 space-y-3">
-        {!collapsed && (
+      {/* TOGGLE MODO CLARO/OSCURO */}
+      {!collapsed && (
+        <div className="pt-4 border-t border-[#1E293B]/80 shrink-0">
           <button
             onClick={onToggleDarkMode}
             className="w-full flex items-center justify-between px-3.5 py-2.5 bg-[#141F36] hover:bg-[#1A2844] text-[#94A3B8] hover:text-white rounded-xl text-xs font-medium transition-all border border-[#1E293B] cursor-pointer shadow-sm"
@@ -179,16 +175,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <span>{darkMode ? 'Modo Claro' : 'Modo Oscuro'}</span>
             </div>
           </button>
-        )}
-
-        <div className={`text-[10px] text-[#475569] font-medium text-center ${collapsed ? 'px-0' : 'px-2'}`}>
-          {!collapsed ? (
-            <span>Namespace: <code className="text-[#38BDF8] font-bold">dom_</code></span>
-          ) : (
-            <code className="text-[#38BDF8] font-bold text-[9px]">dom_</code>
-          )}
         </div>
-      </div>
+      )}
     </aside>
     </>
   );

@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { FormattedNumberInput } from './FormattedNumberInput';
 import { TableSearchFilter } from './TableSearchFilter';
+import { PageHeader } from './PageHeader';
 import {
   Receipt,
   Plus,
@@ -73,6 +74,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [debouncedSearch, setDebouncedSearch] = useState<string>('');
   const [activeSourceTab, setActiveSourceTab] = useState<'todos' | ExpenseSourceType>('todos');
+  const tableSectionRef = useRef<HTMLDivElement>(null);
   const [selectedExpenseType, setSelectedExpenseType] = useState<string>('todos');
   const [selectedStatus, setSelectedStatus] = useState<string>('activo');
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -280,18 +282,10 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
   }, [receiptRepository]);
 
   // KPIs desde resumen global calculado por el servidor RPC
-  const activeExpensesCount = paginatedData?.summary.activeCount ?? 0;
-  const totalExpensesCount = paginatedData?.summary.totalCount ?? 0;
   const totalDomesticMonthly = paginatedData?.summary.totalDomesticMonthly ?? 0;
   const totalBusinessMonthly = paginatedData?.summary.totalBusinessMonthly ?? 0;
   const totalMonthlyAll = paginatedData?.summary.totalMonthlyAll ?? 0;
-
-  const tabCounts = paginatedData?.tabCounts ?? {
-    todos: 0,
-    domestico: 0,
-    emprendimiento: 0,
-    extraordinario: 0
-  };
+  const totalExtraMonthly = totalMonthlyAll - totalDomesticMonthly - totalBusinessMonthly;
 
   const totalPages = tableView === 'comprobantes'
     ? Math.max(1, Math.ceil(registeredReceipts.length / pageSize))
@@ -299,6 +293,37 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
   const totalCount = tableView === 'comprobantes'
     ? registeredReceipts.length
     : paginatedData?.totalCount ?? 0;
+
+  const sourceCounts = useMemo(() => {
+    const counts: Record<ExpenseSourceType, { total: number; active: number }> = {
+      domestico: { total: 0, active: 0 },
+      emprendimiento: { total: 0, active: 0 },
+      extraordinario: { total: 0, active: 0 }
+    };
+    allExpenses.forEach(expense => {
+      const source = expense.sourceType || 'domestico';
+      counts[source].total += 1;
+      if (expense.status === 'activo') counts[source].active += 1;
+    });
+    return counts;
+  }, [allExpenses]);
+
+  const sourceCountLabel = (source: ExpenseSourceType) => {
+    const { total, active } = sourceCounts[source];
+    return `${total} ${total === 1 ? 'gasto' : 'gastos'} · ${active} ${active === 1 ? 'activo' : 'activos'}`;
+  };
+
+  const selectSourceFromKpi = (source: 'todos' | ExpenseSourceType) => {
+    setActiveSourceTab(source);
+    setSearchTerm('');
+    setSelectedExpenseType('todos');
+    setSelectedStatus('activo');
+    setReceiptRowFilter(null);
+    setCurrentPage(1);
+    if (window.innerWidth < 1024) {
+      requestAnimationFrame(() => tableSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    }
+  };
 
   const handleOpenNewReceipt = (expenseId = '') => {
     setEditingReceipt(null);
@@ -586,165 +611,83 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
 
   return (
     <div className="space-y-6">
-      {/* FEEDBACK TOAST */}
+      <PageHeader
+        title="Estructura de Egresos"
+        subtitle="Gestión unificada de egresos domésticos, gastos de emprendimiento y extraordinarios"
+        icon={Receipt}
+        iconBgColor="bg-rose-600"
+        actionContainerClassName="flex justify-end"
+        action={
+          <>
+            <button type="button" onClick={handleOpenNewModal} className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 px-3 py-2 text-xs font-bold text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 sm:px-4">
+              <Plus className="h-4 w-4" /> Gasto
+            </button>
+            <button type="button" onClick={() => handleOpenNewReceipt()} className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-rose-600 px-3 py-2 text-xs font-bold text-white shadow-md transition-colors hover:bg-rose-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600 sm:px-4">
+              <Plus className="h-4 w-4" /> Comprobante
+            </button>
+          </>
+        }
+      />
+      {/* FEEDBACK BANNER */}
       {feedback && (
         <div
-          className={`p-4 rounded-xl text-xs font-bold flex items-center justify-between shadow-lg transition-all ${
+          className={`p-4 rounded-xl text-xs font-medium flex items-center justify-between border ${
             feedback.type === 'success'
-              ? 'bg-emerald-500 text-white shadow-emerald-500/20'
-              : 'bg-rose-500 text-white shadow-rose-500/20'
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+              : 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400'
           }`}
         >
           <span>{feedback.text}</span>
           <button
             onClick={() => setFeedback(null)}
-            className="p-1 hover:bg-black/10 rounded-lg cursor-pointer transition-colors"
+            className="p-1 hover:bg-black/5 rounded cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
-      {/* KPIS HEADER */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* KPI 1 */}
-        <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-5 shadow-sm">
+      {/* METRIC KPIS CARDS */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4" aria-label="Filtrar egresos por tipo">
+        <button type="button" onClick={() => selectSourceFromKpi('domestico')} aria-pressed={activeSourceTab === 'domestico'} className={`min-w-0 rounded-2xl border bg-white p-3 text-left shadow-sm transition-colors hover:border-rose-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-600 dark:bg-[#0F172A] sm:p-5 ${activeSourceTab === 'domestico' ? 'border-rose-600 ring-2 ring-rose-600/20' : 'border-gray-200 dark:border-gray-800'}`}>
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Total Egresos Activos
-            </span>
-            <div className="p-2.5 bg-blue-500/10 text-[#0088FF] rounded-xl">
-              <Receipt className="w-5 h-5" />
-            </div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Egresos Domésticos</span>
+            <div className="rounded-xl bg-amber-500/10 p-2.5 text-amber-600 dark:text-amber-400"><Home className="h-5 w-5" /></div>
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-gray-900 dark:text-white table-cell-num">
-              {activeExpensesCount}
-            </span>
-            <span className="text-xs text-gray-500 font-semibold">
-              de {totalExpensesCount} totales
-            </span>
-          </div>
-        </div>
+          <div className="mt-3"><span className="block break-all text-base font-black text-amber-600 dark:text-amber-400 table-cell-num sm:text-xl">{Money.fromAmount(totalDomesticMonthly).toFormattedString()}</span></div>
+          <span className="mt-1 block text-[11px] text-gray-500 dark:text-gray-400">{sourceCountLabel('domestico')}</span>
+        </button>
 
-        {/* KPI 2 */}
-        <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-5 shadow-sm">
+        <button type="button" onClick={() => selectSourceFromKpi('emprendimiento')} aria-pressed={activeSourceTab === 'emprendimiento'} className={`min-w-0 rounded-2xl border bg-white p-3 text-left shadow-sm transition-colors hover:border-rose-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-600 dark:bg-[#0F172A] sm:p-5 ${activeSourceTab === 'emprendimiento' ? 'border-rose-600 ring-2 ring-rose-600/20' : 'border-gray-200 dark:border-gray-800'}`}>
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Egresos Domésticos
-            </span>
-            <div className="p-2.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-xl">
-              <Home className="w-5 h-5" />
-            </div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Gastos Emprendimiento</span>
+            <div className="rounded-xl bg-blue-500/10 p-2.5 text-blue-600 dark:text-blue-400"><Briefcase className="h-5 w-5" /></div>
           </div>
-          <div className="mt-3">
-            <span className="text-2xl font-black text-amber-600 dark:text-amber-400 table-cell-num">
-              {Money.fromAmount(totalDomesticMonthly).toFormattedString()}
-            </span>
-          </div>
-        </div>
+          <div className="mt-3"><span className="block break-all text-base font-black text-blue-600 dark:text-blue-400 table-cell-num sm:text-xl">{Money.fromAmount(totalBusinessMonthly).toFormattedString()}</span></div>
+          <span className="mt-1 block text-[11px] text-gray-500 dark:text-gray-400">{sourceCountLabel('emprendimiento')}</span>
+        </button>
 
-        {/* KPI 3 */}
-        <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-5 shadow-sm">
+        <button type="button" onClick={() => selectSourceFromKpi('extraordinario')} aria-pressed={activeSourceTab === 'extraordinario'} className={`min-w-0 rounded-2xl border bg-white p-3 text-left shadow-sm transition-colors hover:border-rose-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-600 dark:bg-[#0F172A] sm:p-5 ${activeSourceTab === 'extraordinario' ? 'border-rose-600 ring-2 ring-rose-600/20' : 'border-gray-200 dark:border-gray-800'}`}>
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Gastos Emprendimiento
-            </span>
-            <div className="p-2.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-xl">
-              <Briefcase className="w-5 h-5" />
-            </div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Extraordinarios</span>
+            <div className="rounded-xl bg-purple-500/10 p-2.5 text-purple-600 dark:text-purple-400"><Sparkles className="h-5 w-5" /></div>
           </div>
-          <div className="mt-3">
-            <span className="text-2xl font-black text-blue-600 dark:text-blue-400 table-cell-num">
-              {Money.fromAmount(totalBusinessMonthly).toFormattedString()}
-            </span>
-          </div>
-        </div>
+          <div className="mt-3"><span className="block break-all text-base font-black text-purple-600 dark:text-purple-400 table-cell-num sm:text-xl">{Money.fromAmount(totalExtraMonthly).toFormattedString()}</span></div>
+          <span className="mt-1 block text-[11px] text-gray-500 dark:text-gray-400">{sourceCountLabel('extraordinario')}</span>
+        </button>
 
-        {/* KPI 4 */}
-        <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-5 shadow-sm">
+        <button type="button" onClick={() => selectSourceFromKpi('todos')} aria-pressed={activeSourceTab === 'todos'} className={`min-w-0 rounded-2xl border bg-white p-3 text-left shadow-sm transition-colors hover:border-rose-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-600 dark:bg-[#0F172A] sm:p-5 ${activeSourceTab === 'todos' ? 'border-rose-600 ring-2 ring-rose-600/20' : 'border-gray-200 dark:border-gray-800'}`}>
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Egreso Total Actual
-            </span>
-            <div className="p-2.5 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl">
-              <DollarSign className="w-5 h-5" />
-            </div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Egreso Total Actual</span>
+            <div className="rounded-xl bg-rose-500/10 p-2.5 text-rose-600 dark:text-rose-400"><DollarSign className="h-5 w-5" /></div>
           </div>
-          <div className="mt-3">
-            <span className="text-2xl font-black text-rose-600 dark:text-rose-400 table-cell-num">
-              {Money.fromAmount(totalMonthlyAll).toFormattedString()}
-            </span>
-          </div>
-        </div>
+          <div className="mt-3"><span className="block break-all text-base font-black text-rose-600 dark:text-rose-400 table-cell-num sm:text-xl">{Money.fromAmount(totalMonthlyAll).toFormattedString()}</span></div>
+          <span className="mt-1 block text-[11px] text-gray-500 dark:text-gray-400">Todos los egresos activos</span>
+        </button>
       </div>
 
       {/* SECCIÓN PRINCIPAL: BUSQUEDA, FILTROS Y TABLA */}
-      <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm overflow-hidden">
-        {/* SEGMENTED TAB SELECTOR: TODOS / DOMÉSTICOS / EMPRENDIMIENTO / EXTRAORDINARIOS */}
-        <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex bg-gray-200/80 dark:bg-gray-800 p-1 rounded-xl overflow-x-auto max-w-full scrollbar-none">
-            <button
-              onClick={() => { setActiveSourceTab('todos'); setCurrentPage(1); }}
-              className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                activeSourceTab === 'todos'
-                  ? 'bg-rose-600 text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }`}
-            >
-              Todos los Egresos ({tabCounts.todos})
-            </button>
-            <button
-              onClick={() => { setActiveSourceTab('domestico'); setCurrentPage(1); }}
-              className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                activeSourceTab === 'domestico'
-                  ? 'bg-amber-600 text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }`}
-            >
-              <Home className="w-3.5 h-3.5 shrink-0" />
-              Domésticos ({tabCounts.domestico})
-            </button>
-            <button
-              onClick={() => { setActiveSourceTab('emprendimiento'); setCurrentPage(1); }}
-              className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                activeSourceTab === 'emprendimiento'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }`}
-            >
-              <Briefcase className="w-3.5 h-3.5 shrink-0" />
-              Emprendimiento ({tabCounts.emprendimiento})
-            </button>
-            <button
-              onClick={() => { setActiveSourceTab('extraordinario'); setCurrentPage(1); }}
-              className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                activeSourceTab === 'extraordinario'
-                  ? 'bg-purple-600 text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5 shrink-0" />
-              Extraordinarios ({tabCounts.extraordinario})
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleOpenNewModal}
-              className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold cursor-pointer"
-            >
-              Nuevo gasto
-            </button>
-            <button
-              onClick={() => handleOpenNewReceipt()}
-              className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              Nuevo comprobante
-            </button>
-          </div>
-        </div>
+      <div ref={tableSectionRef} className="scroll-mt-3 bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm overflow-hidden">
 
         {/* FILTROS SECUNDARIOS Y BUSCADOR */}
         <TableSearchFilter
@@ -783,7 +726,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
           }
         />
 
-        <div className="px-6 pt-5 flex items-center justify-between gap-3 flex-wrap">
+        <div className="px-3 sm:px-6 pt-4 sm:pt-5 flex items-center justify-between gap-3 flex-wrap">
           <div>
             <h3 className="text-sm font-bold text-gray-900 dark:text-white">Vista de egresos</h3>
             <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
@@ -817,7 +760,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
         </div>
 
         {/* TABLA DE EGRESOS */}
-        <div className="p-6">
+        <div className="p-3 sm:p-6">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <Loader2 className="w-8 h-8 animate-spin text-rose-500" />
@@ -825,8 +768,8 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
             </div>
           ) : (
             tableView === 'mensual' ? (
-              <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800">
-                <table className="w-full text-left border-collapse text-xs">
+              <div className="mobile-card-container overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800">
+                <table className="mobile-record-table w-full min-w-[540px] text-left border-collapse text-xs">
                   <thead>
                     <tr className="bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">
                       <th className="py-3 px-4">TIPO</th>
@@ -837,18 +780,18 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                     {monthlyExpenseRows.map(row => (
-                      <tr key={`${row.category.toLocaleLowerCase('es')}|${row.supplierName.toLocaleLowerCase('es')}`} className="hover:bg-gray-50/70 dark:hover:bg-gray-800/40">
-                        <td className="py-3.5 px-4">{getSourceBadge(row.sourceType)}</td>
-                        <td className="py-3.5 px-4">
+                      <tr key={`${row.category.toLocaleLowerCase('es')}|${row.supplierName.toLocaleLowerCase('es')}`} className="record-row hover:bg-gray-50/70 dark:hover:bg-gray-800/40">
+                        <td data-label="Tipo" className="py-3.5 px-4">{getSourceBadge(row.sourceType)}</td>
+                        <td data-label="Categoría / proveedor" data-primary="true" className="py-3.5 px-4">
                           <span className="block font-bold text-gray-900 dark:text-gray-100">{row.category}</span>
                           <span className="block mt-1 text-gray-500 dark:text-gray-400">{row.supplierName}</span>
                         </td>
                         {expenseMonths.map(month => (
-                          <td key={month.key} className="py-3.5 px-4 text-right font-bold text-rose-600 dark:text-rose-400 table-cell-num">
+                          <td key={month.key} data-label={month.label} data-empty={!row.amounts[month.key] ? 'true' : undefined} className="py-3.5 px-4 text-right font-bold text-rose-600 dark:text-rose-400 table-cell-num">
                             {row.amounts[month.key] ? Money.fromAmount(row.amounts[month.key]).toFormattedString() : '—'}
                           </td>
                         ))}
-                        <td className="py-3.5 px-4 text-center">
+                        <td data-label="Acciones" className="py-3.5 px-4 text-center">
                           <div className="flex items-center justify-center gap-1">
                             <button type="button" onClick={() => handleShowRowReceipts(row.category, row.supplierName)} className="p-1.5 text-emerald-600 dark:text-emerald-400 rounded-lg" title={`Ver comprobantes de ${row.category} / ${row.supplierName}`} aria-label={`Ver comprobantes de ${row.category} / ${row.supplierName}`}><Eye className="w-4 h-4" /></button>
                             <button type="button" onClick={() => {
@@ -880,8 +823,8 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
                 </table>
               </div>
             ) : (
-            <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800">
-              <table className="w-full text-left border-collapse text-xs">
+            <div className="mobile-card-container overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800">
+              <table className="mobile-record-table w-full min-w-[860px] text-left border-collapse text-xs">
                 <thead>
                   <tr className="bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">
                     <th className="py-3 px-4">FECHA DE ALTA</th>
@@ -898,14 +841,14 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
                     const expense = allExpenses.find(item => item.id === receipt.expenseId);
                     if (!expense) return null;
                     return (
-                      <tr key={receipt.id} className="hover:bg-gray-50/70 dark:hover:bg-gray-800/40">
-                        <td className="py-3.5 px-4 text-gray-600 dark:text-gray-300">{new Date(receipt.createdAt).toLocaleDateString('es-AR')}</td>
-                        <td className="py-3.5 px-4 font-bold text-gray-900 dark:text-gray-100">{expense.supplierName}</td>
-                        <td className="py-3.5 px-4 text-gray-700 dark:text-gray-300">{expense.concept}</td>
-                        <td className="py-3.5 px-4">{receipt.paymentCondition === 'cuenta_corriente' ? 'Cta Cte' : 'Contado'}</td>
-                        <td className="py-3.5 px-4">{receipt.dueDate ? new Date(`${receipt.dueDate}T00:00:00`).toLocaleDateString('es-AR') : '—'}</td>
-                        <td className="py-3.5 px-4 text-right font-black text-rose-600 dark:text-rose-400 table-cell-num">{Money.fromAmount(receipt.amount).toFormattedString()}</td>
-                        <td className="py-3.5 px-4">
+                      <tr key={receipt.id} className="record-row hover:bg-gray-50/70 dark:hover:bg-gray-800/40">
+                        <td data-label="Alta" data-mobile-hidden="true" className="py-3.5 px-4 text-gray-600 dark:text-gray-300">{new Date(receipt.createdAt).toLocaleDateString('es-AR')}</td>
+                        <td data-label="Proveedor" data-primary="true" className="py-3.5 px-4 font-bold text-gray-900 dark:text-gray-100">{expense.supplierName}</td>
+                        <td data-label="Concepto" data-primary="true" className="py-3.5 px-4 text-gray-700 dark:text-gray-300">{expense.concept}</td>
+                        <td data-label="Condición" className="py-3.5 px-4">{receipt.paymentCondition === 'cuenta_corriente' ? 'Cta Cte' : 'Contado'}</td>
+                        <td data-label="Vencimiento" data-empty={!receipt.dueDate ? 'true' : undefined} className="py-3.5 px-4">{receipt.dueDate ? new Date(`${receipt.dueDate}T00:00:00`).toLocaleDateString('es-AR') : '—'}</td>
+                        <td data-label="Importe" className="py-3.5 px-4 text-right font-black text-rose-600 dark:text-rose-400 table-cell-num">{Money.fromAmount(receipt.amount).toFormattedString()}</td>
+                        <td data-label="Acciones" className="py-3.5 px-4">
                           <div className="flex items-center justify-center gap-1.5">
                             <button onClick={() => handleOpenEditReceipt(receipt)} className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/50 text-[#0088FF] dark:text-blue-400 font-bold rounded-lg cursor-pointer flex items-center gap-1.5"><Pencil className="w-3.5 h-3.5" /><span>Editar</span></button>
                             <button onClick={() => handleDeleteReceipt(receipt)} className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg cursor-pointer" title="Eliminar comprobante"><Trash2 className="w-4 h-4" /></button>
@@ -988,16 +931,16 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
       </div>
 
       {isReceiptModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4">
           <div className="w-full max-w-3xl max-h-[calc(100vh-2rem)] overflow-hidden flex flex-col rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#0F172A] shadow-2xl">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+            <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
               <div>
                 <h3 className="text-base font-bold text-gray-900 dark:text-white">{editingReceipt ? 'Editar comprobante' : 'Nuevo comprobante'}</h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Asociá el importe con una fila de gasto existente.</p>
               </div>
               <button type="button" onClick={() => setIsReceiptModalOpen(false)} className="p-2 text-gray-500 hover:text-gray-900 dark:hover:text-white" aria-label="Cerrar"><X className="w-5 h-5" /></button>
             </div>
-            <form onSubmit={handleSaveReceipt} className="p-6 overflow-y-auto space-y-5">
+            <form onSubmit={handleSaveReceipt} className="p-4 sm:p-6 overflow-y-auto space-y-5">
               <div>
                 <label htmlFor="receipt-expense" className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">Gasto asociado *</label>
                 <select
@@ -1088,13 +1031,13 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
             </div>
 
             {/* MODAL BODY FORM */}
-            <form onSubmit={handleSaveExpense} className="p-6 space-y-4 overflow-y-auto">
+            <form onSubmit={handleSaveExpense} className="p-4 sm:p-6 space-y-4 overflow-y-auto">
               {/* TIPO DE EGRESO */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                   Tipo de Egreso *
                 </label>
-                <div className="grid grid-cols-3 gap-2 bg-gray-50 dark:bg-gray-800 p-1.5 border border-gray-200 dark:border-gray-700 rounded-xl">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-gray-50 dark:bg-gray-800 p-1.5 border border-gray-200 dark:border-gray-700 rounded-xl">
                   {EXPENSE_SOURCE_TYPES.map(st => {
                     const Icon = st.icon;
                     const isSelected = sourceType === st.id;
@@ -1108,7 +1051,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
                           if (st.id === 'domestico') setCategory('Alimentación & Hogar');
                           if (st.id === 'emprendimiento') setCategory('Software & Infraestructura');
                         }}
-                        className={`py-2 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                        className={`py-2 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${st.id === 'extraordinario' ? 'col-span-2 sm:col-span-1' : ''} ${
                           isSelected
                             ? 'bg-rose-600 text-white shadow-sm'
                             : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'

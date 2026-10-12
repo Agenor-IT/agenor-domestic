@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Sidebar } from './presentation/components/Sidebar';
-import { Navbar } from './presentation/components/Navbar';
-import { Header } from './presentation/components/Header';
+import { BottomNav } from './presentation/components/BottomNav';
+import { HomeDueTasksPanel } from './presentation/components/HomeDueTasksPanel';
 import { PageHeader } from './presentation/components/PageHeader';
 import { MainDashboardKPIs } from './presentation/components/MainDashboardKPIs';
 import { FinancialChart } from './presentation/components/FinancialChart';
@@ -9,7 +9,6 @@ import { ActualTrackingPanel } from './presentation/components/ActualTrackingPan
 import { NoExtraScenarioPanel } from './presentation/components/NoExtraScenarioPanel';
 import { ParametersPanel } from './presentation/components/ParametersPanel';
 import { OverduesPanel } from './presentation/components/OverduesPanel';
-import { PaymentPrioritiesPanel } from './presentation/components/PaymentPrioritiesPanel';
 import { AdjustmentModal, AdjustmentData } from './presentation/components/AdjustmentModal';
 import { TransactionModal, TransactionSubmitData } from './presentation/components/TransactionModal';
 import { RxTRevaluationModal } from './presentation/components/RxTRevaluationModal';
@@ -24,40 +23,46 @@ import { DomVentureDTO } from './domain/ventures/DomVenture';
 
 import {
   BarChart3,
-  ListOrdered,
   Settings,
-  Clock,
   SlidersHorizontal,
   PlusCircle,
   ArrowLeftRight,
   BookOpen,
-  Briefcase,
-  Receipt
+  TrendingUp
 } from 'lucide-react';
 
 import { ProjectCashFlowUseCase } from './application/ProjectCashFlowUseCase';
 import {
   INITIAL_MONTHS,
   INITIAL_DEFAULT_IPC,
-  INITIAL_SECTIONS,
-  DEFAULT_PAYMENT_PRIORITIES
+  INITIAL_SECTIONS
 } from './domain/shared/initialSeedData';
 import { PaymentMethodType, DEFAULT_CUSTOM_PAYMENT_METHODS, CustomPaymentMethod } from './domain/shared/PaymentMethod';
 import { SupabaseDomTransactionRepository } from './infrastructure/SupabaseDomTransactionRepository';
-import { SupabaseDomPaymentPriorityRepository } from './infrastructure/SupabaseDomPaymentPriorityRepository';
 import { SupabaseDomAccountingRepository } from './infrastructure/SupabaseDomAccountingRepository';
 import { supabase } from './infrastructure/supabaseClient';
 import { DomAccountDTO } from './domain/repositories/IAccountingRepository';
 import { Money } from './domain/shared/Money';
-import { PaymentPriority } from './domain/priorities/PaymentPriority';
 
 export const App: React.FC = () => {
   const { darkMode, toggleDarkMode } = useDarkMode();
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
+  const [reportsView, setReportsView] = useState<'summary' | 'accounting' | 'overdues'>('summary');
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (currentTab === 'atrasos') {
+      setReportsView('overdues');
+      setCurrentTab('seguimiento');
+    }
+  }, [currentTab]);
+
+  const handleTabChange = (tab: string) => {
+    setCurrentTab(tab);
+    window.scrollTo(0, 0);
+  };
   const [openingBalance, setOpeningBalance] = useState<number>(0);
   const [ipcRates, setIpcRates] = useState<number[]>(INITIAL_DEFAULT_IPC);
-  const [priorities, setPriorities] = useState<PaymentPriority[]>(DEFAULT_PAYMENT_PRIORITIES);
   const [paymentMethods, setPaymentMethods] = useState<CustomPaymentMethod[]>(DEFAULT_CUSTOM_PAYMENT_METHODS);
   const [selectedMethods, setSelectedMethods] = useState<Record<string, PaymentMethodType>>({});
   const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState<boolean>(false);
@@ -74,7 +79,6 @@ export const App: React.FC = () => {
   const [adjustments, setAdjustments] = useState<Record<string, number>>({});
 
   const transactionRepo = useMemo(() => new SupabaseDomTransactionRepository(), []);
-  const priorityRepo = useMemo(() => new SupabaseDomPaymentPriorityRepository(), []);
   const accountingRepo = useMemo(() => new SupabaseDomAccountingRepository(), []);
   const ventureRepo = useMemo(() => new SupabaseDomVentureRepository(), []);
 
@@ -97,7 +101,7 @@ export const App: React.FC = () => {
       .catch(err => console.error('Error al cargar dom_ventures:', err));
   }, [ventureRepo, currentTab]);
 
-  // CARGAR TRANSACCIONES Y PRIORIDADES DESDE SUPABASE AL INICIAR
+  // CARGAR TRANSACCIONES DESDE SUPABASE AL INICIAR
   useEffect(() => {
     const personaPadreId = 1;
 
@@ -117,14 +121,7 @@ export const App: React.FC = () => {
       })
       .catch(err => console.error('Error cargando dom_transactions desde Supabase:', err));
 
-    priorityRepo.getPrioritiesByTenant(personaPadreId)
-      .then(data => {
-        if (data && data.length > 0) {
-          setPriorities(data);
-        }
-      })
-      .catch(err => console.error('Error cargando dom_payment_priorities desde Supabase:', err));
-  }, [transactionRepo, priorityRepo]);
+  }, [transactionRepo]);
 
   // CALCULO DINAMICO DE SECCIONES (Suma real de fuentes de ingresos activas: emprendimientos, alquileres, extraordinarios)
   const dynamicSections = useMemo(() => {
@@ -213,16 +210,6 @@ export const App: React.FC = () => {
       next[index] = val;
       return next;
     });
-  };
-
-  const handleSavePriorities = async (updatedPriorities: PaymentPriority[]) => {
-    setPriorities(updatedPriorities);
-    try {
-      await priorityRepo.savePriorities(1, updatedPriorities);
-      console.log('Prioridades guardadas exitosamente en Supabase dom_payment_priorities');
-    } catch (err) {
-      console.error('Error al guardar prioridades en Supabase:', err);
-    }
   };
 
   const handleSavePaymentMethod = (data: {
@@ -686,10 +673,10 @@ export const App: React.FC = () => {
   const cardsAvailable = Money.fromAmount(dynamicCardsAvailable);
 
   return (
-    <div className="flex min-h-screen bg-[#F4F6F8] dark:bg-[#070D1B] text-[#172033] dark:text-gray-100 transition-colors duration-300">
+    <div className="flex min-h-dvh min-w-0 bg-[#F4F6F8] dark:bg-[#070D1B] text-[#172033] dark:text-gray-100 transition-colors duration-300">
       <Sidebar
         currentTab={currentTab}
-        onTabChange={setCurrentTab}
+        onTabChange={handleTabChange}
         darkMode={darkMode}
         onToggleDarkMode={toggleDarkMode}
         mobileOpen={mobileMenuOpen}
@@ -697,49 +684,30 @@ export const App: React.FC = () => {
       />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <Navbar
+        <BottomNav
           currentTab={currentTab}
-          onOpenSidebar={() => setMobileMenuOpen(true)}
-          onOpenNewTransaction={handleOpenNewTransactionModal}
-          darkMode={darkMode}
-          onToggleDarkMode={toggleDarkMode}
+          onTabChange={handleTabChange}
+          onNewAdjustment={() => setIsAdjustmentModalOpen(true)}
+          onNewTransaction={handleOpenNewTransactionModal}
+          onOpenRevaluation={() => setIsRxTModalOpen(true)}
+          onOpenMore={() => setMobileMenuOpen(true)}
+          moreOpen={mobileMenuOpen}
         />
 
-        <main className="flex-1 p-3 sm:p-4 md:p-6 max-w-[1850px] w-full mx-auto">
+        <main id="main-content" className="flex-1 min-w-0 w-full px-3 pt-[max(1rem,env(safe-area-inset-top))] pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-5 sm:pt-5 lg:px-6 lg:pt-6 lg:pb-8 xl:px-8 2xl:px-10">
           {/* MÓDULO HOME */}
           {currentTab === 'dashboard' && (
-            <>
-              <Header
-                onOpenNewTransaction={handleOpenNewTransactionModal}
-                onOpenNewAdjustment={() => setIsAdjustmentModalOpen(true)}
-                onOpenRxTRevaluation={() => setIsRxTModalOpen(true)}
-              />
-
-              <MainDashboardKPIs
-                accountsReceivable={accountsReceivable}
-                accountsPayable={accountsPayable}
-                cashAvailable={cashAvailable}
-                bankAvailable={bankAvailable}
-                cardsAvailable={cardsAvailable}
-              />
-
-              <FinancialChart
-                months={INITIAL_MONTHS}
-                income={projection.income}
-                expense={projection.expense}
-                net={projection.net}
-              />
-            </>
+            <HomeDueTasksPanel onOpenExpenses={() => handleTabChange('egresos')} />
           )}
 
           {/* MÓDULO TRANSACCIONES */}
           {currentTab === 'transacciones' && (
             <>
               <PageHeader
-                title="Gestión de Transacciones y Movimientos"
-                subtitle="Administración detallada de ingresos y egresos registrados"
+                title="Transacciones"
                 icon={ArrowLeftRight}
                 iconBgColor="bg-[#0088FF]"
+                actionContainerClassName="hidden lg:flex"
                 action={
                   <div className="flex flex-wrap items-center gap-2.5">
                     <button
@@ -761,7 +729,6 @@ export const App: React.FC = () => {
               />
               <TransactionsPanel
                 transactions={transactions}
-                onOpenNewTransaction={handleOpenNewTransactionModal}
                 onEditTransaction={handleOpenEditTransactionModal}
                 onDeleteTransaction={handleDeleteTransaction}
                 paymentMethods={paymentMethods}
@@ -771,68 +738,91 @@ export const App: React.FC = () => {
 
           {/* MÓDULO FUENTES DE INGRESOS */}
           {(currentTab === 'fuentes_ingresos' || currentTab === 'emprendimientos') && (
-            <>
-              <PageHeader
-                title="Fuentes de Ingresos"
-                subtitle="Gestión unificada de ingresos por emprendimientos, alquileres e ingresos extraordinarios"
-                icon={Briefcase}
-                iconBgColor="bg-[#0088FF]"
-              />
-              <VenturesPanel onVenturesChange={() => {
-                ventureRepo.getVentures(1).then(v => setDbVentures(v));
-              }} />
-            </>
+            <VenturesPanel onVenturesChange={() => {
+              ventureRepo.getVentures(1).then(v => setDbVentures(v));
+            }} />
           )}
 
           {/* MÓDULO ESTRUCTURA DE EGRESOS */}
           {currentTab === 'egresos' && (
-            <>
-              <PageHeader
-                title="Estructura de Egresos"
-                subtitle="Gestión unificada de egresos domésticos, gastos de emprendimiento y extraordinarios"
-                icon={Receipt}
-                iconBgColor="bg-rose-600"
-              />
-              <ExpensesPanel />
-            </>
+            <ExpensesPanel />
           )}
 
           {/* MÓDULO REPORTES CONTABLES */}
           {currentTab === 'seguimiento' && (
             <>
               <PageHeader
-                title="Reportes Contables en Vivo"
-                subtitle="Estados Financieros (P&L, Situación Patrimonial), Libro Diario y Libro Mayor agrupado por cuenta"
+                title="Reportes y Dashboard"
+                subtitle="Indicadores financieros, reportes contables y atrasos"
                 icon={BookOpen}
                 iconBgColor="bg-[#0f8a5f]"
-                action={
-                  <div className="flex flex-wrap items-center gap-2.5">
+              />
+              <div className="mb-5 grid grid-cols-1 gap-2 rounded-2xl bg-gray-200/80 p-1.5 dark:bg-[#1E293B] sm:inline-grid sm:grid-cols-3 sm:min-w-[32rem]">
+                <button
+                  type="button"
+                  onClick={() => setReportsView('summary')}
+                  aria-pressed={reportsView === 'summary'}
+                  className={`rounded-xl px-3 py-2.5 text-xs font-bold transition-colors ${reportsView === 'summary' ? 'bg-[#12355b] text-white shadow-sm dark:bg-[#0088FF]' : 'text-gray-700 hover:bg-white/50 dark:text-gray-300 dark:hover:bg-gray-800'}`}
+                >
+                  Dashboard
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReportsView('accounting')}
+                  aria-pressed={reportsView === 'accounting'}
+                  className={`rounded-xl px-3 py-2.5 text-xs font-bold transition-colors ${reportsView === 'accounting' ? 'bg-[#12355b] text-white shadow-sm dark:bg-[#0088FF]' : 'text-gray-700 hover:bg-white/50 dark:text-gray-300 dark:hover:bg-gray-800'}`}
+                >
+                  Reportes contables
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReportsView('overdues')}
+                  aria-pressed={reportsView === 'overdues'}
+                  className={`rounded-xl px-3 py-2.5 text-xs font-bold transition-colors ${reportsView === 'overdues' ? 'bg-[#12355b] text-white shadow-sm dark:bg-[#0088FF]' : 'text-gray-700 hover:bg-white/50 dark:text-gray-300 dark:hover:bg-gray-800'}`}
+                >
+                  Atrasos y moras
+                </button>
+              </div>
+              {reportsView === 'summary' ? (
+                <div>
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <h2 className="text-lg font-bold text-[#172033] dark:text-white">Resumen financiero</h2>
                     <button
-                      onClick={handleOpenNewTransactionModal}
-                      className="flex items-center gap-2 bg-[#12355b] dark:bg-[#0088FF] hover:bg-[#0d2642] dark:hover:bg-blue-600 text-white text-xs md:text-sm font-bold px-4 py-2.5 rounded-xl shadow-md shadow-blue-500/10 transition-all cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
+                      type="button"
+                      onClick={() => setIsRxTModalOpen(true)}
+                      className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#059669] px-4 py-2 text-xs font-bold text-white hover:bg-[#047857]"
                     >
-                      <PlusCircle className="w-4 h-4 shrink-0" />
-                      <span>Nueva Transacción</span>
-                    </button>
-                    <button
-                      onClick={() => setIsAdjustmentModalOpen(true)}
-                      className="flex items-center gap-2 bg-[#00A86B] hover:bg-[#008f5b] text-white text-xs md:text-sm font-bold px-4 py-2.5 rounded-xl shadow-md shadow-emerald-500/20 transition-all cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
-                    >
-                      <SlidersHorizontal className="w-4 h-4 shrink-0" />
-                      <span>Nuevo Ajuste</span>
+                      <TrendingUp className="h-4 w-4" aria-hidden="true" />
+                      Revaluar activos (RxT)
                     </button>
                   </div>
-                }
-              />
-              <ActualTrackingPanel
-                adjustments={adjustments}
-                nodes={nodes}
-                months={INITIAL_MONTHS}
-                selectedMethods={selectedMethods}
-                onMethodChange={handleMethodChange}
-                openingBalance={openingBalance}
-                onOpeningBalanceChange={setOpeningBalance}
-              />
+                  <MainDashboardKPIs
+                    accountsReceivable={accountsReceivable}
+                    accountsPayable={accountsPayable}
+                    cashAvailable={cashAvailable}
+                    bankAvailable={bankAvailable}
+                    cardsAvailable={cardsAvailable}
+                  />
+                  <FinancialChart
+                    months={INITIAL_MONTHS}
+                    income={projection.income}
+                    expense={projection.expense}
+                    net={projection.net}
+                  />
+                </div>
+              ) : reportsView === 'accounting' ? (
+                <ActualTrackingPanel
+                  adjustments={adjustments}
+                  nodes={nodes}
+                  months={INITIAL_MONTHS}
+                  selectedMethods={selectedMethods}
+                  onMethodChange={handleMethodChange}
+                  openingBalance={openingBalance}
+                  onOpeningBalanceChange={setOpeningBalance}
+                />
+              ) : (
+                <OverduesPanel />
+              )}
             </>
           )}
 
@@ -846,22 +836,6 @@ export const App: React.FC = () => {
                 iconBgColor="bg-amber-600"
               />
               <NoExtraScenarioPanel />
-            </>
-          )}
-
-          {/* MÓDULO RANKING PRIORIDADES */}
-          {currentTab === 'prioridades' && (
-            <>
-              <PageHeader
-                title="Ranking de Prioridades de Pago"
-                subtitle="Jerarquía configurable de acreedores y asignación en dom_payment_priorities"
-                icon={ListOrdered}
-                iconBgColor="bg-[#6d4db3]"
-              />
-              <PaymentPrioritiesPanel
-                priorities={priorities}
-                onSave={handleSavePriorities}
-              />
             </>
           )}
 
@@ -883,19 +857,6 @@ export const App: React.FC = () => {
                 onTogglePaymentMethod={handleTogglePaymentMethod}
                 onDeletePaymentMethod={handleDeletePaymentMethod}
               />
-            </>
-          )}
-
-          {/* MÓDULO ATRASOS & MORAS */}
-          {currentTab === 'atrasos' && (
-            <>
-              <PageHeader
-                title="Control de Atrasos y Moras"
-                subtitle="Seguimiento de saldos vencidos y pagos confirmados de obligaciones"
-                icon={Clock}
-                iconBgColor="bg-[#b54747]"
-              />
-              <OverduesPanel />
             </>
           )}
 

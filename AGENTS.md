@@ -151,3 +151,13 @@ Línea vacía. Contenido.
 
 Responder en español y modo telegráfico. No agregar títulos. Usar SI solamente con evidencia directa.
 <!-- AGENOR-GLOBAL-AGENTS-CORE:END v5 -->
+
+## Modo Senior — operación local por orden del owner
+
+- Se activa sólo por orden expresa del owner para el trabajo en curso. La presente sección no lo activa por sí sola. En NIVEL 1 permite continuar en `main` con cambios ajenos no solapados y usar el frontend local conectado a Supabase productivo; los controles de NIVEL 2 siguen vigentes.
+- Antes de implementar, confirmar este repositorio y su remoto `origin` (`https://github.com/Agenor-IT/agenor-domestic.git`). Ejecutar `git fetch origin`, comparar `main` con `origin/main`, revisar estado, índice, diffs y worktrees. No implementar con divergencia, autoría ambigua ni cambios concurrentes sobre los mismos archivos.
+- Trabajar en `main` local sin reset, rebase, stash, clean ni traslado automático de cambios ajenos. La excepción al worktree limpio se limita a NIVEL 1 y a archivos de titularidad clara. Su motivo es la continuidad local ordenada por el owner; el riesgo de mezclar autorías se mitiga con revisión del diff y staging selectivo. El owner la retira al cerrar o desactivar el modo.
+- Levantar el frontend de Domestic en `http://localhost:8090` con `npm run dev -- --mode senior --host 127.0.0.1 --port 8090 --strictPort`, usando la configuración productiva autorizada que ya existe. Verificar el destino efectivo sin imprimir claves. No instalar dependencias ni modificar `.env*` sólo para activar el modo.
+- La conexión productiva autoriza el arranque local y consultas verificadas sin efectos laterales. No autoriza escrituras de datos reales, migraciones, cambios de permisos, pruebas mutantes ni publicación. Cada operación de ese tipo exige autorización específica para su destino e impacto.
+- Código y documentación permanecen locales hasta una orden explícita de cierre o publicación. Cierre local no autoriza push ni despliegue. El arranque no exige Supabase local, Docker, seed ni reconstrucción de base.
+- Aplicar la verificación de destino de `rules.md`, sección «Modo Senior». Que el frontend se sirva en localhost no significa que el backend sea local.

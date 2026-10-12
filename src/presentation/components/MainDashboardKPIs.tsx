@@ -24,9 +24,9 @@ export const MainDashboardKPIs: React.FC<MainDashboardKPIsProps> = ({
   cardsAvailable
 }) => {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-4 sm:mb-6">
+    <div className="dashboard-kpi-grid grid grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-3 sm:gap-4 mb-4 sm:mb-6">
       {/* Cuentas a Cobrar */}
-      <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-3.5 sm:p-4 shadow-sm flex items-start justify-between gap-3">
+      <div className="kpi-card bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-3.5 sm:p-4 shadow-sm flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <span className="text-[11px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block truncate">Cuentas a Cobrar</span>
           <strong className="block text-xl sm:text-2xl font-bold text-[#0f8a5f] dark:text-emerald-400 mt-1.5 table-cell-num truncate" title={accountsReceivable.toFormattedString()}>
@@ -40,7 +40,7 @@ export const MainDashboardKPIs: React.FC<MainDashboardKPIsProps> = ({
       </div>
 
       {/* Cuentas a Pagar */}
-      <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-3.5 sm:p-4 shadow-sm flex items-start justify-between gap-3">
+      <div className="kpi-card bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-3.5 sm:p-4 shadow-sm flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <span className="text-[11px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block truncate">Cuentas a Pagar</span>
           <strong className="block text-xl sm:text-2xl font-bold text-[#b54747] dark:text-red-400 mt-1.5 table-cell-num truncate" title={accountsPayable.toFormattedString()}>
@@ -54,7 +54,7 @@ export const MainDashboardKPIs: React.FC<MainDashboardKPIsProps> = ({
       </div>
 
       {/* Disponible Efectivo */}
-      <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-3.5 sm:p-4 shadow-sm flex items-start justify-between gap-3">
+      <div className="kpi-card bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-3.5 sm:p-4 shadow-sm flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <span className="text-[11px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block truncate">Disponible Efectivo</span>
           <strong className="block text-xl sm:text-2xl font-bold text-[#12355b] dark:text-blue-400 mt-1.5 table-cell-num truncate" title={cashAvailable.toFormattedString()}>
@@ -68,7 +68,7 @@ export const MainDashboardKPIs: React.FC<MainDashboardKPIsProps> = ({
       </div>
 
       {/* Disponible Cuentas Bancarias */}
-      <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-3.5 sm:p-4 shadow-sm flex items-start justify-between gap-3">
+      <div className="kpi-card bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-3.5 sm:p-4 shadow-sm flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <span className="text-[11px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block truncate">Disponible Bancario</span>
           <strong className="block text-xl sm:text-2xl font-bold text-[#12355b] dark:text-blue-400 mt-1.5 table-cell-num truncate" title={bankAvailable.toFormattedString()}>
@@ -82,7 +82,7 @@ export const MainDashboardKPIs: React.FC<MainDashboardKPIsProps> = ({
       </div>
 
       {/* Disponible en Tarjetas */}
-      <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-3.5 sm:p-4 shadow-sm flex items-start justify-between gap-3">
+      <div className="kpi-card bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-3.5 sm:p-4 shadow-sm flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <span className="text-[11px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block truncate">Disponible Tarjetas</span>
           <strong className="block text-xl sm:text-2xl font-bold text-amber-700 dark:text-amber-400 mt-1.5 table-cell-num truncate" title={cardsAvailable.toFormattedString()}>

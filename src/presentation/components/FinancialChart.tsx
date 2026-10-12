@@ -115,12 +115,27 @@ export const FinancialChart: React.FC<FinancialChartProps> = ({
             <LineChart className="w-5 h-5 text-[#0088FF] shrink-0" />
             <span>Evolución Financiera (Líneas Dinámicas)</span>
           </h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Desplazamiento horizontal por período y rango de fechas</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Ingresos, egresos y flujo neto por período</p>
         </div>
 
         {/* SELECTOR DÍA / SEMANA / MES / AÑO / RANGO */}
         <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
-          <div className="flex items-center bg-gray-100 dark:bg-gray-800 p-1 rounded-xl overflow-x-auto max-w-full shrink-0">
+          <label htmlFor="financial-period-mobile" className="w-full lg:hidden text-xs font-bold text-gray-700 dark:text-gray-200">
+            Período
+            <select
+              id="financial-period-mobile"
+              value={periodFilter}
+              onChange={(event) => setPeriodFilter(event.target.value as PeriodFilterType)}
+              className="mt-1 block w-full min-w-0 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#0F172A] px-3 py-2.5 text-sm font-semibold text-gray-900 dark:text-white"
+            >
+              <option value="day">Día</option>
+              <option value="week">Semana</option>
+              <option value="month">Mes</option>
+              <option value="year">Año</option>
+              <option value="range">Rango</option>
+            </select>
+          </label>
+          <div className="hidden lg:flex lg:flex-wrap items-center bg-gray-100 dark:bg-gray-800 p-1 rounded-xl max-w-full shrink-0">
             {(['day', 'week', 'month', 'year', 'range'] as PeriodFilterType[]).map((p) => {
               const labels: Record<PeriodFilterType, string> = {
                 day: 'Día',
@@ -148,25 +163,25 @@ export const FinancialChart: React.FC<FinancialChartProps> = ({
 
           {/* CONTROLES RANGO DE FECHAS (DESDE / HASTA) */}
           {periodFilter === 'range' && (
-            <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 px-3 py-1.5 rounded-xl text-xs">
-              <Calendar className="w-3.5 h-3.5 text-gray-400" />
-              <div className="flex items-center gap-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:items-center gap-2 w-full lg:w-auto bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 px-3 py-2 rounded-xl text-xs">
+              <Calendar className="hidden lg:block w-3.5 h-3.5 text-gray-400" />
+              <div className="flex flex-wrap items-center gap-1.5 min-w-0">
                 <span className="text-gray-500 font-medium">Desde:</span>
                 <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="bg-transparent font-bold text-gray-800 dark:text-gray-200 outline-none text-xs"
+                  className="max-w-full min-w-0 bg-transparent font-bold text-gray-800 dark:text-gray-200 outline-none text-xs"
                 />
               </div>
-              <ArrowRight className="w-3 h-3 text-gray-400" />
-              <div className="flex items-center gap-1.5">
+              <ArrowRight className="hidden lg:block w-3 h-3 text-gray-400" />
+              <div className="flex flex-wrap items-center gap-1.5 min-w-0">
                 <span className="text-gray-500 font-medium">Hasta:</span>
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="bg-transparent font-bold text-gray-800 dark:text-gray-200 outline-none text-xs"
+                  className="max-w-full min-w-0 bg-transparent font-bold text-gray-800 dark:text-gray-200 outline-none text-xs"
                 />
               </div>
             </div>
@@ -190,8 +205,21 @@ export const FinancialChart: React.FC<FinancialChartProps> = ({
         </div>
       </div>
 
-      {/* CONTENEDOR DE GRÁFICO CON SCROLL HORIZONTAL INFINITO */}
-      <div className="relative w-full overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 lg:hidden">
+        {chartData.map((period, index) => (
+          <div key={`${period.label}-${index}`} className="min-w-0 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-3">
+            <h3 className="mb-2 text-sm font-bold text-gray-900 dark:text-white">{period.label}</h3>
+            <dl className="space-y-1.5 text-xs">
+              <div className="flex justify-between gap-2 text-[#0f8a5f] dark:text-emerald-400"><dt>Ingresos</dt><dd className="font-bold text-right break-all">{period.income.toFormattedString()}</dd></div>
+              <div className="flex justify-between gap-2 text-[#b54747] dark:text-red-400"><dt>Egresos</dt><dd className="font-bold text-right break-all">{period.expense.toFormattedString()}</dd></div>
+              <div className="flex justify-between gap-2 border-t border-gray-200 dark:border-gray-700 pt-1.5 text-[#0088FF] dark:text-blue-400"><dt>Flujo neto</dt><dd className="font-bold text-right break-all">{period.net.toFormattedString()}</dd></div>
+            </dl>
+          </div>
+        ))}
+      </div>
+
+      {/* El gráfico ancho queda reservado para escritorio. */}
+      <div className="relative hidden lg:block w-full overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700">
         {hoveredIdx !== null && chartData[hoveredIdx] && (
           <div
             className="absolute top-2 z-30 bg-gray-900 text-white p-3 rounded-xl shadow-xl text-xs pointer-events-none transition-all border border-gray-700 transform -translate-x-1/2"

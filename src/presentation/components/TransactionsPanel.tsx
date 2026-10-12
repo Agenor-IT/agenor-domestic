@@ -1,19 +1,16 @@
 import React, { useState } from 'react';
-import { TableSearchFilter } from './TableSearchFilter';
 import { Money } from '../../domain/shared/Money';
 import { CustomPaymentMethod } from '../../domain/shared/PaymentMethod';
 import {
-  TrendingUp,
-  TrendingDown,
-  ArrowLeftRight,
-  PlusCircle,
   Pencil,
   Trash2,
   Calendar,
   Tag,
   CreditCard,
   Building2,
-  Wallet
+  Wallet,
+  Search,
+  X
 } from 'lucide-react';
 
 export interface TransactionItem {
@@ -31,7 +28,6 @@ export interface TransactionItem {
 
 interface TransactionsPanelProps {
   transactions: TransactionItem[];
-  onOpenNewTransaction: () => void;
   onEditTransaction: (tx: TransactionItem) => void;
   onDeleteTransaction: (id: string) => void;
   paymentMethods: CustomPaymentMethod[];
@@ -39,7 +35,6 @@ interface TransactionsPanelProps {
 
 export const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
   transactions,
-  onOpenNewTransaction,
   onEditTransaction,
   onDeleteTransaction,
   paymentMethods
@@ -48,12 +43,12 @@ export const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
 
   const filteredTransactions = transactions.filter((tx) => {
-    const searchLower = searchTerm.toLowerCase();
+    const searchLower = searchTerm.trim().toLowerCase();
     const matchesSearch = tx.description.toLowerCase().includes(searchLower) ||
       (tx.counterparty || '').toLowerCase().includes(searchLower) ||
       (tx.opNumber || '').toLowerCase().includes(searchLower) ||
-      tx.occurredOn.includes(searchTerm) ||
-      tx.amount.toString().includes(searchTerm);
+      tx.occurredOn.includes(searchLower) ||
+      tx.amount.toString().includes(searchLower);
     const matchesType = filterType === 'all' || tx.direction === filterType;
     return matchesSearch && matchesType;
   });
@@ -80,116 +75,86 @@ export const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
     }
   };
 
-  const totalIncome = transactions.filter(t => t.direction === 'income').reduce((sum, t) => sum + t.amount, 0);
-  const totalExpense = transactions.filter(t => t.direction === 'expense').reduce((sum, t) => sum + t.amount, 0);
-  const netFlow = totalIncome - totalExpense;
-
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* TARJETAS RESUMEN DE TRANSACCIONES */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-        <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-3.5 sm:p-4 shadow-sm flex items-center justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <span className="text-[11px] sm:text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider block truncate">
-              Total Ingresos
-            </span>
-            <strong className="text-xl sm:text-2xl font-bold text-[#0f8a5f] dark:text-emerald-400 table-cell-num mt-1 block truncate" title={Money.fromAmount(totalIncome).toFormattedString()}>
-              {Money.fromAmount(totalIncome).toFormattedString()}
-            </strong>
-          </div>
-          <div className="p-2.5 sm:p-3 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 rounded-xl shrink-0">
-            <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-3.5 sm:p-4 shadow-sm flex items-center justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <span className="text-[11px] sm:text-xs font-bold text-red-700 dark:text-red-400 uppercase tracking-wider block truncate">
-              Total Egresos
-            </span>
-            <strong className="text-xl sm:text-2xl font-bold text-[#b54747] dark:text-red-400 table-cell-num mt-1 block truncate" title={Money.fromAmount(totalExpense).toFormattedString()}>
-              {Money.fromAmount(totalExpense).toFormattedString()}
-            </strong>
-          </div>
-          <div className="p-2.5 sm:p-3 bg-red-50 dark:bg-red-950/40 text-red-600 rounded-xl shrink-0">
-            <TrendingDown className="w-5 h-5 sm:w-6 sm:h-6" />
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-3.5 sm:p-4 shadow-sm flex items-center justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <span className="text-[11px] sm:text-xs font-bold text-[#12355b] dark:text-blue-400 uppercase tracking-wider block truncate">
-              Flujo Neto
-            </span>
-            <strong className={`text-xl sm:text-2xl font-bold table-cell-num mt-1 block truncate ${netFlow >= 0 ? 'text-[#0f8a5f] dark:text-emerald-400' : 'text-[#b54747] dark:text-red-400'}`} title={Money.fromAmount(netFlow).toFormattedString()}>
-              {Money.fromAmount(netFlow).toFormattedString()}
-            </strong>
-          </div>
-          <div className="p-2.5 sm:p-3 bg-blue-50 dark:bg-blue-950/40 text-blue-600 rounded-xl shrink-0">
-            <ArrowLeftRight className="w-5 h-5 sm:w-6 sm:h-6" />
-          </div>
-        </div>
-      </div>
-
-      {/* CONTENEDOR PRINCIPAL TABLA */}
+    <div>
       <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm overflow-hidden">
-        {/* ENCABEZADO CON BUSCADOR Y FILTROS */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-[#1E293B]/40 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex-1">
-            <TableSearchFilter
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-              placeholder="Buscar por N° OP, contraparte, concepto, fecha o monto..."
+        <div className="flex flex-col gap-3 border-b border-gray-200 p-3 dark:border-gray-800 sm:p-4 md:flex-row md:items-center">
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+            <input
+              type="text"
+              inputMode="search"
+              enterKeyHint="search"
+              aria-label="Buscar transacciones"
+              value={searchTerm}
+              onChange={event => setSearchTerm(event.target.value)}
+              placeholder="Buscar transacciones"
+              className="w-full rounded-xl border border-gray-300 bg-white py-2.5 pl-10 pr-10 text-base text-gray-900 outline-none focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 dark:border-gray-700 dark:bg-[#0B1329] dark:text-white"
             />
+            {searchTerm && (
+              <button type="button" onClick={() => setSearchTerm('')} aria-label="Limpiar búsqueda" className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">
+                <X className="h-4 w-4" aria-hidden="true" />
+              </button>
+            )}
           </div>
-
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={() => setFilterType('all')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-                filterType === 'all'
-                  ? 'bg-[#12355b] dark:bg-[#0088FF] text-white shadow-sm'
-                  : 'bg-white dark:bg-[#1E293B] text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700'
-              }`}
-            >
-              Todas ({transactions.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilterType('income')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-                filterType === 'income'
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'bg-white dark:bg-[#1E293B] text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700'
-              }`}
-            >
-              Ingresos (+)
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilterType('expense')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-                filterType === 'expense'
-                  ? 'bg-red-600 text-white shadow-sm'
-                  : 'bg-white dark:bg-[#1E293B] text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700'
-              }`}
-            >
-              Egresos (-)
-            </button>
-
-            <button
-              onClick={onOpenNewTransaction}
-              className="flex items-center justify-center gap-1.5 bg-[#0088FF] hover:bg-blue-600 text-white text-xs font-bold px-4 py-2.5 sm:py-2 rounded-xl shadow-md transition-all cursor-pointer w-full sm:w-auto sm:ml-2"
-            >
-              <PlusCircle className="w-4 h-4 shrink-0" />
-              <span>Nueva Operación</span>
-            </button>
+          <div role="group" aria-label="Filtrar transacciones" className="grid w-full grid-cols-3 gap-1 rounded-xl bg-gray-100 p-1 dark:bg-[#1E293B] md:w-auto md:min-w-64">
+            {([['all', 'Todas'], ['income', 'Ingresos'], ['expense', 'Egresos']] as const).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setFilterType(value)}
+                aria-pressed={filterType === value}
+                className={`min-w-0 rounded-lg px-2 py-2 text-xs font-bold transition-colors ${filterType === value ? 'bg-[#0088FF] text-white shadow-sm' : 'text-gray-600 hover:bg-white dark:text-gray-300 dark:hover:bg-gray-800'}`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* TABLA DE OPERACIONES */}
-        <div className="overflow-x-auto">
+        {/* Lista compacta para celulares y tabletas */}
+        <div className="lg:hidden">
+          {filteredTransactions.length === 0 ? (
+            <div className="px-5 py-12 text-center">
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">{transactions.length ? 'Sin resultados' : 'Todavía no hay transacciones'}</p>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{transactions.length ? 'Probá otra búsqueda o filtro.' : 'Cuando registres una, aparecerá acá.'}</p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-gray-200 dark:divide-gray-800">
+              {filteredTransactions.map((tx) => (
+                <li key={tx.id} className="min-w-0 space-y-3 p-4">
+                  <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="break-words text-sm font-bold text-gray-900 dark:text-white">{tx.description}</p>
+                      <p className="mt-1 break-words text-xs text-gray-500 dark:text-gray-400">
+                        {tx.counterparty || 'Cliente / Proveedor General'}
+                      </p>
+                    </div>
+                    <strong className={`max-w-full break-all text-left text-base font-bold table-cell-num sm:shrink-0 sm:text-right ${tx.direction === 'income' ? 'text-[#0f8a5f] dark:text-emerald-400' : 'text-[#b54747] dark:text-red-400'}`}>
+                      {tx.direction === 'income' ? '+' : '-'}{Money.fromAmount(tx.amount).toFormattedString()}
+                    </strong>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-gray-500 dark:text-gray-400">
+                    <span className="inline-flex items-center gap-1"><Calendar className="h-3.5 w-3.5" aria-hidden="true" />{tx.occurredOn}</span>
+                    <span className="inline-flex items-center gap-1">{getMethodIcon(tx.paymentMethod, tx.paymentCondition)}{getMethodName(tx.paymentMethod, tx.paymentCondition)}</span>
+                    <span>{tx.paymentCondition === 'cta_cte' ? 'Cta Cte' : 'Contado'}</span>
+                  </div>
+                  <div className="flex items-center justify-end gap-2 border-t border-gray-100 pt-2 dark:border-gray-800">
+                    <button type="button" onClick={() => onEditTransaction(tx)} className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold text-blue-600 dark:text-blue-400" aria-label={`Editar ${tx.description}`}>
+                      <Pencil className="h-4 w-4" aria-hidden="true" />Editar
+                    </button>
+                    <button type="button" onClick={() => onDeleteTransaction(tx.id)} className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold text-red-600 dark:text-red-400" aria-label={`Eliminar ${tx.description}`}>
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />Eliminar
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Tabla de operaciones para pantallas grandes */}
+        <div className="hidden overflow-x-auto lg:block">
           <table className="w-full min-w-[860px] text-left border-collapse">
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-800 bg-gray-100/70 dark:bg-[#1E293B] text-[11px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
@@ -206,31 +171,31 @@ export const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
               {filteredTransactions.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-8 text-center text-gray-400 font-medium">
-                    No se encontraron operaciones registradas con los filtros actuales.
+                    {transactions.length ? 'Sin resultados para esta búsqueda.' : 'Todavía no hay transacciones registradas.'}
                   </td>
                 </tr>
               ) : (
                 filteredTransactions.map((tx) => (
-                  <tr key={tx.id} className="hover:bg-gray-50/80 dark:hover:bg-[#1E293B]/50 transition-colors">
-                    <td className="py-3.5 px-4 font-mono font-bold text-[#0088FF] dark:text-blue-400 whitespace-nowrap sticky left-0 z-10 bg-white dark:bg-[#0F172A] lg:static lg:bg-transparent lg:dark:bg-transparent">
+                  <tr key={tx.id} className="record-row hover:bg-gray-50/80 dark:hover:bg-[#1E293B]/50 transition-colors">
+                    <td data-label="N° OP" data-mobile-hidden="true" className="py-3.5 px-4 font-mono font-bold text-[#0088FF] dark:text-blue-400 whitespace-nowrap sticky left-0 z-10 bg-white dark:bg-[#0F172A] lg:static lg:bg-transparent lg:dark:bg-transparent">
                       {tx.opNumber || `OP-${tx.id.slice(-4)}`}
                     </td>
-                    <td className="py-3.5 px-4 font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                    <td data-label="Fecha" className="py-3.5 px-4 font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
                       <div className="flex items-center gap-1.5">
                         <Calendar className="w-3.5 h-3.5 text-gray-400" />
                         <span>{tx.occurredOn}</span>
                       </div>
                     </td>
-                    <td className="py-3.5 px-4 font-bold text-gray-900 dark:text-white whitespace-nowrap">
+                    <td data-label="Contraparte" data-primary="true" className="py-3.5 px-4 font-bold text-gray-900 dark:text-white whitespace-nowrap">
                       {tx.counterparty || 'Cliente / Proveedor General'}
                     </td>
-                    <td className="py-3.5 px-4 font-medium text-gray-800 dark:text-gray-200">
+                    <td data-label="Concepto" data-primary="true" className="py-3.5 px-4 font-medium text-gray-800 dark:text-gray-200">
                       <div className="flex items-center gap-2">
                         <Tag className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                         <span>{tx.description}</span>
                       </div>
                     </td>
-                    <td className="py-3.5 px-4 whitespace-nowrap">
+                    <td data-label="Condición / Medio" className="py-3.5 px-4 whitespace-nowrap">
                       <div className="flex flex-col gap-1">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold w-fit ${
                           tx.paymentCondition === 'cta_cte'
@@ -245,12 +210,12 @@ export const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
                         </div>
                       </div>
                     </td>
-                    <td className={`py-3.5 px-4 text-right font-bold text-sm table-cell-num whitespace-nowrap ${
+                    <td data-label="Monto" className={`py-3.5 px-4 text-right font-bold text-sm table-cell-num whitespace-nowrap ${
                       tx.direction === 'income' ? 'text-[#0f8a5f] dark:text-emerald-400' : 'text-[#b54747] dark:text-red-400'
                     }`}>
                       {tx.direction === 'income' ? '+' : '-'}{Money.fromAmount(tx.amount).toFormattedString()}
                     </td>
-                    <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                    <td data-label="Acciones" className="py-3.5 px-4 text-center whitespace-nowrap">
                       <div className="flex items-center justify-center gap-1.5">
                         <button
                           type="button"
@@ -277,11 +242,9 @@ export const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
           </table>
         </div>
 
-        {/* PIE DE TABLA / RESUMEN */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-[#1E293B]/40 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 font-medium">
-          <span>Mostrando {filteredTransactions.length} de {transactions.length} movimientos</span>
-          <span>Paginación automática activa</span>
-        </div>
+        {transactions.length > 0 && <p className="border-t border-gray-200 px-4 py-3 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
+          {filteredTransactions.length} de {transactions.length} transacciones
+        </p>}
       </div>
     </div>
   );

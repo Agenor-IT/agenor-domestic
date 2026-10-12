@@ -104,8 +104,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     }
   }, [isOpen, initialData, defaultMethodId]);
 
-  if (!isOpen) return null;
-
   const handleOperationTypeChange = (type: 'venta' | 'compra' | 'cobro' | 'pago' | 'canje' | 'alquiler_ganado' | 'alquiler_perdido' | 'honorarios') => {
     setOperationType(type);
     if (type === 'venta' || type === 'cobro' || type === 'alquiler_ganado' || type === 'honorarios') {
@@ -127,6 +125,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     });
     return groups;
   }, [expensesList]);
+
+  if (!isOpen) return null;
 
   // Selección de egreso vinculado
   const handleSelectExpense = (id: string) => {

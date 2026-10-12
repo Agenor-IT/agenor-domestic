@@ -396,8 +396,8 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
             </div>
 
             {/* LISTADO DE CUENTAS PATRIMONIALES CON INPUT */}
-            <div className="flex-1 overflow-y-auto overflow-x-auto max-h-[50vh] space-y-2 pr-1">
-              <table className="w-full min-w-[500px] text-xs text-left">
+            <div className="mobile-card-container flex-1 overflow-y-auto overflow-x-auto max-h-[50vh] space-y-2 pr-1">
+              <table className="mobile-record-table w-full min-w-[500px] text-xs text-left">
                 <thead className="bg-gray-50 dark:bg-[#1E293B] text-gray-500 dark:text-gray-400 sticky top-0 uppercase font-bold text-[10px]">
                   <tr>
                     <th className="py-2 px-3">Código / Cuenta</th>
@@ -414,12 +414,12 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
                     .map((acc) => {
                       const isDebit = acc.kind === 'asset' || acc.nature === 'debit';
                       return (
-                        <tr key={acc.accountId} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
-                          <td className="py-2 px-3">
+                        <tr key={acc.accountId} className="record-row hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
+                          <td data-label="Cuenta" data-primary="true" className="py-2 px-3">
                             <span className="font-mono text-[11px] text-gray-400 mr-2">{acc.code}</span>
                             <span className="font-bold text-gray-800 dark:text-gray-200">{acc.name}</span>
                           </td>
-                          <td className="py-2 px-3">
+                          <td data-label="Naturaleza" data-primary="true" className="py-2 px-3">
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                               isDebit 
                                 ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300' 
@@ -428,7 +428,7 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
                               {isDebit ? 'DEBE (Activo/Egreso)' : 'HABER (Pasivo/PN/Ingreso)'}
                             </span>
                           </td>
-                          <td className="py-2 px-3 text-right">
+                          <td data-label="Saldo inicial" data-primary="true" className="py-2 px-3 text-right">
                             <FormattedNumberInput
                               value={acc.openingBalance}
                               onChange={(val) => handleOpeningBalanceChange(acc.accountId, val)}

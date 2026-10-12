@@ -31,10 +31,10 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto shrink-0">
+      <div className="grid grid-cols-2 lg:flex lg:items-center gap-2 w-full lg:w-auto shrink-0">
         <button
           onClick={onOpenNewTransaction}
-          className="flex items-center justify-center gap-2 bg-[#12355b] dark:bg-[#0088FF] hover:bg-[#0d2642] dark:hover:bg-blue-600 text-white text-xs sm:text-sm font-bold px-3.5 py-2.5 rounded-xl shadow-md shadow-blue-500/10 transition-all cursor-pointer"
+          className="col-span-2 lg:col-span-1 min-w-0 flex items-center justify-center gap-2 bg-[#12355b] dark:bg-[#0088FF] hover:bg-[#0d2642] dark:hover:bg-blue-600 text-white text-xs sm:text-sm font-bold px-3.5 py-2.5 rounded-xl shadow-md shadow-blue-500/10 transition-all cursor-pointer"
         >
           <PlusCircle className="w-4 h-4 shrink-0" />
           <span>Nueva Transacción</span>
@@ -42,7 +42,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         <button
           onClick={onOpenNewAdjustment}
-          className="flex items-center justify-center gap-2 bg-[#00A86B] hover:bg-[#008f5b] text-white text-xs sm:text-sm font-bold px-3.5 py-2.5 rounded-xl shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
+          className="min-w-0 flex items-center justify-center gap-2 bg-[#00A86B] hover:bg-[#008f5b] text-white text-xs sm:text-sm font-bold px-2 sm:px-3.5 py-2.5 rounded-xl shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
         >
           <SlidersHorizontal className="w-4 h-4 shrink-0" />
           <span>Nuevo Ajuste</span>
@@ -51,7 +51,7 @@ export const Header: React.FC<HeaderProps> = ({
         {onOpenRxTRevaluation && (
           <button
             onClick={onOpenRxTRevaluation}
-            className="flex items-center justify-center gap-2 bg-[#059669] hover:bg-[#047857] text-white text-xs sm:text-sm font-bold px-3.5 py-2.5 rounded-xl shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+            className="min-w-0 flex items-center justify-center gap-2 bg-[#059669] hover:bg-[#047857] text-white text-xs sm:text-sm font-bold px-2 sm:px-3.5 py-2.5 rounded-xl shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
           >
             <TrendingUp className="w-4 h-4 shrink-0" />
             <span>Revaluar Activos (RxT)</span>

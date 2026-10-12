@@ -21,9 +21,9 @@ export const TableSearchFilter: React.FC<TableSearchFilterProps> = ({
   extraControls
 }) => {
   return (
-    <div className="p-4 bg-gray-50/70 dark:bg-[#1E293B]/60 border-b border-gray-200 dark:border-gray-800 flex flex-wrap items-center justify-between gap-3">
-      <div className="flex items-center gap-3 flex-1 max-w-xl">
-        <div className="relative flex-1">
+    <div className="p-3 sm:p-4 bg-gray-50/70 dark:bg-[#1E293B]/60 border-b border-gray-200 dark:border-gray-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full min-w-0 md:flex-1 md:max-w-xl">
+        <div className="relative flex-1 min-w-[180px]">
           <Search className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
@@ -44,11 +44,11 @@ export const TableSearchFilter: React.FC<TableSearchFilterProps> = ({
         </div>
 
         {filterOptions && onFilterChange && (
-          <div className="relative shrink-0">
+          <div className="relative w-full sm:w-auto sm:shrink-0">
             <select
               value={filterValue || ''}
               onChange={(e) => onFilterChange(e.target.value)}
-              className="pl-8 pr-4 py-2 text-xs font-semibold border border-gray-300 dark:border-gray-700 rounded-xl bg-white dark:bg-[#0F172A] text-gray-800 dark:text-gray-200 appearance-none focus:outline-none focus:ring-2 focus:ring-[#0088FF]/30 shadow-sm cursor-pointer"
+              className="w-full pl-8 pr-4 py-2 text-xs font-semibold border border-gray-300 dark:border-gray-700 rounded-xl bg-white dark:bg-[#0F172A] text-gray-800 dark:text-gray-200 appearance-none focus:outline-none focus:ring-2 focus:ring-[#0088FF]/30 shadow-sm cursor-pointer"
             >
               {filterOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -62,7 +62,7 @@ export const TableSearchFilter: React.FC<TableSearchFilterProps> = ({
       </div>
 
       {extraControls && (
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto min-w-0">
           {extraControls}
         </div>
       )}

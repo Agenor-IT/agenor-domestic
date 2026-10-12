@@ -433,8 +433,8 @@ export const FixedAssetsPanel: React.FC = () => {
         </div>
 
         {/* TABLA DE BIENES */}
-        <div className="overflow-x-auto scrollbar-thin">
-          <table className="w-full text-left text-xs min-w-[780px]">
+        <div className="mobile-card-container overflow-x-auto scrollbar-thin">
+          <table className="mobile-record-table w-full text-left text-xs min-w-[780px]">
             <thead className="bg-gray-100/70 dark:bg-[#1E293B]/70 text-gray-600 dark:text-gray-300 font-semibold border-b border-gray-200 dark:border-gray-800">
               <tr>
                 <th className="py-3.5 px-4 sticky left-0 bg-gray-100 dark:bg-[#1E293B] z-10">Código / Bien</th>
@@ -469,8 +469,8 @@ export const FixedAssetsPanel: React.FC = () => {
                   const pct = asset.depreciationPercentage;
 
                   return (
-                    <tr key={data.id} className="hover:bg-gray-50/80 dark:hover:bg-[#1E293B]/40 transition-colors">
-                      <td className="py-3.5 px-4">
+                    <tr key={data.id} className="record-row hover:bg-gray-50/80 dark:hover:bg-[#1E293B]/40 transition-colors">
+                      <td data-label="Código / Bien" data-primary="true" className="py-3.5 px-4">
                         <div className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                           <span className="font-mono text-[11px] px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 rounded">
                             {data.code}
@@ -482,13 +482,13 @@ export const FixedAssetsPanel: React.FC = () => {
                         )}
                       </td>
 
-                      <td className="py-3.5 px-4">
+                      <td data-label="Categoría" className="py-3.5 px-4">
                         <span className="capitalize px-2 py-1 rounded-full text-[10px] font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
                           {data.category}
                         </span>
                       </td>
 
-                      <td className="py-3.5 px-4 text-center">
+                      <td data-label="Alta / Vida útil" data-mobile-hidden="true" className="py-3.5 px-4 text-center">
                         <div className="text-[11px] font-medium">{data.acquisitionDate}</div>
                         <div className="text-[10px] text-gray-400">{data.usefulLifeYears} años vida útil</div>
                         {/* Barra de progreso de amortización */}
@@ -501,19 +501,19 @@ export const FixedAssetsPanel: React.FC = () => {
                         </div>
                       </td>
 
-                      <td className="py-3.5 px-4 text-right font-mono font-medium">
+                      <td data-label="Valor de origen" data-mobile-hidden="true" className="py-3.5 px-4 text-right font-mono font-medium">
                         {Money.fromAmount(data.acquisitionCost).toFormattedString()}
                       </td>
 
-                      <td className="py-3.5 px-4 text-right font-mono text-amber-600 dark:text-amber-400 font-medium">
+                      <td data-label="Amortización acumulada" data-mobile-hidden="true" className="py-3.5 px-4 text-right font-mono text-amber-600 dark:text-amber-400 font-medium">
                         {Money.fromAmount(data.accumulatedDepreciation).toFormattedString()}
                       </td>
 
-                      <td className="py-3.5 px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      <td data-label="Valor neto" className="py-3.5 px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
                         {Money.fromAmount(asset.netBookValue).toFormattedString()}
                       </td>
 
-                      <td className="py-3.5 px-4 text-center">
+                      <td data-label="Cuentas vinculadas" data-mobile-hidden="true" className="py-3.5 px-4 text-center">
                         <div className="text-[10px] text-gray-500 font-mono">
                           Activo: <strong className="text-gray-700 dark:text-gray-300">{assetAcc?.code || '1.2.01'}</strong>
                           <br />
@@ -521,7 +521,7 @@ export const FixedAssetsPanel: React.FC = () => {
                         </div>
                       </td>
 
-                      <td className="py-3.5 px-4 text-center">
+                      <td data-label="Acciones" className="py-3.5 px-4 text-center">
                         <div className="flex items-center justify-center gap-1.5">
                           <button
                             onClick={() => handleOpenAmortModal(data)}
