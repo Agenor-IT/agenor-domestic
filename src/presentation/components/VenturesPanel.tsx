@@ -594,9 +594,9 @@ export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }
                       <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
                     </button>
                     <div className="shrink-0 text-right">
-                      <span className="block text-[10px] font-semibold uppercase text-gray-500 dark:text-gray-400">Ago 26</span>
+                      <span className="block text-[10px] font-semibold uppercase text-gray-500 dark:text-gray-400">Base mensual</span>
                       <span className="block text-sm font-black text-emerald-600 dark:text-emerald-400 table-cell-num">
-                        {Money.fromAmount(item.getProjectionForMonth('Ago-26')).toFormattedString()}
+                        {Money.fromAmount(item.baseMonthlyAmount).toFormattedString()}
                       </span>
                     </div>
                   </div>

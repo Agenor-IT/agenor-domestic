@@ -211,12 +211,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
   }), [allExpenses, debouncedSearch, activeSourceTab, selectedExpenseType, selectedStatus]);
 
   const expenseMonths = useMemo(() => {
-    const months = new Set(['2026-08', '2026-09', '2026-10']);
-    filteredAllExpenses.forEach(expense => {
-      if (expense.dueDate) {
-        months.add(expense.dueDate.slice(0, 7));
-      }
-    });
+    const months = new Set<string>();
     expenseReceipts.forEach(receipt => {
       if (filteredAllExpenses.some(expense => expense.id === receipt.expenseId)) {
         months.add((receipt.dueDate || receipt.createdAt).slice(0, 7));
@@ -240,11 +235,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
         sourceType: expense.sourceType || 'domestico',
         amounts: {}
       };
-      // Todas las categorías conservan su fila; sólo comprobantes Cta Cte cargados llenan celdas.
-      if (expense.dueDate) {
-        const month = expense.dueDate.slice(0, 7);
-        row.amounts[month] = (row.amounts[month] || 0) + expense.baseMonthlyAmount;
-      }
+      // Cada gasto conserva su fila aunque todavía no tenga comprobantes cargados.
       rows.set(key, row);
     });
     expenseReceipts.forEach(receipt => {
