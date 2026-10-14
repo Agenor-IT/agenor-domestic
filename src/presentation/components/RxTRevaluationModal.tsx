@@ -213,7 +213,8 @@ export const RxTRevaluationModal: React.FC<RxTRevaluationModalProps> = ({
         )}
 
         {/* FORMULARIO */}
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4 sm:p-6">
           {/* SELECTOR CUENTA DE ACTIVO */}
           <div ref={accountPickerRef} className="relative">
             <label htmlFor="rxt-account-search" className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
@@ -399,8 +400,10 @@ export const RxTRevaluationModal: React.FC<RxTRevaluationModalProps> = ({
             />
           </div>
 
+          </div>
+
           {/* BOTONES ACCION */}
-          <div className="flex flex-col-reverse sm:flex-row gap-2.5 sm:gap-3 pt-3 border-t border-gray-100 dark:border-gray-800 shrink-0">
+          <div className="flex shrink-0 flex-col-reverse gap-2.5 border-t border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-[#0F172A] sm:flex-row sm:gap-3 sm:px-6">
             <button
               type="button"
               onClick={onClose}
