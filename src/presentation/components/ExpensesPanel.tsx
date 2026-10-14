@@ -389,7 +389,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
         type: 'success'
       });
     } catch {
-      setFeedback({ text: 'No se pudo guardar el comprobante localmente.', type: 'error' });
+      setFeedback({ text: 'No se pudo guardar el comprobante.', type: 'error' });
     }
   };
 
@@ -664,7 +664,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
       )}
       {pendingReceiptSync > 0 && (
         <div role="status" className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
-          {pendingReceiptSync} comprobante{pendingReceiptSync === 1 ? '' : 's'} guardado{pendingReceiptSync === 1 ? '' : 's'} sólo en este dispositivo. Abrí esta pantalla con conexión para sincronizar.
+          {pendingReceiptSync} comprobante{pendingReceiptSync === 1 ? '' : 's'} guardado{pendingReceiptSync === 1 ? '' : 's'} sólo en este dispositivo. Revisá el gasto asociado y volvé a abrir esta pantalla con conexión.
         </div>
       )}
       {allExpenses.some(expense => expense.id.startsWith('exp-')) && (
