@@ -16,6 +16,7 @@ import { DomExpenseDTO } from '../../domain/expenses/DomExpense';
 import { DomVentureDTO } from '../../domain/ventures/DomVenture';
 import { Money } from '../../domain/shared/Money';
 import { useDomesticAccess } from '../auth/DomesticAuthGate';
+import { SearchableStructureSelect, StructureOption } from './SearchableStructureSelect';
 
 export interface TransactionSubmitData {
   description: string;
@@ -117,16 +118,23 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     }
   };
 
-  // Agrupamiento de egresos por categoría
-  const groupedExpenses = useMemo(() => {
-    const groups: Record<string, DomExpenseDTO[]> = {};
-    expensesList.forEach(exp => {
-      const cat = exp.category || 'Varios';
-      if (!groups[cat]) groups[cat] = [];
-      groups[cat].push(exp);
-    });
-    return groups;
-  }, [expensesList]);
+  const expenseOptions = useMemo<StructureOption[]>(() => [
+    ...expensesList.map(exp => ({
+      id: exp.id,
+      label: `${exp.supplierName} — ${exp.concept}`,
+      detail: `${exp.category || 'Varios'} · Valor actual: ${Money.fromAmount(exp.baseMonthlyAmount).toFormattedString()}`
+    })),
+    { id: 'otro', label: 'Otro concepto libre', detail: 'Sin vincular a la estructura de egresos' }
+  ], [expensesList]);
+
+  const ventureOptions = useMemo<StructureOption[]>(() => [
+    ...venturesList.map(ven => ({
+      id: ven.id,
+      label: `${ven.clientName} — ${ven.projectName}`,
+      detail: `${ven.sourceType || 'emprendimiento'} · Valor actual: ${Money.fromAmount(ven.baseMonthlyAmount).toFormattedString()}`
+    })),
+    { id: 'otro', label: 'Otro ingreso libre', detail: 'Sin vincular a fuentes de ingresos' }
+  ], [venturesList]);
 
   if (!isOpen) return null;
 
@@ -276,7 +284,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             {direction === 'expense' ? (
               <>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                  <label className="text-[11px] font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1.5 uppercase tracking-wider">
+                  <label htmlFor="transaction-expense-search" className="text-[11px] font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1.5 uppercase tracking-wider">
                     <ShoppingCart className="w-4 h-4 shrink-0" />
                     <span>Concepto / Egreso a Vincular</span>
                   </label>
@@ -284,24 +292,16 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     Sincroniza el Valor Actual en Estructura de Egresos
                   </span>
                 </div>
-                <select
-                  disabled={mode === 'ver'}
+                <SearchableStructureSelect
+                  id="transaction-expense-search"
                   value={linkedExpenseId}
-                  onChange={(e) => handleSelectExpense(e.target.value)}
-                  className="w-full font-bold border border-rose-200 dark:border-rose-900/40 rounded-xl p-2.5 outline-none bg-white dark:bg-[#1E293B] text-gray-900 dark:text-white focus:ring-2 focus:ring-rose-500"
-                >
-                  <option value="">-- Seleccionar Egreso / Concepto de Compra --</option>
-                  {Object.entries(groupedExpenses).map(([category, items]) => (
-                    <optgroup key={category} label={`📂 ${category}`}>
-                      {items.map(exp => (
-                        <option key={exp.id} value={exp.id}>
-                          {exp.supplierName} — {exp.concept} (Valor Actual: {Money.fromAmount(exp.baseMonthlyAmount).toFormattedString()})
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                  <option value="otro">➕ Otro concepto libre (sin vincular a estructura)</option>
-                </select>
+                  options={expenseOptions}
+                  onChange={handleSelectExpense}
+                  placeholder="Buscar proveedor, concepto o categoría"
+                  emptyLabel="No hay egresos coincidentes."
+                  disabled={mode === 'ver'}
+                  accent="rose"
+                />
 
                 {selectedExpenseObj && (
                   <div className="flex items-start sm:items-center gap-2 p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300 text-[11px] font-medium animate-in fade-in duration-150">
@@ -315,7 +315,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             ) : (
               <>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                  <label className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 uppercase tracking-wider">
+                  <label htmlFor="transaction-venture-search" className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 uppercase tracking-wider">
                     <TrendingUp className="w-4 h-4 shrink-0" />
                     <span>Fuente de Ingreso / Concepto a Vincular</span>
                   </label>
@@ -323,20 +323,16 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     Sincroniza el Valor Actual en Fuentes de Ingresos
                   </span>
                 </div>
-                <select
-                  disabled={mode === 'ver'}
+                <SearchableStructureSelect
+                  id="transaction-venture-search"
                   value={linkedVentureId}
-                  onChange={(e) => handleSelectVenture(e.target.value)}
-                  className="w-full font-bold border border-emerald-200 dark:border-emerald-900/40 rounded-xl p-2.5 outline-none bg-white dark:bg-[#1E293B] text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value="">-- Seleccionar Fuente de Ingreso / Concepto --</option>
-                  {venturesList.map(ven => (
-                    <option key={ven.id} value={ven.id}>
-                      {ven.clientName} — {ven.projectName} ({ven.sourceType || 'emprendimiento'}) (Valor Actual: {Money.fromAmount(ven.baseMonthlyAmount).toFormattedString()})
-                    </option>
-                  ))}
-                  <option value="otro">➕ Otro ingreso libre (sin vincular a fuentes)</option>
-                </select>
+                  options={ventureOptions}
+                  onChange={handleSelectVenture}
+                  placeholder="Buscar cliente, proyecto o tipo de fuente"
+                  emptyLabel="No hay fuentes coincidentes."
+                  disabled={mode === 'ver'}
+                  accent="emerald"
+                />
 
                 {selectedVentureObj && (
                   <div className="flex items-start sm:items-center gap-2 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[11px] font-medium animate-in fade-in duration-150">
