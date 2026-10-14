@@ -24,7 +24,8 @@ import {
   ArrowUp,
   ArrowDown,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  MoreHorizontal
 } from 'lucide-react';
 import {
   SupabaseDomExpenseRepository,
@@ -80,6 +81,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
   const [selectedExpenseType, setSelectedExpenseType] = useState<string>('todos');
   const [selectedStatus, setSelectedStatus] = useState<string>('activo');
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [mobileActionsId, setMobileActionsId] = useState<string | null>(null);
   const [pageSize, setPageSize] = useState<number>(10);
   const [sortField, setSortField] = useState<string>('id');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
@@ -316,6 +318,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
   };
 
   const selectSourceFromKpi = (source: 'todos' | ExpenseSourceType) => {
+    setMobileActionsId(null);
     setActiveSourceTab(source);
     setSearchTerm('');
     setSelectedExpenseType('todos');
@@ -338,12 +341,14 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
   };
 
   const handleShowRowReceipts = (category: string, supplierName: string) => {
+    setMobileActionsId(null);
     setReceiptRowFilter({ category, supplierName });
     setTableView('comprobantes');
     setCurrentPage(1);
   };
 
   const handleOpenEditReceipt = (receipt: DomExpenseReceipt) => {
+    setMobileActionsId(null);
     setEditingReceipt(receipt);
     setReceiptExpenseId(receipt.expenseId);
     setReceiptAmount(receipt.amount);
@@ -746,14 +751,14 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
           <div className="flex rounded-xl bg-gray-100 dark:bg-gray-800 p-1">
             <button
               type="button"
-              onClick={() => { setTableView('mensual'); setCurrentPage(1); }}
+              onClick={() => { setMobileActionsId(null); setTableView('mensual'); setCurrentPage(1); }}
               className={`px-3 py-2 rounded-lg text-xs font-bold transition-colors ${tableView === 'mensual' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
             >
               Vista mensual
             </button>
             <button
               type="button"
-              onClick={() => { setReceiptRowFilter(null); setTableView('comprobantes'); setCurrentPage(1); }}
+              onClick={() => { setMobileActionsId(null); setReceiptRowFilter(null); setTableView('comprobantes'); setCurrentPage(1); }}
               className={`px-3 py-2 rounded-lg text-xs font-bold transition-colors ${tableView === 'comprobantes' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
             >
               Comprobantes
@@ -770,7 +775,55 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
             </div>
           ) : (
             tableView === 'mensual' ? (
-              <div className="mobile-card-container overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800">
+              <>
+              <div className="space-y-2 lg:hidden">
+                {monthlyExpenseRows.map(row => {
+                  const expense = allExpenses.find(item => item.id === row.expenseId);
+                  const amounts = expenseMonths.filter(month => row.amounts[month.key]);
+                  const latestMonth = amounts[amounts.length - 1];
+                  const actionId = `monthly:${row.category.toLocaleLowerCase('es')}|${row.supplierName.toLocaleLowerCase('es')}`;
+                  return (
+                    <article key={actionId} className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-[#17243B]">
+                      <div className="flex min-w-0 items-start justify-between gap-2">
+                        <button type="button" onClick={() => handleShowRowReceipts(row.category, row.supplierName)} aria-label={`Ver comprobantes de ${row.supplierName}`} className="flex min-w-0 flex-1 items-start gap-1.5 text-left">
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm font-bold text-gray-900 dark:text-white">{row.supplierName}</span>
+                            <span className="block truncate text-xs text-gray-500 dark:text-gray-400">{row.category}</span>
+                          </span>
+                          <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
+                        </button>
+                        <div className="shrink-0 text-right">
+                          <span className="block text-[10px] font-semibold uppercase text-gray-500 dark:text-gray-400">{latestMonth?.label || 'Sin cargar'}</span>
+                          <span className="block text-sm font-black text-rose-600 dark:text-rose-400 table-cell-num">
+                            {latestMonth ? Money.fromAmount(row.amounts[latestMonth.key]).toFormattedString() : '—'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-2 flex items-center justify-between border-t border-gray-100 pt-1.5 dark:border-gray-800">
+                        <span className="min-w-0 truncate text-[11px] text-gray-500 dark:text-gray-400">
+                          {EXPENSE_SOURCE_TYPES.find(source => source.id === row.sourceType)?.label || 'Gasto'}
+                          {amounts.length > 1 && ` · ${amounts.length} meses`}
+                          {expense?.status !== 'activo' && expense?.status && ` · ${expense.status.replace('_', ' ')}`}
+                        </span>
+                        <button type="button" onClick={() => setMobileActionsId(current => current === actionId ? null : actionId)} aria-expanded={mobileActionsId === actionId} aria-controls={`expense-actions-${row.expenseId}`} aria-label={`Acciones de ${row.supplierName}`} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40">
+                          <MoreHorizontal className="h-4 w-4" aria-hidden="true" />Acciones
+                        </button>
+                      </div>
+                      {mobileActionsId === actionId && (
+                        <div id={`expense-actions-${row.expenseId}`} className="mt-2 grid grid-cols-2 gap-2 border-t border-gray-100 pt-2 dark:border-gray-800">
+                          <button type="button" onClick={() => { setMobileActionsId(null); handleShowRowReceipts(row.category, row.supplierName); }} className="rounded-lg bg-gray-100 px-2 py-2 text-xs font-semibold text-gray-800 dark:bg-gray-800 dark:text-gray-100">Comprobantes</button>
+                          {expense && <button type="button" onClick={() => { setMobileActionsId(null); handleOpenViewModal(expense); }} className="rounded-lg bg-gray-100 px-2 py-2 text-xs font-semibold text-gray-800 dark:bg-gray-800 dark:text-gray-100">Ver gasto</button>}
+                          {expense && <button type="button" onClick={() => { setMobileActionsId(null); handleOpenEditModal(expense); }} className="rounded-lg bg-gray-100 px-2 py-2 text-xs font-semibold text-gray-800 dark:bg-gray-800 dark:text-gray-100">Editar</button>}
+                          {expense && <button type="button" onClick={() => { setMobileActionsId(null); handleToggleStatus(expense); }} className="rounded-lg bg-gray-100 px-2 py-2 text-xs font-semibold text-gray-800 dark:bg-gray-800 dark:text-gray-100">{expense.status === 'activo' ? 'Desactivar' : 'Activar'}</button>}
+                          {expense && <button type="button" onClick={() => { setMobileActionsId(null); handleDelete(expense.id, expense.supplierName); }} className="col-span-2 rounded-lg bg-rose-500/10 px-2 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400">Eliminar</button>}
+                        </div>
+                      )}
+                    </article>
+                  );
+                })}
+                {monthlyExpenseRows.length === 0 && <p className="py-8 text-center text-xs text-gray-500 dark:text-gray-400">No se encontraron gastos para estos filtros.</p>}
+              </div>
+              <div className="hidden overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800 lg:block">
                 <table className="mobile-record-table w-full min-w-[540px] text-left border-collapse text-xs">
                   <thead>
                     <tr className="bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">
@@ -824,8 +877,46 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
                   </tbody>
                 </table>
               </div>
+              </>
             ) : (
-            <div className="mobile-card-container overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800">
+            <>
+            <div className="space-y-2 lg:hidden">
+              {registeredReceipts.slice((currentPage - 1) * pageSize, currentPage * pageSize).map(receipt => {
+                const expense = allExpenses.find(item => item.id === receipt.expenseId);
+                if (!expense) return null;
+                const actionId = `receipt:${receipt.id}`;
+                return (
+                  <article key={receipt.id} className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-[#17243B]">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <button type="button" onClick={() => handleOpenEditReceipt(receipt)} aria-label={`Editar comprobante de ${expense.supplierName}`} className="flex min-w-0 flex-1 items-start gap-1.5 text-left">
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-bold text-gray-900 dark:text-white">{expense.supplierName}</span>
+                          <span className="mt-0.5 block truncate text-xs text-gray-500 dark:text-gray-400" title={expense.concept}>{expense.concept}</span>
+                        </span>
+                        <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
+                      </button>
+                      <span className="shrink-0 text-sm font-black text-rose-600 dark:text-rose-400 table-cell-num">{Money.fromAmount(receipt.amount).toFormattedString()}</span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between gap-2 border-t border-gray-100 pt-1.5 dark:border-gray-800">
+                      <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                        {receipt.dueDate ? `Vto ${new Date(`${receipt.dueDate}T00:00:00`).toLocaleDateString('es-AR')}` : 'Contado'}
+                      </span>
+                      <button type="button" onClick={() => setMobileActionsId(current => current === actionId ? null : actionId)} aria-expanded={mobileActionsId === actionId} aria-controls={`receipt-actions-${receipt.id}`} aria-label={`Acciones del comprobante de ${expense.supplierName}`} className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40">
+                        <MoreHorizontal className="h-4 w-4" aria-hidden="true" />Acciones
+                      </button>
+                    </div>
+                    {mobileActionsId === actionId && (
+                      <div id={`receipt-actions-${receipt.id}`} className="mt-2 grid grid-cols-2 gap-2 border-t border-gray-100 pt-2 dark:border-gray-800">
+                        <button type="button" onClick={() => { setMobileActionsId(null); handleOpenEditReceipt(receipt); }} className="rounded-lg bg-gray-100 px-2 py-2 text-xs font-semibold text-gray-800 dark:bg-gray-800 dark:text-gray-100">Editar</button>
+                        <button type="button" onClick={() => { setMobileActionsId(null); handleDeleteReceipt(receipt); }} className="rounded-lg bg-rose-500/10 px-2 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400">Eliminar</button>
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+              {registeredReceipts.length === 0 && <p className="py-8 text-center text-xs text-gray-500 dark:text-gray-400">No se encontraron comprobantes para estos filtros.</p>}
+            </div>
+            <div className="hidden overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800 lg:block">
               <table className="mobile-record-table w-full min-w-[860px] text-left border-collapse text-xs">
                 <thead>
                   <tr className="bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">
@@ -863,6 +954,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
                 </tbody>
               </table>
             </div>
+            </>
             )
           )}
 
