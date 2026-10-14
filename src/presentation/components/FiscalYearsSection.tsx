@@ -3,12 +3,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { SupabaseDomAccountingRepository, DEFAULT_DOM_ACCOUNTS } from '../../infrastructure/SupabaseDomAccountingRepository';
 import { DomFiscalYearDTO } from '../../domain/repositories/IAccountingRepository';
 import { Calendar, CheckCircle2, Lock, Play, RotateCcw, Plus, AlertCircle, Check, Loader2, Search } from 'lucide-react';
+import { useDomesticAccess } from '../auth/DomesticAuthGate';
 
 interface FiscalYearsSectionProps {
   onRefreshData?: () => void;
 }
 
 export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefreshData }) => {
+  const { personaPadreId } = useDomesticAccess();
   const [fiscalYears, setFiscalYears] = useState<DomFiscalYearDTO[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
@@ -42,7 +44,7 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
   const loadFiscalYears = async () => {
     try {
       setLoading(true);
-      const data = await accountingRepo.getFiscalYears(1);
+      const data = await accountingRepo.getFiscalYears(personaPadreId);
       setFiscalYears(data);
     } catch (err: any) {
       console.error('Error al cargar ejercicios económicos:', err);
@@ -79,7 +81,7 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
     try {
       setActionLoadingId(-1);
       await accountingRepo.createFiscalYear({
-        personaPadreId: 1,
+        personaPadreId,
         year: newYear,
         startDate: newStartDate,
         endDate: newEndDate,
@@ -100,7 +102,7 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
     try {
       setActionLoadingId(fy.id);
       setModalError(null);
-      const fetched = await accountingRepo.getAccounts(1);
+      const fetched = await accountingRepo.getAccounts(personaPadreId);
       const allAccs = (fetched && fetched.length > 0) ? fetched : DEFAULT_DOM_ACCOUNTS;
 
       setOpeningAccounts(allAccs.map(a => ({

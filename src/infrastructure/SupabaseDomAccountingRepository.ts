@@ -244,13 +244,13 @@ export class SupabaseDomAccountingRepository implements IAccountingRepository {
     };
   }
 
-  private getLocalFiscalYears(): DomFiscalYearDTO[] {
+  private getLocalFiscalYears(personaPadreId: number): DomFiscalYearDTO[] {
     const raw = localStorage.getItem('dom_fiscal_years_fallback');
     if (!raw) {
       const initial: DomFiscalYearDTO[] = [
         {
           id: 1,
-          personaPadreId: 1,
+          personaPadreId,
           year: 2026,
           startDate: '2026-01-01',
           endDate: '2026-12-31',
@@ -301,7 +301,7 @@ export class SupabaseDomAccountingRepository implements IAccountingRepository {
       console.warn('Fallback a almacenamiento local para getFiscalYears:', err);
     }
 
-    return this.getLocalFiscalYears().filter(f => f.personaPadreId === personaPadreId);
+    return this.getLocalFiscalYears(personaPadreId).filter(f => f.personaPadreId === personaPadreId);
   }
 
   public async createFiscalYear(fiscalYear: Omit<DomFiscalYearDTO, 'id'>): Promise<DomFiscalYearDTO> {
@@ -334,7 +334,7 @@ export class SupabaseDomAccountingRepository implements IAccountingRepository {
       console.warn('Fallback local para createFiscalYear:', err);
     }
 
-    const current = this.getLocalFiscalYears();
+    const current = this.getLocalFiscalYears(fiscalYear.personaPadreId);
     const newObj: DomFiscalYearDTO = {
       ...fiscalYear,
       id: Date.now()

@@ -20,8 +20,10 @@ import { SupabaseDomAccountingRepository } from '../../infrastructure/SupabaseDo
 import { DomInventoryItemDTO, DomInventoryItem } from '../../domain/inventory/DomInventoryItem';
 import { DomAccountDTO } from '../../domain/repositories/IAccountingRepository';
 import { Money } from '../../domain/shared/Money';
+import { useDomesticAccess } from '../auth/DomesticAuthGate';
 
 export const InventoryPanel: React.FC = () => {
+  const { personaPadreId } = useDomesticAccess();
   const [items, setItems] = useState<DomInventoryItemDTO[]>([]);
   const [accounts, setAccounts] = useState<DomAccountDTO[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -63,8 +65,8 @@ export const InventoryPanel: React.FC = () => {
     setLoading(true);
     try {
       const [fetchedItems, fetchedAccounts] = await Promise.all([
-        inventoryRepo.getInventoryItems(1),
-        accountingRepo.getAccounts(1)
+        inventoryRepo.getInventoryItems(personaPadreId),
+        accountingRepo.getAccounts(personaPadreId)
       ]);
       setItems(fetchedItems);
       setAccounts(fetchedAccounts);
@@ -87,7 +89,7 @@ export const InventoryPanel: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, [inventoryRepo, accountingRepo]);
+  }, [inventoryRepo, accountingRepo, personaPadreId]);
 
   const domainItems = useMemo(() => items.map(i => new DomInventoryItem(i)), [items]);
 
@@ -239,7 +241,7 @@ export const InventoryPanel: React.FC = () => {
         setFeedback({ text: 'Artículo actualizado exitosamente.', type: 'success' });
       } else {
         await inventoryRepo.createInventoryItem({
-          personaPadreId: 1,
+          personaPadreId,
           sku,
           name,
           category,

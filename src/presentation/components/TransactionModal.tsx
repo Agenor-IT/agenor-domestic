@@ -15,6 +15,7 @@ import { SupabaseDomVentureRepository } from '../../infrastructure/SupabaseDomVe
 import { DomExpenseDTO } from '../../domain/expenses/DomExpense';
 import { DomVentureDTO } from '../../domain/ventures/DomVenture';
 import { Money } from '../../domain/shared/Money';
+import { useDomesticAccess } from '../auth/DomesticAuthGate';
 
 export interface TransactionSubmitData {
   description: string;
@@ -48,6 +49,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   paymentMethods = DEFAULT_CUSTOM_PAYMENT_METHODS,
   initialData
 }) => {
+  const { personaPadreId } = useDomesticAccess();
   const activeMethods = paymentMethods.filter(pm => pm.active);
   const defaultMethodId = activeMethods[0]?.id || 'efectivo';
   const defaultOpNum = `OP-${Date.now().toString().slice(-4)}`;
@@ -78,15 +80,15 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   // Carga de egresos y fuentes de ingresos disponibles
   useEffect(() => {
     if (isOpen) {
-      expenseRepo.getExpenses(1)
+      expenseRepo.getExpenses(personaPadreId)
         .then(data => setExpensesList(data.filter(e => e.status === 'activo')))
         .catch(err => console.error('Error cargando dom_expenses en modal:', err));
 
-      ventureRepo.getVentures(1)
+      ventureRepo.getVentures(personaPadreId)
         .then(data => setVenturesList(data.filter(v => v.status === 'activo')))
         .catch(err => console.error('Error cargando dom_ventures en modal:', err));
     }
-  }, [isOpen, expenseRepo, ventureRepo]);
+  }, [isOpen, expenseRepo, ventureRepo, personaPadreId]);
 
   useEffect(() => {
     if (isOpen) {

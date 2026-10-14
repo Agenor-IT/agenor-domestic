@@ -13,6 +13,7 @@ import {
   Building2,
   Package,
   X,
+  LogOut,
   LucideIcon
 } from 'lucide-react';
 
@@ -24,6 +25,8 @@ interface SidebarProps {
   /** Drawer abierto en pantallas < lg */
   mobileOpen?: boolean;
   onCloseMobile?: () => void;
+  userEmail: string;
+  onSignOut: () => void;
 }
 
 export interface NavigationItem {
@@ -50,7 +53,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   darkMode,
   onToggleDarkMode,
   mobileOpen = false,
-  onCloseMobile
+  onCloseMobile,
+  userEmail,
+  onSignOut,
 }) => {
   const [collapsedDesktop, setCollapsedDesktop] = useState(false);
   // En mobile el drawer siempre se muestra expandido
@@ -163,9 +168,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* TOGGLE MODO CLARO/OSCURO */}
-      {!collapsed && (
-        <div className="pt-4 border-t border-[#1E293B]/80 shrink-0">
+      <div className="pt-4 border-t border-[#1E293B]/80 shrink-0 space-y-2">
+        {!collapsed && (
+          <p className="truncate px-3.5 text-[11px] text-[#94A3B8]" title={userEmail}>
+            {userEmail}
+          </p>
+        )}
+        {!collapsed && (
           <button
             onClick={onToggleDarkMode}
             className="w-full flex items-center justify-between px-3.5 py-2.5 bg-[#141F36] hover:bg-[#1A2844] text-[#94A3B8] hover:text-white rounded-xl text-xs font-medium transition-all border border-[#1E293B] cursor-pointer shadow-sm"
@@ -175,8 +184,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <span>{darkMode ? 'Modo Claro' : 'Modo Oscuro'}</span>
             </div>
           </button>
-        </div>
-      )}
+        )}
+        <button
+          type="button"
+          onClick={onSignOut}
+          aria-label="Cerrar sesión"
+          title={collapsed ? 'Cerrar sesión' : undefined}
+          className={`flex min-h-11 w-full items-center gap-2 rounded-xl px-3.5 text-xs font-medium text-[#94A3B8] transition-colors hover:bg-[#1E293B]/70 hover:text-white ${collapsed ? 'justify-center' : ''}`}
+        >
+          <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
+          {!collapsed && <span>Cerrar sesión</span>}
+        </button>
+      </div>
     </aside>
     </>
   );

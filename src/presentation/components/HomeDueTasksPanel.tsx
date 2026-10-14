@@ -5,9 +5,9 @@ import { Money } from '../../domain/shared/Money';
 import { LocalDomExpenseReceiptRepository } from '../../infrastructure/LocalDomExpenseReceiptRepository';
 import { SupabaseDomExpenseRepository } from '../../infrastructure/SupabaseDomExpenseRepository';
 import { HomeTask, HomeTaskList } from './HomeTaskList';
+import { useDomesticAccess } from '../auth/DomesticAuthGate';
 
-const PERSONA_PADRE_ID = 1;
-const COMPLETED_TASKS_KEY = `dom_due_tasks_completed_${PERSONA_PADRE_ID}`;
+const completedTasksKey = (personaPadreId: number) => `dom_due_tasks_completed_${personaPadreId}`;
 
 const validDueDate = (date?: string): date is string => {
   if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
@@ -53,9 +53,9 @@ const buildDueTasks = (expenses: DomExpenseDTO[], receipts: DomExpenseReceipt[])
   );
 };
 
-const readCompletedTasks = (): Set<string> => {
+const readCompletedTasks = (personaPadreId: number): Set<string> => {
   try {
-    const stored = JSON.parse(localStorage.getItem(COMPLETED_TASKS_KEY) || '[]');
+    const stored = JSON.parse(localStorage.getItem(completedTasksKey(personaPadreId)) || '[]');
     return new Set(Array.isArray(stored) ? stored.filter((id): id is string => typeof id === 'string') : []);
   } catch {
     return new Set();
@@ -67,29 +67,30 @@ interface HomeDueTasksPanelProps {
 }
 
 export const HomeDueTasksPanel: React.FC<HomeDueTasksPanelProps> = ({ onOpenExpenses }) => {
+  const { personaPadreId } = useDomesticAccess();
   const expenseRepository = useMemo(() => new SupabaseDomExpenseRepository(), []);
   const receiptRepository = useMemo(() => new LocalDomExpenseReceiptRepository(), []);
   const [dueTasks, setDueTasks] = useState<HomeTask[]>([]);
-  const [completedTaskIds, setCompletedTaskIds] = useState(readCompletedTasks);
+  const [completedTaskIds, setCompletedTaskIds] = useState(() => readCompletedTasks(personaPadreId));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
   const [storageError, setStorageError] = useState(false);
 
   useEffect(() => {
     try {
-      localStorage.setItem(COMPLETED_TASKS_KEY, JSON.stringify([...completedTaskIds]));
+      localStorage.setItem(completedTasksKey(personaPadreId), JSON.stringify([...completedTaskIds]));
       setStorageError(false);
     } catch {
       setStorageError(true);
     }
-  }, [completedTaskIds]);
+  }, [completedTaskIds, personaPadreId]);
 
   useEffect(() => {
     let active = true;
-    expenseRepository.getAllExpenses(PERSONA_PADRE_ID)
+    expenseRepository.getAllExpenses(personaPadreId)
       .then(expenses => {
         if (!active) return;
-        setDueTasks(buildDueTasks(expenses, receiptRepository.list(PERSONA_PADRE_ID)));
+        setDueTasks(buildDueTasks(expenses, receiptRepository.list(personaPadreId)));
         setError(undefined);
       })
       .catch(() => {
@@ -99,7 +100,7 @@ export const HomeDueTasksPanel: React.FC<HomeDueTasksPanelProps> = ({ onOpenExpe
         if (active) setLoading(false);
       });
     return () => { active = false; };
-  }, [expenseRepository, receiptRepository]);
+  }, [expenseRepository, receiptRepository, personaPadreId]);
 
   const toggleTask = (id: string) => {
     setCompletedTaskIds(previous => {

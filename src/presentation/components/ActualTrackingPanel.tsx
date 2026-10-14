@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Money } from '../../domain/shared/Money';
+import { useDomesticAccess } from '../auth/DomesticAuthGate';
 import { TableSearchFilter } from './TableSearchFilter';
 import { SupabaseDomAccountingRepository } from '../../infrastructure/SupabaseDomAccountingRepository';
 import { SupabaseDomFixedAssetRepository } from '../../infrastructure/SupabaseDomFixedAssetRepository';
@@ -52,6 +53,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
   openingBalance,
   onOpeningBalanceChange
 }) => {
+  const { personaPadreId } = useDomesticAccess();
   const [activeSection, setActiveSection] = useState<'all' | 'results' | 'balance' | 'journal' | 'ledger' | 'chart_of_accounts' | 'proyeccion'>('all');
   const [journalSearch, setJournalSearch] = useState<string>('');
   const [journalTypeFilter, setJournalTypeFilter] = useState<'all' | 'income' | 'expense' | 'adjustment'>('all');
@@ -96,9 +98,9 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
 
   useEffect(() => {
     Promise.all([
-      accountingRepo.getAccounts(1),
-      accountingRepo.getJournalEntries(1),
-      fixedAssetRepo.getFixedAssets(1)
+      accountingRepo.getAccounts(personaPadreId),
+      accountingRepo.getJournalEntries(personaPadreId),
+      fixedAssetRepo.getFixedAssets(personaPadreId)
     ])
       .then(([accs, entries, assets]) => {
         setDbAccounts(accs);
@@ -106,7 +108,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
         setDbFixedAssets(assets);
       })
       .catch(err => console.error('Error al cargar datos contables desde Supabase:', err));
-  }, [accountingRepo, fixedAssetRepo, adjustments]);
+  }, [accountingRepo, fixedAssetRepo, adjustments, personaPadreId]);
 
   const todayDateStr = new Date().toLocaleDateString('es-AR', {
     day: '2-digit',
@@ -1526,7 +1528,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
 
                 try {
                   const created = await accountingRepo.createAccount({
-                    personaPadreId: 1,
+                    personaPadreId,
                     code: newAccountCode.trim(),
                     name: newAccountName.trim(),
                     kind: selectedKind,
@@ -1899,8 +1901,8 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
         accounts={dbAccounts}
         onSuccess={() => {
           Promise.all([
-            accountingRepo.getAccounts(1),
-            accountingRepo.getJournalEntries(1)
+            accountingRepo.getAccounts(personaPadreId),
+            accountingRepo.getJournalEntries(personaPadreId)
           ]).then(([accs, entries]) => {
             setDbAccounts(accs);
             setDbEntries(entries);

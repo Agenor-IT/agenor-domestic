@@ -41,10 +41,12 @@ import { PaymentMethodType, DEFAULT_CUSTOM_PAYMENT_METHODS, CustomPaymentMethod 
 import { SupabaseDomTransactionRepository } from './infrastructure/SupabaseDomTransactionRepository';
 import { SupabaseDomAccountingRepository } from './infrastructure/SupabaseDomAccountingRepository';
 import { supabase } from './infrastructure/supabaseClient';
+import { useDomesticAccess } from './presentation/auth/DomesticAuthGate';
 import { DomAccountDTO } from './domain/repositories/IAccountingRepository';
 import { Money } from './domain/shared/Money';
 
 export const App: React.FC = () => {
+  const { email, personaPadreId, signOut } = useDomesticAccess();
   const { darkMode, toggleDarkMode } = useDarkMode();
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
   const [reportsView, setReportsView] = useState<'summary' | 'accounting' | 'overdues'>('summary');
@@ -85,26 +87,24 @@ export const App: React.FC = () => {
   const [dbVentures, setDbVentures] = useState<DomVentureDTO[]>([]);
 
   const refreshAccounts = () => {
-    accountingRepo.getAccounts(1)
+    accountingRepo.getAccounts(personaPadreId)
       .then(accs => setDbAccounts(accs))
       .catch(err => console.error('Error al cargar cuentas contables:', err));
   };
 
   useEffect(() => {
     refreshAccounts();
-  }, [accountingRepo]);
+  }, [accountingRepo, personaPadreId]);
 
   // CARGAR VENTURES DESDE SUPABASE
   useEffect(() => {
-    ventureRepo.getVentures(1)
+    ventureRepo.getVentures(personaPadreId)
       .then(v => setDbVentures(v))
       .catch(err => console.error('Error al cargar dom_ventures:', err));
-  }, [ventureRepo, currentTab]);
+  }, [ventureRepo, currentTab, personaPadreId]);
 
   // CARGAR TRANSACCIONES DESDE SUPABASE AL INICIAR
   useEffect(() => {
-    const personaPadreId = 1;
-
     transactionRepo.getTransactionsByTenant(personaPadreId)
       .then(data => {
         if (data && data.length > 0) {
@@ -121,7 +121,7 @@ export const App: React.FC = () => {
       })
       .catch(err => console.error('Error cargando dom_transactions desde Supabase:', err));
 
-  }, [transactionRepo]);
+  }, [transactionRepo, personaPadreId]);
 
   // CALCULO DINAMICO DE SECCIONES (Suma real de fuentes de ingresos activas: emprendimientos, alquileres, extraordinarios)
   const dynamicSections = useMemo(() => {
@@ -272,7 +272,6 @@ export const App: React.FC = () => {
   };
 
   const handleCreateOrUpdateTransaction = async (data: TransactionSubmitData) => {
-    const personaPadreId = 1;
     const paymentCond = data.paymentCondition || 'contado';
     const opType = data.operationType || 'venta';
     const opNum = data.opNumber || `OP-${Date.now().toString().slice(-4)}`;
@@ -563,7 +562,6 @@ export const App: React.FC = () => {
     }
 
     try {
-      const personaPadreId = 1;
       const dbAccs = await accountingRepo.getAccounts(personaPadreId);
 
       const accountCodeMap: Record<string, string> = {
@@ -681,6 +679,8 @@ export const App: React.FC = () => {
         onToggleDarkMode={toggleDarkMode}
         mobileOpen={mobileMenuOpen}
         onCloseMobile={() => setMobileMenuOpen(false)}
+        userEmail={email}
+        onSignOut={() => void signOut()}
       />
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -739,7 +739,7 @@ export const App: React.FC = () => {
           {/* MÓDULO FUENTES DE INGRESOS */}
           {(currentTab === 'fuentes_ingresos' || currentTab === 'emprendimientos') && (
             <VenturesPanel onVenturesChange={() => {
-              ventureRepo.getVentures(1).then(v => setDbVentures(v));
+              ventureRepo.getVentures(personaPadreId).then(v => setDbVentures(v));
             }} />
           )}
 

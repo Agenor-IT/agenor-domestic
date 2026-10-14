@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { FormattedNumberInput } from './FormattedNumberInput';
+import { useDomesticAccess } from '../auth/DomesticAuthGate';
 import { TableSearchFilter } from './TableSearchFilter';
 import { PageHeader } from './PageHeader';
 import {
@@ -49,6 +50,7 @@ interface VenturesPanelProps {
 }
 
 export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }) => {
+  const { personaPadreId } = useDomesticAccess();
   const [ventures, setVentures] = useState<DomVentureDTO[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -106,7 +108,7 @@ export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }
   const loadData = async () => {
     setLoading(true);
     try {
-      const fetched = await repository.getVentures(1);
+      const fetched = await repository.getVentures(personaPadreId);
       setVentures(fetched);
       onVenturesChange?.();
     } catch (err) {
@@ -118,7 +120,7 @@ export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }
 
   useEffect(() => {
     loadData();
-  }, [repository]);
+  }, [repository, personaPadreId]);
 
   const domainVentures = useMemo(() => ventures.map(v => new DomVenture(v)), [ventures]);
 
@@ -256,7 +258,7 @@ export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }
 
     const payload: Partial<DomVentureDTO> = {
       id: editingVenture?.id,
-      personaPadreId: 1,
+      personaPadreId,
       clientName: clientName.trim(),
       projectName: projectName.trim(),
       category,
@@ -270,7 +272,7 @@ export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }
     };
 
     try {
-      await repository.saveVenture(payload, 1);
+      await repository.saveVenture(payload, personaPadreId);
       setFeedback({ text: `Ingreso ${modalMode === 'nuevo' ? 'registrado' : 'actualizado'} correctamente.`, type: 'success' });
       setIsModalOpen(false);
       await loadData();

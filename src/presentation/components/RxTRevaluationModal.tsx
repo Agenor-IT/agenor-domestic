@@ -4,6 +4,7 @@ import { SupabaseDomAccountingRepository } from '../../infrastructure/SupabaseDo
 import { DomAccountDTO } from '../../domain/repositories/IAccountingRepository';
 import { Money } from '../../domain/shared/Money';
 import { FormattedNumberInput } from './FormattedNumberInput';
+import { useDomesticAccess } from '../auth/DomesticAuthGate';
 
 interface RxTRevaluationModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export const RxTRevaluationModal: React.FC<RxTRevaluationModalProps> = ({
   accounts,
   onSuccess
 }) => {
+  const { personaPadreId } = useDomesticAccess();
   const accountingRepo = useMemo(() => new SupabaseDomAccountingRepository(), []);
 
   // Filter asset accounts eligible for RxT revaluation
@@ -114,7 +116,7 @@ export const RxTRevaluationModal: React.FC<RxTRevaluationModalProps> = ({
         // RxT Positivo (Ganancia)
         // DEBE: Cuenta de Activo (+ Activo)
         lines.push({
-          personaPadreId: 1,
+          personaPadreId,
           accountId: currentAccount.id,
           debit: diffAbs,
           credit: 0,
@@ -122,7 +124,7 @@ export const RxTRevaluationModal: React.FC<RxTRevaluationModalProps> = ({
         });
         // HABER: Cuenta de Ingreso / Ganancia por Tenencia
         lines.push({
-          personaPadreId: 1,
+          personaPadreId,
           accountId: rxtIncomeAcc.id,
           debit: 0,
           credit: diffAbs,
@@ -132,7 +134,7 @@ export const RxTRevaluationModal: React.FC<RxTRevaluationModalProps> = ({
         // RxT Negativo (Pérdida)
         // DEBE: Cuenta de Egreso / Pérdida por Tenencia
         lines.push({
-          personaPadreId: 1,
+          personaPadreId,
           accountId: rxtExpenseAcc.id,
           debit: diffAbs,
           credit: 0,
@@ -140,7 +142,7 @@ export const RxTRevaluationModal: React.FC<RxTRevaluationModalProps> = ({
         });
         // HABER: Cuenta de Activo (- Activo)
         lines.push({
-          personaPadreId: 1,
+          personaPadreId,
           accountId: currentAccount.id,
           debit: 0,
           credit: diffAbs,
@@ -150,7 +152,7 @@ export const RxTRevaluationModal: React.FC<RxTRevaluationModalProps> = ({
 
       const todayStr = new Date().toISOString().split('T')[0];
       const res = await accountingRepo.recordJournalEntry({
-        personaPadreId: 1,
+        personaPadreId,
         entryDate: todayStr,
         description: `${concept} - ${currentAccount.name}`,
         referenceId: `AJU-RXT-${Date.now().toString().slice(-4)}`,

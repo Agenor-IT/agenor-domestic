@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { FormattedNumberInput } from './FormattedNumberInput';
+import { useDomesticAccess } from '../auth/DomesticAuthGate';
 import { TableSearchFilter } from './TableSearchFilter';
 import { PageHeader } from './PageHeader';
 import {
@@ -58,6 +59,7 @@ interface ExpensesPanelProps {
 }
 
 export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }) => {
+  const { personaPadreId } = useDomesticAccess();
   const [paginatedData, setPaginatedData] = useState<PaginatedExpensesResult | null>(null);
   const [allExpenses, setAllExpenses] = useState<DomExpenseDTO[]>([]);
   const [expenseReceipts, setExpenseReceipts] = useState<DomExpenseReceipt[]>([]);
@@ -108,7 +110,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
 
   const repository = useMemo(() => new SupabaseDomExpenseRepository(), []);
   const receiptRepository = useMemo(() => new LocalDomExpenseReceiptRepository(), []);
-  const counterpartiesStorageKey = 'dom_expense_counterparties_1';
+  const counterpartiesStorageKey = `dom_expense_counterparties_${personaPadreId}`;
 
   useEffect(() => {
     try {
@@ -117,7 +119,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
     } catch {
       setCounterparties([]);
     }
-  }, []);
+  }, [counterpartiesStorageKey]);
 
   const availableCounterparties = useMemo(() => {
     const names = new Set(counterparties);
@@ -158,7 +160,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
     setLoading(true);
     try {
       const res = await repository.getPaginatedExpenses({
-        personaPadreId: 1,
+        personaPadreId,
         page: currentPage,
         pageSize,
         search: debouncedSearch,
@@ -175,7 +177,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
     } finally {
       setLoading(false);
     }
-  }, [repository, currentPage, pageSize, debouncedSearch, activeSourceTab, selectedExpenseType, selectedStatus, sortField, sortDirection, onExpensesChange]);
+  }, [repository, personaPadreId, currentPage, pageSize, debouncedSearch, activeSourceTab, selectedExpenseType, selectedStatus, sortField, sortDirection, onExpensesChange]);
 
   useEffect(() => {
     loadData();
@@ -270,16 +272,16 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [expenseReceipts, filteredAllExpenses, receiptRowFilter]);
 
   const loadAllExpenses = useCallback(async () => {
-    setAllExpenses(await repository.getAllExpenses(1));
-  }, [repository]);
+    setAllExpenses(await repository.getAllExpenses(personaPadreId));
+  }, [repository, personaPadreId]);
 
   useEffect(() => {
     loadAllExpenses();
   }, [loadAllExpenses]);
 
   useEffect(() => {
-    setExpenseReceipts(receiptRepository.list(1));
-  }, [receiptRepository]);
+    setExpenseReceipts(receiptRepository.list(personaPadreId));
+  }, [receiptRepository, personaPadreId]);
 
   // KPIs desde resumen global calculado por el servidor RPC
   const totalDomesticMonthly = paginatedData?.summary.totalDomesticMonthly ?? 0;
@@ -369,14 +371,14 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
       receiptRepository.save({
         id: editingReceipt?.id,
         createdAt: editingReceipt?.createdAt,
-        personaPadreId: 1,
+        personaPadreId,
         expenseId: receiptExpenseId,
         amount: receiptAmount,
         paymentCondition: receiptCondition,
         dueDate: receiptCondition === 'cuenta_corriente' ? receiptDueDate : undefined,
         notes: receiptNotes
       });
-      setExpenseReceipts(receiptRepository.list(1));
+      setExpenseReceipts(receiptRepository.list(personaPadreId));
       setCurrentPage(1);
       setIsReceiptModalOpen(false);
       setFeedback({ text: 'Comprobante guardado en esta instalación.', type: 'success' });
@@ -388,7 +390,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
   const handleDeleteReceipt = (receipt: DomExpenseReceipt) => {
     if (!window.confirm('¿Está seguro de eliminar este comprobante?')) return;
     receiptRepository.delete(receipt.id, receipt.personaPadreId);
-    setExpenseReceipts(receiptRepository.list(1));
+    setExpenseReceipts(receiptRepository.list(personaPadreId));
     setCurrentPage(1);
     setFeedback({ text: 'Comprobante eliminado.', type: 'success' });
   };
@@ -489,7 +491,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
         notes
       };
 
-      const savedExpense = await repository.saveExpense(payload, 1);
+      const savedExpense = await repository.saveExpense(payload, personaPadreId);
       setFeedback({
         text: `Egreso ${modalMode === 'nuevo' ? 'creado' : 'actualizado'} con éxito.`,
         type: 'success'

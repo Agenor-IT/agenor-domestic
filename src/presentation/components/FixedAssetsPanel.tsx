@@ -19,8 +19,10 @@ import { SupabaseDomAccountingRepository } from '../../infrastructure/SupabaseDo
 import { DomFixedAssetDTO, DomFixedAsset } from '../../domain/assets/DomFixedAsset';
 import { DomAccountDTO } from '../../domain/repositories/IAccountingRepository';
 import { Money } from '../../domain/shared/Money';
+import { useDomesticAccess } from '../auth/DomesticAuthGate';
 
 export const FixedAssetsPanel: React.FC = () => {
+  const { personaPadreId } = useDomesticAccess();
   const [assets, setAssets] = useState<DomFixedAssetDTO[]>([]);
   const [accounts, setAccounts] = useState<DomAccountDTO[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -149,8 +151,8 @@ export const FixedAssetsPanel: React.FC = () => {
     setLoading(true);
     try {
       const [fetchedAssets, fetchedAccounts] = await Promise.all([
-        fixedAssetRepo.getFixedAssets(1),
-        accountingRepo.getAccounts(1)
+        fixedAssetRepo.getFixedAssets(personaPadreId),
+        accountingRepo.getAccounts(personaPadreId)
       ]);
       setAssets(fetchedAssets);
       setAccounts(fetchedAccounts);
@@ -163,7 +165,7 @@ export const FixedAssetsPanel: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, [fixedAssetRepo, accountingRepo]);
+  }, [fixedAssetRepo, accountingRepo, personaPadreId]);
 
   // Cálculos consolidados KPI
   const domainAssets = useMemo(() => assets.map(a => new DomFixedAsset(a)), [assets]);
@@ -231,7 +233,7 @@ export const FixedAssetsPanel: React.FC = () => {
         setFeedback({ text: 'Bien de Uso actualizado correctamente.', type: 'success' });
       } else {
         await fixedAssetRepo.createFixedAsset({
-          personaPadreId: 1,
+          personaPadreId,
           code,
           name,
           category: category as any,
