@@ -20,7 +20,9 @@ import {
   X,
   Loader2,
   Power,
-  PowerOff
+  PowerOff,
+  MoreHorizontal,
+  ChevronRight
 } from 'lucide-react';
 import { SupabaseDomVentureRepository } from '../../infrastructure/SupabaseDomVentureRepository';
 import { DomVentureDTO, DomVenture, IncomeSourceType, IncomeNatureType } from '../../domain/ventures/DomVenture';
@@ -59,6 +61,7 @@ export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }
   const [selectedIncomeType, setSelectedIncomeType] = useState<string>('todos');
   const [selectedStatus, setSelectedStatus] = useState<string>('activo');
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [mobileActionsId, setMobileActionsId] = useState<string | null>(null);
   const pageSize = 10;
 
   const selectSourceFromKpi = (source: 'todos' | IncomeSourceType) => {
@@ -573,7 +576,63 @@ export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }
               <p className="text-xs font-semibold text-gray-500">Cargando fuentes de ingresos...</p>
             </div>
           ) : (
-            <div className="mobile-card-container overflow-x-auto">
+            <>
+            <div className="space-y-2 lg:hidden">
+              {paginatedVentures.map(item => (
+                <article key={item.id} className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-[#17243B]">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenViewModal(item.dto)}
+                      aria-label={`Ver detalle de ${item.clientName}`}
+                      className="flex min-w-0 flex-1 items-start gap-1.5 text-left"
+                    >
+                      <span className="min-w-0">
+                        <span className="block line-clamp-2 text-sm font-bold leading-5 text-gray-900 dark:text-white">{item.clientName}</span>
+                        <span className="mt-0.5 block truncate text-xs text-gray-500 dark:text-gray-400" title={item.projectName}>{item.projectName}</span>
+                      </span>
+                      <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
+                    </button>
+                    <div className="shrink-0 text-right">
+                      <span className="block text-[10px] font-semibold uppercase text-gray-500 dark:text-gray-400">Ago 26</span>
+                      <span className="block text-sm font-black text-emerald-600 dark:text-emerald-400 table-cell-num">
+                        {Money.fromAmount(item.getProjectionForMonth('Ago-26')).toFormattedString()}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between gap-2 border-t border-gray-100 pt-1.5 dark:border-gray-800">
+                    <span className="min-w-0 truncate text-[11px] text-gray-500 dark:text-gray-400">
+                      {SOURCE_TYPES.find(source => source.id === item.sourceType)?.label || 'Fuente'}
+                      {item.status !== 'activo' && ` · ${item.status.replace('_', ' ')}`}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setMobileActionsId(current => current === item.id ? null : item.id)}
+                      aria-expanded={mobileActionsId === item.id}
+                      aria-controls={`venture-actions-${item.id}`}
+                      aria-label={`Acciones de ${item.clientName}`}
+                      className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold text-[#0088FF] hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                    >
+                      <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+                      Acciones
+                    </button>
+                  </div>
+                  {mobileActionsId === item.id && (
+                    <div id={`venture-actions-${item.id}`} className="mt-2 grid grid-cols-2 gap-2 border-t border-gray-100 pt-2 dark:border-gray-800">
+                      <button type="button" onClick={() => { setMobileActionsId(null); handleOpenViewModal(item.dto); }} className="rounded-lg bg-gray-100 px-2 py-2 text-xs font-semibold text-gray-800 dark:bg-gray-800 dark:text-gray-100">Ver detalle</button>
+                      <button type="button" onClick={() => { setMobileActionsId(null); handleOpenEditModal(item.dto); }} className="rounded-lg bg-gray-100 px-2 py-2 text-xs font-semibold text-gray-800 dark:bg-gray-800 dark:text-gray-100">Editar</button>
+                      <button type="button" onClick={() => { setMobileActionsId(null); handleOpenProjectionGrid(item.dto); }} className="rounded-lg bg-gray-100 px-2 py-2 text-xs font-semibold text-gray-800 dark:bg-gray-800 dark:text-gray-100">Proyección</button>
+                      <button type="button" onClick={() => { setMobileActionsId(null); handleToggleStatus(item.dto); }} className="rounded-lg bg-gray-100 px-2 py-2 text-xs font-semibold text-gray-800 dark:bg-gray-800 dark:text-gray-100">{item.status === 'activo' ? 'Desactivar' : 'Activar'}</button>
+                      <button type="button" onClick={() => { setMobileActionsId(null); handleDelete(item.id, item.clientName); }} className="col-span-2 rounded-lg bg-rose-500/10 px-2 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400">Eliminar</button>
+                    </div>
+                  )}
+                </article>
+              ))}
+              {filteredVentures.length === 0 && (
+                <p className="py-8 text-center text-xs text-gray-500 dark:text-gray-400">No se encontraron registros coincidentes con los filtros seleccionados.</p>
+              )}
+            </div>
+            <div className="hidden overflow-x-auto lg:block">
               <table className="mobile-record-table w-full min-w-[1100px] text-left text-xs border-collapse">
                 <thead>
                   <tr className="bg-gray-100 dark:bg-gray-800/80 text-gray-700 dark:text-gray-300 font-bold uppercase tracking-wider border-b border-gray-200 dark:border-gray-800">
@@ -686,6 +745,7 @@ export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }
                 </tbody>
               </table>
             </div>
+            </>
           )}
 
           {/* CARD FOOTER CON PAGINACION */}
