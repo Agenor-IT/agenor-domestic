@@ -104,8 +104,8 @@ export const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
   const implicitDebt = Math.max(0, creditLimit - initialAvailable);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 overflow-y-auto">
-      <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-t-2xl sm:rounded-2xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-6 relative animate-in fade-in zoom-in duration-150 max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4">
+      <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-t-2xl sm:rounded-2xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-6 relative animate-in fade-in zoom-in duration-150 max-h-[92dvh] sm:max-h-[90vh] overflow-hidden flex flex-col">
         
         {/* HEADER MODAL */}
         <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-3 sm:pb-4 shrink-0">
@@ -131,7 +131,8 @@ export const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
         </div>
 
         {/* FORMULARIO */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain">
           <div>
             <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
               Nombre del Medio de Pago *
@@ -257,8 +258,10 @@ export const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
             </select>
           </div>
 
+          </div>
+
           {/* ACCIONES FOOTER */}
-          <div className="flex flex-col-reverse sm:flex-row items-center sm:justify-end gap-2.5 sm:gap-3 pt-4 border-t border-gray-200 dark:border-gray-800 shrink-0">
+          <div className="flex shrink-0 flex-col-reverse items-center gap-2.5 border-t border-gray-200 bg-white pt-4 pb-[env(safe-area-inset-bottom)] dark:border-gray-800 dark:bg-[#0F172A] sm:flex-row sm:justify-end sm:gap-3">
             <button
               type="button"
               onClick={onClose}

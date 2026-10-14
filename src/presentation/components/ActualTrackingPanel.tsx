@@ -1748,7 +1748,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
       {/* MODAL EDITAR CUENTA CONTABLE */}
       {editingAccount && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 max-w-md w-full max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto shadow-2xl space-y-4 flex flex-col">
+          <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 max-w-md w-full max-h-[92dvh] sm:max-h-[90vh] overflow-hidden shadow-2xl space-y-4 flex flex-col">
             <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2 shrink-0">
               <Pencil className="w-5 h-5 text-amber-500 shrink-0" />
               <span>Editar Cuenta Contable</span>
@@ -1765,8 +1765,9 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                   alert(err.message || 'Error al actualizar cuenta contable');
                 }
               }}
-              className="space-y-3 flex-1"
+              className="flex min-h-0 flex-1 flex-col"
             >
+              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain">
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Código Nomenclador</label>
                 <input
@@ -1812,7 +1813,8 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                 </select>
               </div>
 
-              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-2 pt-3 border-t border-gray-200 dark:border-gray-800 shrink-0">
+              </div>
+              <div className="flex shrink-0 flex-col-reverse justify-end gap-2.5 border-t border-gray-200 bg-white pt-3 pb-[env(safe-area-inset-bottom)] dark:border-gray-800 dark:bg-[#0F172A] sm:flex-row sm:gap-2">
                 <button
                   type="button"
                   onClick={() => setEditingAccount(null)}
@@ -1835,7 +1837,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
       {/* MODAL CONFIRMACIÓN ELIMINAR CUENTA CONTABLE */}
       {deletingAccount && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 max-w-md w-full shadow-2xl space-y-4">
+          <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 max-w-md w-full max-h-[92dvh] sm:max-h-[90vh] overflow-hidden shadow-2xl space-y-4 flex flex-col">
             <div className="flex items-center gap-3 text-rose-600">
               <AlertTriangle className="w-6 h-6 shrink-0" />
               <h3 className="text-base font-bold text-gray-900 dark:text-white">
@@ -1843,6 +1845,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
               </h3>
             </div>
 
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain">
             <p className="text-xs text-gray-600 dark:text-gray-300">
               ¿Confirma eliminar la cuenta contable <strong className="text-gray-900 dark:text-white">{deletingAccount.code} - {deletingAccount.name}</strong>?
             </p>
@@ -1851,7 +1854,8 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
               Esta cuenta no registra saldos ni movimientos contables. Se desactivará del Plan de Cuentas.
             </div>
 
-            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-2 pt-2 border-t border-gray-200 dark:border-gray-800">
+            </div>
+            <div className="flex shrink-0 flex-col-reverse justify-end gap-2.5 border-t border-gray-200 bg-white pt-3 pb-[env(safe-area-inset-bottom)] dark:border-gray-800 dark:bg-[#0F172A] sm:flex-row sm:gap-2">
               <button
                 type="button"
                 onClick={() => setDeletingAccount(null)}

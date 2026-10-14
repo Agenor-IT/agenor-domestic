@@ -563,7 +563,7 @@ export const FixedAssetsPanel: React.FC = () => {
       {/* MODAL: NUEVO O EDITAR BIEN DE USO */}
       {isNewAssetModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
-          <div className="bg-white dark:bg-[#0F172A] rounded-t-2xl sm:rounded-2xl max-w-xl w-full p-4 sm:p-6 border border-gray-200 dark:border-gray-800 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto flex flex-col">
+          <div className="bg-white dark:bg-[#0F172A] rounded-t-2xl sm:rounded-2xl max-w-xl w-full p-4 sm:p-6 border border-gray-200 dark:border-gray-800 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-800 shrink-0">
               <div className="flex items-center gap-2 min-w-0">
                 <Building2 className="w-5 h-5 text-indigo-600 shrink-0" />
@@ -596,7 +596,8 @@ export const FixedAssetsPanel: React.FC = () => {
               </div>
             )}
 
-            <form onSubmit={handleCreateOrUpdateAsset} className="space-y-4 flex-1">
+            <form onSubmit={handleCreateOrUpdateAsset} className="flex min-h-0 flex-1 flex-col">
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 block mb-1">
@@ -776,7 +777,8 @@ export const FixedAssetsPanel: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 pt-2 shrink-0">
+              </div>
+              <div className="flex shrink-0 flex-col-reverse justify-end gap-2.5 border-t border-gray-200 bg-white pt-3 pb-[env(safe-area-inset-bottom)] dark:border-gray-800 dark:bg-[#0F172A] sm:flex-row sm:gap-3">
                 <button
                   type="button"
                   onClick={() => setIsNewAssetModalOpen(false)}
@@ -802,7 +804,7 @@ export const FixedAssetsPanel: React.FC = () => {
       {/* MODAL: REGISTRAR AMORTIZACIÓN */}
       {isAmortizeModalOpen && selectedAssetForAmort && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
-          <div className="bg-white dark:bg-[#0F172A] rounded-t-2xl sm:rounded-2xl max-w-md w-full p-4 sm:p-6 border border-gray-200 dark:border-gray-800 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto flex flex-col">
+          <div className="bg-white dark:bg-[#0F172A] rounded-t-2xl sm:rounded-2xl max-w-md w-full p-4 sm:p-6 border border-gray-200 dark:border-gray-800 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-800 shrink-0">
               <div className="flex items-center gap-2 min-w-0">
                 <Calculator className="w-5 h-5 text-amber-500 shrink-0" />
@@ -840,7 +842,8 @@ export const FixedAssetsPanel: React.FC = () => {
               </div>
             )}
 
-            <form onSubmit={handleApplyAmortization} className="space-y-4 flex-1">
+            <form onSubmit={handleApplyAmortization} className="flex min-h-0 flex-1 flex-col">
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain">
               <div>
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 block mb-1">
                   Monto de Amortización a Contabilizar ($) *
@@ -880,7 +883,8 @@ export const FixedAssetsPanel: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 pt-2 shrink-0">
+              </div>
+              <div className="flex shrink-0 flex-col-reverse justify-end gap-2.5 border-t border-gray-200 bg-white pt-3 pb-[env(safe-area-inset-bottom)] dark:border-gray-800 dark:bg-[#0F172A] sm:flex-row sm:gap-3">
                 <button
                   type="button"
                   onClick={() => setIsAmortizeModalOpen(false)}

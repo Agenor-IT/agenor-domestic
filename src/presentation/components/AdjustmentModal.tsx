@@ -93,7 +93,8 @@ export const AdjustmentModal: React.FC<AdjustmentModalProps> = ({
         </div>
 
         {/* CONTENIDO Y FORMULARIO */}
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4 sm:p-6">
           {successMsg ? (
             <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-2xl flex items-center gap-3 text-emerald-800 dark:text-emerald-300 text-xs font-bold">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
@@ -204,8 +205,11 @@ export const AdjustmentModal: React.FC<AdjustmentModalProps> = ({
                 />
               </div>
 
-              {/* BOTONES ACCION */}
-              <div className="flex flex-col-reverse sm:flex-row gap-2.5 sm:gap-3 pt-3">
+            </>
+          )}
+          </div>
+          {!successMsg && (
+              <div className="flex shrink-0 flex-col-reverse gap-2.5 border-t border-gray-100 bg-white p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] dark:border-gray-800 dark:bg-[#0F172A] sm:flex-row sm:gap-3 sm:px-6 sm:pb-6">
                 <button
                   type="button"
                   onClick={onClose}
@@ -220,7 +224,6 @@ export const AdjustmentModal: React.FC<AdjustmentModalProps> = ({
                   Aplicar Ajuste Contable
                 </button>
               </div>
-            </>
           )}
         </form>
       </div>

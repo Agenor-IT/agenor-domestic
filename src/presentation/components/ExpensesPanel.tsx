@@ -935,14 +935,15 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
       {isReceiptModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4">
           <div className="w-full max-w-3xl max-h-[calc(100vh-2rem)] overflow-hidden flex flex-col rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#0F172A] shadow-2xl">
-            <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+            <div className="flex shrink-0 items-center justify-between border-b border-gray-200 p-4 dark:border-gray-800 sm:p-6">
               <div>
                 <h3 className="text-base font-bold text-gray-900 dark:text-white">{editingReceipt ? 'Editar comprobante' : 'Nuevo comprobante'}</h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Asociá el importe con una fila de gasto existente.</p>
               </div>
               <button type="button" onClick={() => setIsReceiptModalOpen(false)} className="p-2 text-gray-500 hover:text-gray-900 dark:hover:text-white" aria-label="Cerrar"><X className="w-5 h-5" /></button>
             </div>
-            <form onSubmit={handleSaveReceipt} className="p-4 sm:p-6 overflow-y-auto space-y-5">
+            <form onSubmit={handleSaveReceipt} className="flex min-h-0 flex-1 flex-col">
+              <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-4 sm:p-6">
               <div>
                 <label htmlFor="receipt-expense" className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">Gasto asociado *</label>
                 <select
@@ -994,7 +995,8 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
                 <label htmlFor="receipt-notes" className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">Notas</label>
                 <textarea id="receipt-notes" rows={2} value={receiptNotes} onChange={event => setReceiptNotes(event.target.value)} className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-900 dark:text-white" />
               </div>
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
+              </div>
+              <div className="flex shrink-0 justify-end gap-3 border-t border-gray-200 bg-white p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] dark:border-gray-800 dark:bg-[#0F172A] sm:px-6 sm:pb-4">
                 <button type="button" onClick={() => setIsReceiptModalOpen(false)} className="px-4 py-2 text-xs font-bold text-gray-600 dark:text-gray-300">Cancelar</button>
                 <button type="submit" className="px-5 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold">Guardar comprobante</button>
               </div>
@@ -1008,7 +1010,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-t-2xl sm:rounded-2xl w-full max-w-4xl max-h-[92dvh] sm:max-h-[calc(100vh-2rem)] shadow-2xl overflow-hidden flex flex-col">
             {/* MODAL HEADER */}
-            <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/40">
+            <div className="flex shrink-0 items-center justify-between border-b border-gray-200 bg-gray-50/50 p-4 dark:border-gray-800 dark:bg-gray-800/40 sm:p-6">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-rose-500/10 text-rose-600 rounded-xl">
                   <Receipt className="w-5 h-5" />
@@ -1033,7 +1035,8 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
             </div>
 
             {/* MODAL BODY FORM */}
-            <form onSubmit={handleSaveExpense} className="p-4 sm:p-6 space-y-4 overflow-y-auto">
+            <form onSubmit={handleSaveExpense} className="flex min-h-0 flex-1 flex-col">
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4 sm:p-6">
               {/* TIPO DE EGRESO */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
@@ -1315,8 +1318,9 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
                 />
               </div>
 
+              </div>
               {/* FOOTER ACCIONES */}
-              <div className="pt-4 border-t border-gray-200 dark:border-gray-800 flex flex-col-reverse sm:flex-row items-center justify-end gap-2.5 sm:gap-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+              <div className="flex shrink-0 flex-col-reverse items-center justify-end gap-2.5 border-t border-gray-200 bg-white p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] dark:border-gray-800 dark:bg-[#0F172A] sm:flex-row sm:gap-3 sm:px-6 sm:pb-4">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}

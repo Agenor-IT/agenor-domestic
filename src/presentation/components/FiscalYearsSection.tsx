@@ -355,7 +355,7 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
       {isOpeningModalOpen && openingTargetYear && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 max-w-2xl w-full max-h-[92dvh] sm:max-h-[90vh] flex flex-col shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-3">
+            <div className="flex shrink-0 items-center justify-between border-b border-gray-200 pb-3 dark:border-gray-800">
               <div>
                 <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <Play className="w-5 h-5 text-emerald-500" />
@@ -385,6 +385,7 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
               </div>
             )}
 
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain">
             {/* BUSCADOR DE CUENTAS */}
             <div className="relative">
               <Search className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
@@ -398,7 +399,7 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
             </div>
 
             {/* LISTADO DE CUENTAS PATRIMONIALES CON INPUT */}
-            <div className="mobile-card-container flex-1 overflow-y-auto overflow-x-auto max-h-[50vh] space-y-2 pr-1">
+            <div className="mobile-card-container space-y-2 pr-1">
               <table className="mobile-record-table w-full min-w-[500px] text-xs text-left">
                 <thead className="bg-gray-50 dark:bg-[#1E293B] text-gray-500 dark:text-gray-400 sticky top-0 uppercase font-bold text-[10px]">
                   <tr>
@@ -474,8 +475,9 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
               );
             })()}
 
+            </div>
             {/* BOTONES ACCIÓN */}
-            <div className="flex justify-end gap-2 pt-2 border-t border-gray-200 dark:border-gray-800">
+            <div className="flex shrink-0 justify-end gap-2 border-t border-gray-200 bg-white pt-3 pb-[env(safe-area-inset-bottom)] dark:border-gray-800 dark:bg-[#0F172A]">
               <button
                 type="button"
                 onClick={() => {
@@ -512,16 +514,17 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
       {/* MODAL CREAR NUEVO EJERCICIO */}
       {isNewModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 max-w-md w-full shadow-xl space-y-4">
-            <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 max-w-md w-full max-h-[92dvh] sm:max-h-[90vh] overflow-hidden shadow-xl space-y-4 flex flex-col">
+            <h3 className="flex shrink-0 items-center gap-2 text-base font-bold text-gray-900 dark:text-white">
               <Calendar className="w-5 h-5 text-[#0088FF]" />
               Abrir Nuevo Ejercicio Económico
             </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <p className="shrink-0 text-xs text-gray-500 dark:text-gray-400">
               Complete los datos del nuevo período fiscal contable para el hogar/empresa.
             </p>
 
-            <form onSubmit={handleCreateFiscalYear} className="space-y-3">
+            <form onSubmit={handleCreateFiscalYear} className="flex min-h-0 flex-1 flex-col">
+              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain">
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Año del Ejercicio</label>
                 <input
@@ -561,7 +564,8 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-3">
+              </div>
+              <div className="flex shrink-0 justify-end gap-2 border-t border-gray-200 bg-white pt-3 pb-[env(safe-area-inset-bottom)] dark:border-gray-800 dark:bg-[#0F172A]">
                 <button
                   type="button"
                   onClick={() => setIsNewModalOpen(false)}
@@ -585,15 +589,15 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
       {/* MODAL CONFIRMACIÓN REFUNDICIÓN DE RESULTADOS */}
       {closingYearTarget && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 w-full sm:max-w-lg max-h-[100dvh] sm:max-h-[90vh] overflow-y-auto shadow-2xl space-y-4">
-            <div className="flex items-center gap-3 text-rose-600 dark:text-rose-400">
+          <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 w-full sm:max-w-lg max-h-[100dvh] sm:max-h-[90vh] overflow-hidden shadow-2xl space-y-4 flex flex-col">
+            <div className="flex shrink-0 items-center gap-3 text-rose-600 dark:text-rose-400">
               <RotateCcw className="w-6 h-6 shrink-0" />
               <h3 className="text-base font-bold text-gray-900 dark:text-white">
                 Confirmar Cierre y Refundición Ejercicio {closingYearTarget.year}
               </h3>
             </div>
 
-            <div className="p-4 bg-rose-50/80 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-xl space-y-2 text-xs text-rose-900 dark:text-rose-200">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 bg-rose-50/80 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-xl space-y-2 text-xs text-rose-900 dark:text-rose-200">
               <p className="font-bold">¿Desea ejecutar la Refundición de Cuentas de Resultado?</p>
               <ul className="list-disc list-inside space-y-1 text-rose-800 dark:text-rose-300">
                 <li>Se debitarán todas las cuentas de Ingresos para dejarlas en cero.</li>
@@ -603,7 +607,7 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
               </ul>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex shrink-0 justify-end gap-2 border-t border-gray-200 bg-white pt-3 pb-[env(safe-area-inset-bottom)] dark:border-gray-800 dark:bg-[#0F172A]">
               <button
                 type="button"
                 onClick={() => setClosingYearTarget(null)}

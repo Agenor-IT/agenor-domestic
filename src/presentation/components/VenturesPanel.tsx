@@ -1034,7 +1034,7 @@ export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[90vh]">
             {/* HEADER */}
-            <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/40">
+            <div className="flex shrink-0 items-center justify-between border-b border-gray-200 bg-gray-50/50 p-4 dark:border-gray-800 dark:bg-gray-800/40 sm:p-6">
               <div className="flex items-center gap-3">
                 <div className="p-2 sm:p-2.5 bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-xl shrink-0">
                   <Calendar className="w-5 h-5" />
@@ -1057,7 +1057,7 @@ export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }
             </div>
 
             {/* BARRA DE HERRAMIENTAS / INCREMENTO AUTOMATICO */}
-            <div className="p-3.5 sm:p-4 bg-purple-500/5 border-b border-purple-500/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex shrink-0 flex-col items-start justify-between gap-3 border-b border-purple-500/10 bg-purple-500/5 p-3.5 sm:flex-row sm:items-center sm:p-4">
               <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 <Sparkles className="w-4 h-4 text-purple-500 shrink-0" />
                 <span className="text-xs font-bold text-purple-700 dark:text-purple-300">
@@ -1090,7 +1090,7 @@ export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }
             </div>
 
             {/* BODY GRID PERMESES */}
-            <div className="p-4 sm:p-6 overflow-y-auto max-h-[50vh] scrollbar-thin">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 scrollbar-thin sm:p-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
                 {INITIAL_MONTHS.map(month => (
                   <div
@@ -1116,7 +1116,7 @@ export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }
             </div>
 
             {/* FOOTER */}
-            <div className="p-4 sm:p-6 border-t border-gray-200 dark:border-gray-800 flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 bg-gray-50/50 dark:bg-gray-800/40">
+            <div className="flex shrink-0 flex-col-reverse justify-end gap-2.5 border-t border-gray-200 bg-gray-50/50 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] dark:border-gray-800 dark:bg-gray-800/40 sm:flex-row sm:gap-3 sm:p-6">
               <button
                 type="button"
                 onClick={() => setIsProjectionGridOpen(false)}
