@@ -3,6 +3,7 @@ import { DomExpenseDTO } from '../domain/expenses/DomExpense';
 
 const LOCAL_STORAGE_KEY = 'dom_expenses_data';
 const PAYMENT_METADATA_KEY = 'dom_expense_payment_metadata';
+const PAYMENT_SYNC_KEY = 'dom_expense_payment_synced';
 
 type ExpensePaymentMetadata = {
   paymentCondition: 'contado' | 'cuenta_corriente';
@@ -71,6 +72,40 @@ export class SupabaseDomExpenseRepository {
     } : expense;
   }
 
+  private async syncLegacyPaymentMetadata(personaPadreId: number, rows: any[]): Promise<any[]> {
+    const metadata = this.getPaymentMetadata(personaPadreId);
+    const syncKey = `${PAYMENT_SYNC_KEY}_${personaPadreId}`;
+    let synced: Set<string>;
+    try {
+      const stored = JSON.parse(localStorage.getItem(syncKey) || '[]');
+      synced = new Set(Array.isArray(stored) ? stored.filter((id): id is string => typeof id === 'string') : []);
+    } catch {
+      synced = new Set();
+    }
+    return Promise.all(rows.map(async row => {
+      const id = String(row.id);
+      const legacy = metadata[id];
+      if (!legacy || synced.has(id) || !legacy.dueDate) return row;
+      if (row.due_date) {
+        synced.add(id);
+        try { localStorage.setItem(syncKey, JSON.stringify([...synced])); } catch { /* Keep the server value. */ }
+        return row;
+      }
+      // A browser may hold an older due date. Only fill an empty server field.
+      const { data, error } = await supabase.from('dom_expenses')
+        .update({ payment_condition: legacy.paymentCondition, due_date: legacy.dueDate })
+        .eq('id', row.id)
+        .eq('persona_padre_id', personaPadreId)
+        .is('due_date', null)
+        .select('*')
+        .maybeSingle();
+      if (error) return row;
+      synced.add(id);
+      try { localStorage.setItem(syncKey, JSON.stringify([...synced])); } catch { /* Retry is safe while due_date is empty. */ }
+      return data || row;
+    }));
+  }
+
   private getLocalExpenses(): DomExpenseDTO[] {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (!raw) return [];
@@ -108,8 +143,8 @@ export class SupabaseDomExpenseRepository {
             : row.monthly_projections)
         : {},
       defaultPaymentMethod: row.default_payment_method as 'cash' | 'card' | 'debit',
-      paymentCondition: metadata?.paymentCondition || cachedExpense?.paymentCondition || 'contado',
-      dueDate: metadata ? metadata.dueDate || undefined : cachedExpense?.dueDate,
+      paymentCondition: row.payment_condition || metadata?.paymentCondition || cachedExpense?.paymentCondition || 'contado',
+      dueDate: row.due_date || metadata?.dueDate || cachedExpense?.dueDate || undefined,
       notes: row.notes || '',
       createdAt: row.created_at
     };
@@ -142,7 +177,13 @@ export class SupabaseDomExpenseRepository {
       });
 
       if (!error && data) {
-        const items: DomExpenseDTO[] = (data.items || []).map((row: any) => this.mapRowToDTO(row));
+        const pageRows: any[] = data.items || [];
+        const pageIds = pageRows.map(row => row.id);
+        const fullRows = pageIds.length
+          ? await supabase.from('dom_expenses').select('*').eq('persona_padre_id', personaPadreId).in('id', pageIds)
+          : { data: [], error: null };
+        const byId = new Map((fullRows.error ? [] : fullRows.data || []).map(row => [String(row.id), row]));
+        const items: DomExpenseDTO[] = pageRows.map(row => this.mapRowToDTO(byId.get(String(row.id)) || row));
         return {
           items,
           totalCount: Number(data.total_count) || 0,
@@ -247,7 +288,8 @@ export class SupabaseDomExpenseRepository {
         .order('id', { ascending: false });
 
       if (!error && data && data.length > 0) {
-        const mapped: DomExpenseDTO[] = data.map(row => this.mapRowToDTO(row));
+        const mapped: DomExpenseDTO[] = (await this.syncLegacyPaymentMetadata(personaPadreId, data))
+          .map(row => this.mapRowToDTO(row));
         const cachedExpenses = this.getLocalExpenses();
         const localOnly = cachedExpenses.filter(expense =>
           (expense.personaPadreId === personaPadreId || !expense.personaPadreId) &&
@@ -279,7 +321,8 @@ export class SupabaseDomExpenseRepository {
 
       if (!error && data) {
         const cachedExpenses = this.getLocalExpenses();
-        const remote = data.map(row => this.mapRowToDTO(row));
+        const remote = (await this.syncLegacyPaymentMetadata(personaPadreId, data))
+          .map(row => this.mapRowToDTO(row));
         const localOnly = cachedExpenses.filter(expense =>
           (expense.personaPadreId === personaPadreId || !expense.personaPadreId) &&
           !remote.some(remoteExpense => remoteExpense.id === expense.id)
@@ -298,7 +341,7 @@ export class SupabaseDomExpenseRepository {
       .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
   }
 
-  public async saveExpense(expense: Partial<DomExpenseDTO>, personaPadreId: number): Promise<DomExpenseDTO> {
+  public async saveExpense(expense: Partial<DomExpenseDTO>, personaPadreId: number): Promise<{ expense: DomExpenseDTO; synced: boolean }> {
     const isNew = !expense.id || expense.id.startsWith('exp-');
 
     const dbPayload = {
@@ -312,6 +355,8 @@ export class SupabaseDomExpenseRepository {
       base_monthly_amount: expense.baseMonthlyAmount || 0,
       monthly_projections: expense.monthlyProjections || {},
       default_payment_method: expense.defaultPaymentMethod || 'cash',
+      payment_condition: expense.paymentCondition || 'contado',
+      due_date: expense.dueDate || null,
       notes: expense.notes || null
     };
 
@@ -346,13 +391,14 @@ export class SupabaseDomExpenseRepository {
           local.unshift(saved);
           this.saveLocalExpenses(local);
           this.savePaymentMetadata(saved);
-          return saved;
+          return { expense: saved, synced: true };
         }
       } else {
         const { data, error } = await supabase
           .from('dom_expenses')
           .update(dbPayload)
           .eq('id', expense.id)
+          .eq('persona_padre_id', personaPadreId)
           .select()
           .single();
 
@@ -378,12 +424,16 @@ export class SupabaseDomExpenseRepository {
           const local = this.getLocalExpenses().map(e => e.id === saved.id ? saved : e);
           this.saveLocalExpenses(local);
           this.savePaymentMetadata(saved);
-          return saved;
+          return { expense: saved, synced: true };
         }
+        if (error) throw error;
       }
     } catch (err) {
-      console.warn('Error al guardar en Supabase dom_expenses, utilizando almacenamiento local:', err);
+      if (!isNew) throw err;
+      console.warn('Error al crear en Supabase dom_expenses, utilizando almacenamiento local:', err);
     }
+
+    if (!isNew) throw new Error('No se pudo actualizar el egreso en la cuenta.');
 
     // Fallback local
     const local = this.getLocalExpenses();
@@ -414,23 +464,23 @@ export class SupabaseDomExpenseRepository {
     }
     this.saveLocalExpenses(local);
     this.savePaymentMetadata(savedDTO);
-    return savedDTO;
+    return { expense: savedDTO, synced: false };
   }
 
-  public async deleteExpense(id: string, _personaPadreId: number): Promise<void> {
-    try {
-      await supabase
+  public async deleteExpense(id: string, personaPadreId: number): Promise<void> {
+    if (!id.startsWith('exp-')) {
+      const { error } = await supabase
         .from('dom_expenses')
         .delete()
-        .eq('id', id);
-    } catch (err) {
-      console.warn('Error al eliminar en Supabase dom_expenses:', err);
+        .eq('id', id)
+        .eq('persona_padre_id', personaPadreId);
+      if (error) throw error;
     }
 
     const local = this.getLocalExpenses().filter(e => e.id !== id);
     this.saveLocalExpenses(local);
-    const key = `${PAYMENT_METADATA_KEY}_${_personaPadreId}`;
-    const metadata = this.getPaymentMetadata(_personaPadreId);
+    const key = `${PAYMENT_METADATA_KEY}_${personaPadreId}`;
+    const metadata = this.getPaymentMetadata(personaPadreId);
     delete metadata[id];
     localStorage.setItem(key, JSON.stringify(metadata));
   }

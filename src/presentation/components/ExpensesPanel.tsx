@@ -33,7 +33,7 @@ import {
 } from '../../infrastructure/SupabaseDomExpenseRepository';
 import { DomExpenseDTO, ExpenseSourceType, ExpenseNatureType, ExpensePaymentCondition } from '../../domain/expenses/DomExpense';
 import { DomExpenseReceipt } from '../../domain/expenses/DomExpenseReceipt';
-import { LocalDomExpenseReceiptRepository } from '../../infrastructure/LocalDomExpenseReceiptRepository';
+import { SupabaseDomExpenseReceiptRepository } from '../../infrastructure/SupabaseDomExpenseReceiptRepository';
 import { Money } from '../../domain/shared/Money';
 import { INITIAL_MONTHS } from '../../domain/shared/initialSeedData';
 
@@ -111,7 +111,8 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
   const [feedback, setFeedback] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   const repository = useMemo(() => new SupabaseDomExpenseRepository(), []);
-  const receiptRepository = useMemo(() => new LocalDomExpenseReceiptRepository(), []);
+  const receiptRepository = useMemo(() => new SupabaseDomExpenseReceiptRepository(), []);
+  const [pendingReceiptSync, setPendingReceiptSync] = useState(0);
   const counterpartiesStorageKey = `dom_expense_counterparties_${personaPadreId}`;
 
   useEffect(() => {
@@ -213,8 +214,8 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
   const expenseMonths = useMemo(() => {
     const months = new Set<string>();
     expenseReceipts.forEach(receipt => {
-      if (filteredAllExpenses.some(expense => expense.id === receipt.expenseId)) {
-        months.add((receipt.dueDate || receipt.createdAt).slice(0, 7));
+      if (receipt.dueDate && filteredAllExpenses.some(expense => expense.id === receipt.expenseId)) {
+        months.add(receipt.dueDate.slice(0, 7));
       }
     });
     const sortedMonths = [...months].sort();
@@ -240,11 +241,11 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
     });
     expenseReceipts.forEach(receipt => {
       const expense = filteredAllExpenses.find(item => item.id === receipt.expenseId);
-      if (!expense) return;
+      if (!expense || !receipt.dueDate) return;
       const key = `${expense.supplierName.trim().toLocaleLowerCase('es')}|${expense.category.toLocaleLowerCase('es')}`;
       const row = rows.get(key);
       if (!row) return;
-      const month = (receipt.dueDate || receipt.createdAt).slice(0, 7);
+      const month = receipt.dueDate.slice(0, 7);
       row.amounts[month] = (row.amounts[month] || 0) + receipt.amount;
     });
     return [...rows.values()].sort((a, b) => {
@@ -272,9 +273,15 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
     loadAllExpenses();
   }, [loadAllExpenses]);
 
-  useEffect(() => {
-    setExpenseReceipts(receiptRepository.list(personaPadreId));
+  const loadReceipts = useCallback(async () => {
+    const result = await receiptRepository.list(personaPadreId);
+    setExpenseReceipts(result.items);
+    setPendingReceiptSync(result.pendingSync);
   }, [receiptRepository, personaPadreId]);
+
+  useEffect(() => {
+    void loadReceipts();
+  }, [loadReceipts]);
 
   // KPIs desde resumen global calculado por el servidor RPC
   const totalDomesticMonthly = paginatedData?.summary.totalDomesticMonthly ?? 0;
@@ -349,7 +356,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
     setIsReceiptModalOpen(true);
   };
 
-  const handleSaveReceipt = (event: React.FormEvent) => {
+  const handleSaveReceipt = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!allExpenses.some(expense => expense.id === receiptExpenseId)) {
       setFeedback({ text: 'Seleccione la fila de gasto a la que corresponde el comprobante.', type: 'error' });
@@ -364,7 +371,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
       return;
     }
     try {
-      receiptRepository.save({
+      const result = await receiptRepository.save({
         id: editingReceipt?.id,
         createdAt: editingReceipt?.createdAt,
         personaPadreId,
@@ -374,21 +381,28 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
         dueDate: receiptCondition === 'cuenta_corriente' ? receiptDueDate : undefined,
         notes: receiptNotes
       });
-      setExpenseReceipts(receiptRepository.list(personaPadreId));
+      await loadReceipts();
       setCurrentPage(1);
       setIsReceiptModalOpen(false);
-      setFeedback({ text: 'Comprobante guardado en esta instalación.', type: 'success' });
+      setFeedback({
+        text: result.synced ? 'Comprobante guardado en tu cuenta.' : 'Comprobante guardado en este dispositivo. Pendiente de sincronizar con tu cuenta.',
+        type: 'success'
+      });
     } catch {
       setFeedback({ text: 'No se pudo guardar el comprobante localmente.', type: 'error' });
     }
   };
 
-  const handleDeleteReceipt = (receipt: DomExpenseReceipt) => {
+  const handleDeleteReceipt = async (receipt: DomExpenseReceipt) => {
     if (!window.confirm('¿Está seguro de eliminar este comprobante?')) return;
-    receiptRepository.delete(receipt.id, receipt.personaPadreId);
-    setExpenseReceipts(receiptRepository.list(personaPadreId));
-    setCurrentPage(1);
-    setFeedback({ text: 'Comprobante eliminado.', type: 'success' });
+    try {
+      await receiptRepository.delete(receipt.id, receipt.personaPadreId);
+      await loadReceipts();
+      setCurrentPage(1);
+      setFeedback({ text: 'Comprobante eliminado.', type: 'success' });
+    } catch {
+      setFeedback({ text: 'No se pudo eliminar el comprobante de tu cuenta.', type: 'error' });
+    }
   };
 
   // Handlers Modal Form
@@ -487,9 +501,11 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
         notes
       };
 
-      const savedExpense = await repository.saveExpense(payload, personaPadreId);
+      const { expense: savedExpense, synced } = await repository.saveExpense(payload, personaPadreId);
       setFeedback({
-        text: `Egreso ${modalMode === 'nuevo' ? 'creado' : 'actualizado'} con éxito.`,
+        text: !synced
+          ? 'Egreso guardado sólo en este dispositivo. No se pudo sincronizar con tu cuenta.'
+          : `Egreso ${modalMode === 'nuevo' ? 'creado' : 'actualizado'} en tu cuenta.`,
         type: 'success'
       });
       setIsModalOpen(false);
@@ -511,7 +527,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
     if (!window.confirm(`¿Está seguro de eliminar el registro "${name}"?`)) return;
 
     try {
-      await repository.deleteExpense(id, 1);
+      await repository.deleteExpense(id, personaPadreId);
       setFeedback({ text: 'Registro eliminado correctamente.', type: 'success' });
       await loadData();
       await loadAllExpenses();
@@ -523,12 +539,14 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
   const handleToggleStatus = async (e: DomExpenseDTO) => {
     const nextStatus = e.status === 'activo' ? 'pausado' : 'activo';
     try {
-      await repository.saveExpense({
+      const { synced } = await repository.saveExpense({
         ...e,
         status: nextStatus
-      }, 1);
+      }, personaPadreId);
       setFeedback({
-        text: `Egreso "${e.supplierName}" ${nextStatus === 'activo' ? 'activado' : 'desactivado'} correctamente.`,
+        text: synced
+          ? `Egreso "${e.supplierName}" ${nextStatus === 'activo' ? 'activado' : 'desactivado'} en tu cuenta.`
+          : `Cambio de "${e.supplierName}" guardado sólo en este dispositivo. Pendiente de sincronización.`,
         type: 'success'
       });
       await loadData();
@@ -642,6 +660,16 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
           >
             <X className="w-4 h-4" />
           </button>
+        </div>
+      )}
+      {pendingReceiptSync > 0 && (
+        <div role="status" className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
+          {pendingReceiptSync} comprobante{pendingReceiptSync === 1 ? '' : 's'} guardado{pendingReceiptSync === 1 ? '' : 's'} sólo en este dispositivo. Abrí esta pantalla con conexión para sincronizar.
+        </div>
+      )}
+      {allExpenses.some(expense => expense.id.startsWith('exp-')) && (
+        <div role="status" className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
+          Hay gastos guardados sólo en este dispositivo. Revisá esos registros antes de usar otro equipo.
         </div>
       )}
 

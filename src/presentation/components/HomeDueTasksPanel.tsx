@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { DomExpenseDTO } from '../../domain/expenses/DomExpense';
 import { DomExpenseReceipt } from '../../domain/expenses/DomExpenseReceipt';
 import { Money } from '../../domain/shared/Money';
-import { LocalDomExpenseReceiptRepository } from '../../infrastructure/LocalDomExpenseReceiptRepository';
+import { SupabaseDomExpenseReceiptRepository } from '../../infrastructure/SupabaseDomExpenseReceiptRepository';
 import { SupabaseDomExpenseRepository } from '../../infrastructure/SupabaseDomExpenseRepository';
 import { HomeTask, HomeTaskList } from './HomeTaskList';
 import { useDomesticAccess } from '../auth/DomesticAuthGate';
@@ -69,7 +69,7 @@ interface HomeDueTasksPanelProps {
 export const HomeDueTasksPanel: React.FC<HomeDueTasksPanelProps> = ({ onOpenExpenses }) => {
   const { personaPadreId } = useDomesticAccess();
   const expenseRepository = useMemo(() => new SupabaseDomExpenseRepository(), []);
-  const receiptRepository = useMemo(() => new LocalDomExpenseReceiptRepository(), []);
+  const receiptRepository = useMemo(() => new SupabaseDomExpenseReceiptRepository(), []);
   const [dueTasks, setDueTasks] = useState<HomeTask[]>([]);
   const [completedTaskIds, setCompletedTaskIds] = useState(() => readCompletedTasks(personaPadreId));
   const [loading, setLoading] = useState(true);
@@ -87,10 +87,13 @@ export const HomeDueTasksPanel: React.FC<HomeDueTasksPanelProps> = ({ onOpenExpe
 
   useEffect(() => {
     let active = true;
-    expenseRepository.getAllExpenses(personaPadreId)
-      .then(expenses => {
+    Promise.all([
+      expenseRepository.getAllExpenses(personaPadreId),
+      receiptRepository.list(personaPadreId),
+    ])
+      .then(([expenses, receipts]) => {
         if (!active) return;
-        setDueTasks(buildDueTasks(expenses, receiptRepository.list(personaPadreId)));
+        setDueTasks(buildDueTasks(expenses, receipts.items));
         setError(undefined);
       })
       .catch(() => {
