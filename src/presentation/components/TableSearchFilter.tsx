@@ -1,3 +1,4 @@
+import { SearchableSelect } from './SearchableSelect';
 import React from 'react';
 import { Search, X, Filter } from 'lucide-react';
 
@@ -45,7 +46,7 @@ export const TableSearchFilter: React.FC<TableSearchFilterProps> = ({
 
         {filterOptions && onFilterChange && (
           <div className="relative w-full sm:w-auto sm:shrink-0">
-            <select
+            <SearchableSelect
               value={filterValue || ''}
               onChange={(e) => onFilterChange(e.target.value)}
               className="w-full pl-8 pr-4 py-2 text-xs font-semibold border border-gray-300 dark:border-gray-700 rounded-xl bg-white dark:bg-[#0F172A] text-gray-800 dark:text-gray-200 appearance-none focus:outline-none focus:ring-2 focus:ring-[#0088FF]/30 shadow-sm cursor-pointer"
@@ -55,7 +56,7 @@ export const TableSearchFilter: React.FC<TableSearchFilterProps> = ({
                   {opt.label}
                 </option>
               ))}
-            </select>
+            </SearchableSelect>
             <Filter className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
         )}

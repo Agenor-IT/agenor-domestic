@@ -1,3 +1,4 @@
+import { SearchableSelect } from './SearchableSelect';
 import React, { useState } from 'react';
 import { FormattedNumberInput } from './FormattedNumberInput';
 import { X, SlidersHorizontal } from 'lucide-react';
@@ -119,7 +120,7 @@ export const AdjustmentModal: React.FC<AdjustmentModalProps> = ({
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                   Componente a Ajustar
                 </label>
-                <select
+                <SearchableSelect
                   value={selectedKey}
                   onChange={(e) => setSelectedKey(e.target.value)}
                   className="w-full text-xs font-semibold p-3 border border-gray-300 dark:border-gray-700 rounded-xl bg-white dark:bg-[#1E293B] text-gray-900 dark:text-white focus:ring-2 focus:ring-[#00A86B] outline-none"
@@ -134,7 +135,7 @@ export const AdjustmentModal: React.FC<AdjustmentModalProps> = ({
                       );
                     })}
                   </optgroup>
-                </select>
+                </SearchableSelect>
               </div>
 
               {/* TIPO DE AJUSTE */}

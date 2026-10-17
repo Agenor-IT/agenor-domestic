@@ -1,3 +1,4 @@
+import { SearchableSelect } from './SearchableSelect';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { FormattedNumberInput } from './FormattedNumberInput';
 import { useDomesticAccess } from '../auth/DomesticAuthGate';
@@ -539,7 +540,7 @@ export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }
           extraControls={
             <div className="flex flex-wrap items-center gap-3">
               {/* Filtro Tipo Fijo/Proyectado */}
-              <select
+              <SearchableSelect
                 value={selectedIncomeType}
                 onChange={e => setSelectedIncomeType(e.target.value)}
                 className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-semibold px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 outline-none cursor-pointer"
@@ -547,10 +548,10 @@ export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }
                 <option value="todos">Modalidad: Todas</option>
                 <option value="fijo">Solo Fijos</option>
                 <option value="proyectado">Solo Proyectados</option>
-              </select>
+              </SearchableSelect>
 
               {/* Estado Filter */}
-              <select
+              <SearchableSelect
                 value={selectedStatus}
                 onChange={e => {
                   setSelectedStatus(e.target.value);
@@ -563,7 +564,7 @@ export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }
                 <option value="pausado">Inactivas / Pausadas</option>
                 <option value="en_negociacion">En Negociación</option>
                 <option value="finalizado">Finalizadas</option>
-              </select>
+              </SearchableSelect>
             </div>
           }
         />
@@ -943,7 +944,7 @@ export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                     Categoría
                   </label>
-                  <select
+                  <SearchableSelect
                     disabled={modalMode === 'ver'}
                     value={category}
                     onChange={e => setCategory(e.target.value)}
@@ -954,7 +955,7 @@ export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }
                         {cat}
                       </option>
                     ))}
-                  </select>
+                  </SearchableSelect>
                 </div>
 
                 {/* Estado: Botón Activar / Desactivar */}
@@ -1013,7 +1014,7 @@ export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                     Medio de Cobro Predeterminado
                   </label>
-                  <select
+                  <SearchableSelect
                     disabled={modalMode === 'ver'}
                     value={defaultPaymentMethod}
                     onChange={e => setDefaultPaymentMethod(e.target.value as any)}
@@ -1022,7 +1023,7 @@ export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }
                     <option value="cash">Efectivo / Transferencia</option>
                     <option value="card">Tarjeta</option>
                     <option value="debit">Débito Automático</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
               </div>
 

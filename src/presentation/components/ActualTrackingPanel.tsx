@@ -1,3 +1,4 @@
+import { SearchableSelect } from './SearchableSelect';
 import React, { useState, useEffect, useMemo } from 'react';
 import { Money } from '../../domain/shared/Money';
 import { useDomesticAccess } from '../auth/DomesticAuthGate';
@@ -356,7 +357,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
       {/* NAVEGADOR DE SECCIONES (ESTADOS FINANCIEROS, LIBRO DIARIO Y LIBRO MAYOR) */}
       <div className="p-1.5 sm:p-2 bg-gray-200/80 dark:bg-[#1E293B] rounded-2xl overflow-hidden">
         <label htmlFor="report-section-mobile" className="block lg:hidden text-xs font-bold text-gray-700 dark:text-gray-200 px-1 pb-1">Sección del reporte</label>
-        <select
+        <SearchableSelect
           id="report-section-mobile"
           value={activeSection}
           onChange={(event) => setActiveSection(event.target.value as typeof activeSection)}
@@ -369,7 +370,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
           <option value="ledger">4. Libro Mayor</option>
           <option value="chart_of_accounts">5. Plan de Cuentas</option>
           <option value="proyeccion">6. Proyección</option>
-        </select>
+        </SearchableSelect>
         <div className="hidden lg:flex lg:flex-wrap gap-1.5 sm:gap-2 pb-0.5 sm:pb-0">
           <button
             onClick={() => setActiveSection('all')}
@@ -1165,7 +1166,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
               <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
                 Seleccionar Cuenta Contable
               </label>
-              <select
+              <SearchableSelect
                 value={selectedLedgerAccount}
                 onChange={(e) => setSelectedLedgerAccount(e.target.value)}
                 className="w-full text-xs font-bold p-2.5 border border-gray-300 dark:border-gray-700 rounded-xl bg-white dark:bg-[#1E293B] text-gray-900 dark:text-white focus:ring-2 focus:ring-[#0088FF] outline-none"
@@ -1175,7 +1176,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                     {acc.name}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
           </div>
 
@@ -1479,7 +1480,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                   onChange={(e) => setNewAccountName(e.target.value)}
                   className="text-xs font-semibold p-2.5 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-[#0F172A] text-gray-900 dark:text-white outline-none"
                 />
-                <select
+                <SearchableSelect
                   value={newAccountGroup}
                   onChange={(e) => {
                     const group = e.target.value as any;
@@ -1497,8 +1498,8 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                   <option value="patrimonio">3. Patrimonio Neto</option>
                   <option value="ingreso">4. Ingreso</option>
                   <option value="egreso">5. Egreso</option>
-                </select>
-                <select
+                </SearchableSelect>
+                <SearchableSelect
                   value={newAccountSubrubro}
                   onChange={(e) => setNewAccountSubrubro(e.target.value)}
                   className="text-xs font-semibold p-2.5 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-[#0F172A] text-gray-900 dark:text-white outline-none"
@@ -1510,7 +1511,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                   <option value="Patrimonio Neto">Patrimonio Neto</option>
                   <option value="Ingresos Operativos">Ingresos Operativos</option>
                   <option value="Egresos Operativos">Egresos Operativos</option>
-                </select>
+                </SearchableSelect>
               </div>
               <div className="flex justify-end gap-2 pt-2">
                 <button
@@ -1712,14 +1713,14 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Naturaleza del Saldo</label>
-                <select
+                <SearchableSelect
                   value={editingAccount.nature}
                   onChange={(e) => setEditingAccount({ ...editingAccount, nature: e.target.value as 'debit' | 'credit' })}
                   className="w-full text-xs font-bold p-2.5 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-[#1E293B] text-gray-900 dark:text-white"
                 >
                   <option value="debit">Deudor (+)</option>
                   <option value="credit">Acreedor (-)</option>
-                </select>
+                </SearchableSelect>
               </div>
 
               </div>

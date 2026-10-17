@@ -1,3 +1,4 @@
+import { SearchableSelect } from './SearchableSelect';
 import { FormattedNumberInput } from './FormattedNumberInput';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
@@ -417,7 +418,7 @@ export const FixedAssetsPanel: React.FC = () => {
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <span className="text-xs text-gray-500 font-medium shrink-0">Categoría:</span>
-            <select
+            <SearchableSelect
               value={categoryFilter}
               onChange={e => setCategoryFilter(e.target.value)}
               className="w-full sm:w-auto px-3 py-2 bg-white dark:bg-[#1E293B] border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-900 dark:text-gray-100 outline-none cursor-pointer"
@@ -429,7 +430,7 @@ export const FixedAssetsPanel: React.FC = () => {
               <option value="muebles">Muebles y Útiles</option>
               <option value="maquinaria">Maquinaria</option>
               <option value="instalaciones">Instalaciones</option>
-            </select>
+            </SearchableSelect>
           </div>
         </div>
 
@@ -617,7 +618,7 @@ export const FixedAssetsPanel: React.FC = () => {
                   <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 block mb-1">
                     Categoría *
                   </label>
-                  <select
+                  <SearchableSelect
                     value={category}
                     onChange={e => applyCategoryMapping(e.target.value, true)}
                     className="w-full px-3 py-2 bg-gray-50 dark:bg-[#1E293B] border border-gray-300 dark:border-gray-700 rounded-xl text-xs text-gray-900 dark:text-white outline-none"
@@ -628,7 +629,7 @@ export const FixedAssetsPanel: React.FC = () => {
                     <option value="muebles" className="bg-white dark:bg-[#1E293B] text-gray-900 dark:text-white">Muebles y Útiles</option>
                     <option value="maquinaria" className="bg-white dark:bg-[#1E293B] text-gray-900 dark:text-white">Maquinaria</option>
                     <option value="instalaciones" className="bg-white dark:bg-[#1E293B] text-gray-900 dark:text-white">Instalaciones</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
               </div>
 
@@ -728,7 +729,7 @@ export const FixedAssetsPanel: React.FC = () => {
                     <label className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 block mb-1">
                       1. Cuenta Activo:
                     </label>
-                    <select
+                    <SearchableSelect
                       value={assetAccountOptions.some(a => a.id === assetAccountId) ? assetAccountId : (assetAccountOptions[0]?.id || '')}
                       onChange={e => setAssetAccountId(Number(e.target.value))}
                       className="w-full px-2.5 py-2 bg-gray-50 dark:bg-[#1E293B] border border-gray-300 dark:border-gray-700 rounded-xl text-xs font-mono font-medium text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
@@ -738,14 +739,14 @@ export const FixedAssetsPanel: React.FC = () => {
                           {a.code} - {a.name}
                         </option>
                       ))}
-                    </select>
+                    </SearchableSelect>
                   </div>
 
                   <div>
                     <label className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 block mb-1">
                       2. Amort. Acumulada:
                     </label>
-                    <select
+                    <SearchableSelect
                       value={accAmortAccountOptions.some(a => a.id === accumulatedAccountId) ? accumulatedAccountId : (accAmortAccountOptions[0]?.id || '')}
                       onChange={e => setAccumulatedAccountId(Number(e.target.value))}
                       className="w-full px-2.5 py-2 bg-gray-50 dark:bg-[#1E293B] border border-gray-300 dark:border-gray-700 rounded-xl text-xs font-mono font-medium text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
@@ -755,14 +756,14 @@ export const FixedAssetsPanel: React.FC = () => {
                           {a.code} - {a.name}
                         </option>
                       ))}
-                    </select>
+                    </SearchableSelect>
                   </div>
 
                   <div>
                     <label className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 block mb-1">
                       3. Gasto Amortización:
                     </label>
-                    <select
+                    <SearchableSelect
                       value={expAmortAccountOptions.some(a => a.id === expenseAccountId) ? expenseAccountId : (expenseAccountId || expAmortAccountOptions[0]?.id || '')}
                       onChange={e => setExpenseAccountId(Number(e.target.value))}
                       className="w-full px-2.5 py-2 bg-gray-50 dark:bg-[#1E293B] border border-gray-300 dark:border-gray-700 rounded-xl text-xs font-mono font-medium text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
@@ -772,7 +773,7 @@ export const FixedAssetsPanel: React.FC = () => {
                           {a.code} - {a.name}
                         </option>
                       ))}
-                    </select>
+                    </SearchableSelect>
                   </div>
                 </div>
               </div>

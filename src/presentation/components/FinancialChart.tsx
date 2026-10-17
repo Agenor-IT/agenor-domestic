@@ -1,3 +1,4 @@
+import { SearchableSelect } from './SearchableSelect';
 import React, { useState, useMemo } from 'react';
 import { Money } from '../../domain/shared/Money';
 import { LineChart, Calendar, ArrowRight } from 'lucide-react';
@@ -95,7 +96,7 @@ export const FinancialChart: React.FC<FinancialChartProps> = ({
         <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
           <label htmlFor="financial-period-mobile" className="w-full lg:hidden text-xs font-bold text-gray-700 dark:text-gray-200">
             Período
-            <select
+            <SearchableSelect
               id="financial-period-mobile"
               value={periodFilter}
               onChange={(event) => setPeriodFilter(event.target.value as PeriodFilterType)}
@@ -104,7 +105,7 @@ export const FinancialChart: React.FC<FinancialChartProps> = ({
               <option value="month">Mes</option>
               <option value="year">Año</option>
               <option value="range">Rango</option>
-            </select>
+            </SearchableSelect>
           </label>
           <div className="hidden lg:flex lg:flex-wrap items-center bg-gray-100 dark:bg-gray-800 p-1 rounded-xl max-w-full shrink-0">
             {(['month', 'year', 'range'] as PeriodFilterType[]).map((p) => {

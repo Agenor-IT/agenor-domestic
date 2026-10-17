@@ -1,3 +1,4 @@
+import { SearchableSelect } from './SearchableSelect';
 import React, { useState } from 'react';
 import { FormattedNumberInput } from './FormattedNumberInput';
 import { FlowNode } from '../../domain/cashflow/CashFlowProjectionService';
@@ -105,7 +106,7 @@ export const ProjectionTable: React.FC<ProjectionTableProps> = ({
           {/* Medio de pago/cobro */}
           <td className="py-2 px-3 min-w-[160px]">
             {(node.flowType === 'income' || node.flowType === 'expense') && node.allowedMethods ? (
-              <select
+              <SearchableSelect
                 value={selectedMethods[node.id] || node.defaultMethod || 'cash'}
                 onChange={(e) => onMethodChange(node.id, e.target.value as PaymentMethodType)}
                 className={`w-full text-[11px] font-semibold border rounded-lg px-2 py-1 outline-none transition-colors ${
@@ -121,7 +122,7 @@ export const ProjectionTable: React.FC<ProjectionTableProps> = ({
                     {m === 'cash' ? 'Efectivo / Transfer' : m === 'card' ? 'Tarjeta (+1 mes)' : 'Débito Automático'}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
             ) : (
               <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium px-2 py-1 bg-gray-100/50 dark:bg-gray-800/50 rounded inline-block">
                 {node.flowType === 'initialBalance' ? 'Saldo anterior' : node.flowType === 'derivedCardImpact' ? 'Impacto +1 mes' : 'Calculado'}
@@ -211,7 +212,7 @@ export const ProjectionTable: React.FC<ProjectionTableProps> = ({
           {(node.flowType === 'income' || node.flowType === 'expense') && node.allowedMethods && (
             <div>
               <label htmlFor={`mobile-method-${node.id}`} className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-1">Medio de pago / cobro</label>
-              <select
+              <SearchableSelect
                 id={`mobile-method-${node.id}`}
                 value={selectedMethods[node.id] || node.defaultMethod || 'cash'}
                 onChange={event => onMethodChange(node.id, event.target.value as PaymentMethodType)}
@@ -222,7 +223,7 @@ export const ProjectionTable: React.FC<ProjectionTableProps> = ({
                     {method === 'cash' ? 'Efectivo / Transfer' : method === 'card' ? 'Tarjeta (+1 mes)' : 'Débito Automático'}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
           )}
 

@@ -1,3 +1,4 @@
+import { SearchableSelect } from './SearchableSelect';
 import React, { useState, useEffect, useMemo } from 'react';
 import { CustomPaymentMethod } from '../../domain/shared/PaymentMethod';
 import { FormattedNumberInput } from './FormattedNumberInput';
@@ -338,35 +339,35 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
                 Tipo de Operación *
               </label>
-              <select
+              <SearchableSelect
                 disabled={mode === 'ver'}
                 value={operationType}
                 onChange={(e) => handleOperationTypeChange(e.target.value as any)}
                 className="w-full font-bold border border-gray-300 dark:border-gray-700 rounded-xl p-2.5 outline-none bg-white dark:bg-[#1E293B] text-gray-900 dark:text-white focus:ring-2 focus:ring-[#0088FF]"
               >
                 <optgroup label="Egresos y Compras">
-                  <option value="compra">🛒 Compra (Egreso / Insumos / Servicios)</option>
-                  <option value="pago">💳 Pago (Cancela Deuda / Pasivo)</option>
+                  <option value="compra">Compra</option>
+                  <option value="pago">Pago</option>
                   <option value="pago_tarjeta">Pago de tarjeta</option>
-                  <option value="alquiler_perdido">🏘️ Alquileres Perdidos (Egreso)</option>
+                  <option value="alquiler_perdido">Alquiler pagado</option>
                 </optgroup>
                 <optgroup label="Ingresos y Ventas">
-                  <option value="venta">📈 Venta (Ingreso)</option>
-                  <option value="cobro">💵 Cobro (Cancela Cta Cte / Activo)</option>
-                  <option value="alquiler_ganado">🏠 Alquileres Ganados (Ingreso)</option>
-                  <option value="honorarios">💼 Honorarios / Servicios</option>
+                  <option value="venta">Venta</option>
+                  <option value="cobro">Cobro</option>
+                  <option value="alquiler_ganado">Alquiler cobrado</option>
+                  <option value="honorarios">Honorarios</option>
                 </optgroup>
                 <optgroup label="Otros">
                   <option value="canje" disabled>Canje: requiere registro específico</option>
                 </optgroup>
-              </select>
+              </SearchableSelect>
             </div>
 
             <div>
               <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
                 Condición de Pago / Imputación *
               </label>
-              <select
+              <SearchableSelect
                 disabled={mode === 'ver' || operationType === 'cobro' || operationType === 'pago' || operationType === 'pago_tarjeta'}
                 value={paymentCondition}
                 onChange={(e) => setPaymentCondition(e.target.value as any)}
@@ -374,7 +375,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               >
                 <option value="contado">Pago inmediato o tarjeta</option>
                 <option value="cta_cte">Cuenta corriente</option>
-              </select>
+              </SearchableSelect>
             </div>
           </div>
 
@@ -551,7 +552,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 {paymentCondition === 'contado' ? 'Medio de Pago / Cuenta Tesorería *' : 'Imputación Contable Automática'}
               </label>
               {paymentCondition === 'contado' ? (
-                <select
+                <SearchableSelect
                   disabled={mode === 'ver'}
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
@@ -559,10 +560,10 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 >
                   {activeMethods.filter(pm => pm.type !== 'card' || ['compra', 'alquiler_perdido'].includes(operationType)).map((pm) => (
                     <option key={pm.id} value={pm.id}>
-                      {pm.name} {pm.accountCode ? `(${pm.accountCode} - ${pm.accountName})` : ''}
+                      {pm.name}{pm.accountCode ? ` · ${pm.accountCode}` : ''}
                     </option>
                   ))}
-                </select>
+                </SearchableSelect>
               ) : (
                 <div className="p-2.5 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 rounded-xl text-[11px] font-semibold text-blue-700 dark:text-blue-300 flex items-center gap-2">
                   <CreditCard className="w-4 h-4 shrink-0" />

@@ -1,3 +1,4 @@
+import { SearchableSelect } from './SearchableSelect';
 import React, { useState, useEffect, useMemo } from 'react';
 import { FormattedNumberInput } from './FormattedNumberInput';
 import {
@@ -603,7 +604,7 @@ export const InventoryPanel: React.FC = () => {
 
                 <div>
                   <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 block mb-1">Categoría *</label>
-                  <select
+                  <SearchableSelect
                     value={category}
                     onChange={e => applyCategoryMapping(e.target.value, true)}
                     className="w-full px-3 py-2 bg-gray-50 dark:bg-[#1E293B] border border-gray-300 dark:border-gray-700 rounded-xl text-xs text-gray-900 dark:text-white outline-none"
@@ -612,7 +613,7 @@ export const InventoryPanel: React.FC = () => {
                     <option value="Alimentos y Bebidas" className="bg-white dark:bg-[#1E293B] text-gray-900 dark:text-white">Alimentos y Bebidas</option>
                     <option value="Insumos y Limpieza" className="bg-white dark:bg-[#1E293B] text-gray-900 dark:text-white">Insumos y Limpieza</option>
                     <option value="Insumos y Consumibles" className="bg-white dark:bg-[#1E293B] text-gray-900 dark:text-white">Insumos y Consumibles</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
               </div>
 
@@ -693,7 +694,7 @@ export const InventoryPanel: React.FC = () => {
                     <label className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 block mb-1">
                       1. Activo Inventario:
                     </label>
-                    <select
+                    <SearchableSelect
                       value={inventoryAccountOptions.some(a => a.id === inventoryAccountId) ? inventoryAccountId : (inventoryAccountOptions[0]?.id || '')}
                       onChange={e => setInventoryAccountId(Number(e.target.value))}
                       className="w-full px-2.5 py-2 bg-gray-50 dark:bg-[#1E293B] border border-gray-300 dark:border-gray-700 rounded-xl text-xs font-mono font-medium text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
@@ -703,14 +704,14 @@ export const InventoryPanel: React.FC = () => {
                           {a.code} - {a.name}
                         </option>
                       ))}
-                    </select>
+                    </SearchableSelect>
                   </div>
 
                   <div>
                     <label className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 block mb-1">
                       2. Egreso / Consumo:
                     </label>
-                    <select
+                    <SearchableSelect
                       value={cogsAccountOptions.some(a => a.id === cogsAccountId) ? cogsAccountId : (cogsAccountOptions[0]?.id || '')}
                       onChange={e => setCogsAccountId(Number(e.target.value))}
                       className="w-full px-2.5 py-2 bg-gray-50 dark:bg-[#1E293B] border border-gray-300 dark:border-gray-700 rounded-xl text-xs font-mono font-medium text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
@@ -720,14 +721,14 @@ export const InventoryPanel: React.FC = () => {
                           {a.code} - {a.name}
                         </option>
                       ))}
-                    </select>
+                    </SearchableSelect>
                   </div>
 
                   <div>
                     <label className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 block mb-1">
                       3. Ingreso por Venta:
                     </label>
-                    <select
+                    <SearchableSelect
                       value={salesAccountOptions.some(a => a.id === salesAccountId) ? salesAccountId : (salesAccountId || salesAccountOptions[0]?.id || '')}
                       onChange={e => setSalesAccountId(Number(e.target.value))}
                       className="w-full px-2.5 py-2 bg-gray-50 dark:bg-[#1E293B] border border-gray-300 dark:border-gray-700 rounded-xl text-xs font-mono font-medium text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
@@ -737,7 +738,7 @@ export const InventoryPanel: React.FC = () => {
                           {a.code} - {a.name}
                         </option>
                       ))}
-                    </select>
+                    </SearchableSelect>
                   </div>
                 </div>
               </div>
@@ -841,7 +842,7 @@ export const InventoryPanel: React.FC = () => {
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 block mb-1">
                   Cuenta de Cobro / Pago (Caja/Banco) *
                 </label>
-                <select
+                <SearchableSelect
                   value={paymentAccountId}
                   onChange={e => setPaymentAccountId(Number(e.target.value))}
                   className="w-full px-3 py-2 bg-gray-50 dark:bg-[#1E293B] border border-gray-300 dark:border-gray-700 rounded-xl text-xs text-gray-900 dark:text-white outline-none"
@@ -851,7 +852,7 @@ export const InventoryPanel: React.FC = () => {
                       {a.code} - {a.name} ({Money.fromAmount(a.currentBalance).toFormattedString()})
                     </option>
                   ))}
-                </select>
+                </SearchableSelect>
               </div>
 
               <div>

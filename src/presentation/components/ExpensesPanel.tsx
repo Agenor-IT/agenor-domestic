@@ -1,3 +1,4 @@
+import { SearchableSelect } from './SearchableSelect';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { FormattedNumberInput } from './FormattedNumberInput';
 import { useDomesticAccess } from '../auth/DomesticAuthGate';
@@ -724,7 +725,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
           extraControls={
             <div className="flex flex-wrap items-center gap-3">
               {/* Filtro Tipo Fijo/Proyectado */}
-              <select
+              <SearchableSelect
                 value={selectedExpenseType}
                 onChange={e => setSelectedExpenseType(e.target.value)}
                 className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-semibold px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 outline-none cursor-pointer"
@@ -732,10 +733,10 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
                 <option value="todos">Modalidad: Todas</option>
                 <option value="fijo">Solo Fijos</option>
                 <option value="proyectado">Solo Proyectados</option>
-              </select>
+              </SearchableSelect>
 
               {/* Estado Filter */}
-              <select
+              <SearchableSelect
                 value={selectedStatus}
                 onChange={e => {
                   setSelectedStatus(e.target.value);
@@ -748,7 +749,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
                 <option value="pausado">Inactivos / Pausados</option>
                 <option value="en_negociacion">En Revisión</option>
                 <option value="finalizado">Finalizados</option>
-              </select>
+              </SearchableSelect>
             </div>
           }
         />
@@ -988,7 +989,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
                 <span className="text-gray-300 dark:text-gray-700 hidden sm:inline">|</span>
                 <div className="flex items-center gap-1.5">
                   <span className="text-gray-400">Mostrar:</span>
-                  <select
+                  <SearchableSelect
                     value={pageSize}
                     onChange={e => {
                       setPageSize(Number(e.target.value));
@@ -1000,7 +1001,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
                     <option value={10}>10 por pág.</option>
                     <option value={25}>25 por pág.</option>
                     <option value={50}>50 por pág.</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
               </div>
 
@@ -1058,7 +1059,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
               <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-4 sm:p-6">
               <div>
                 <label htmlFor="receipt-expense" className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">Gasto asociado *</label>
-                <select
+                <SearchableSelect
                   id="receipt-expense"
                   required
                   value={receiptExpenseId}
@@ -1069,7 +1070,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
                   {[...allExpenses].sort((a, b) => `${a.category}|${a.supplierName}`.localeCompare(`${b.category}|${b.supplierName}`, 'es')).map(expense => (
                     <option key={expense.id} value={expense.id}>{expense.category} / {expense.supplierName} / {expense.concept}</option>
                   ))}
-                </select>
+                </SearchableSelect>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -1082,7 +1083,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
                 </div>
                 <div>
                   <label htmlFor="receipt-condition" className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">Condición *</label>
-                  <select
+                  <SearchableSelect
                     id="receipt-condition"
                     value={receiptCondition}
                     onChange={event => {
@@ -1094,7 +1095,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
                   >
                     <option value="contado">Contado</option>
                     <option value="cuenta_corriente">Cta Cte</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
               </div>
               {receiptCondition === 'cuenta_corriente' && (
@@ -1298,7 +1299,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                     Categoría
                   </label>
-                  <select
+                  <SearchableSelect
                     disabled={modalMode === 'ver'}
                     value={category}
                     onChange={e => setCategory(e.target.value)}
@@ -1309,7 +1310,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
                         {cat}
                       </option>
                     ))}
-                  </select>
+                  </SearchableSelect>
                 </div>
 
                 {/* Estado: Botón Activar / Desactivar */}
@@ -1353,7 +1354,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                     Condición de pago *
                   </label>
-                  <select
+                  <SearchableSelect
                     disabled={modalMode === 'ver'}
                     value={paymentCondition}
                     onChange={e => {
@@ -1365,7 +1366,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
                   >
                     <option value="contado">Contado</option>
                     <option value="cuenta_corriente">Cta Cte</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
                 {paymentCondition === 'cuenta_corriente' && (
                   <div>
@@ -1402,7 +1403,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                     Medio de Pago Predeterminado
                   </label>
-                  <select
+                  <SearchableSelect
                     disabled={modalMode === 'ver'}
                     value={defaultPaymentMethod}
                     onChange={e => setDefaultPaymentMethod(e.target.value as any)}
@@ -1411,7 +1412,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
                     <option value="card">Tarjeta de Crédito</option>
                     <option value="cash">Efectivo / Transferencia</option>
                     <option value="debit">Débito Automático</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
               </div>
 
