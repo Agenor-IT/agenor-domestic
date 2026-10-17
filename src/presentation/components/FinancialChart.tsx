@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Money } from '../../domain/shared/Money';
 import { LineChart, Calendar, ArrowRight } from 'lucide-react';
 
-export type PeriodFilterType = 'day' | 'week' | 'month' | 'year' | 'range';
+export type PeriodFilterType = 'month' | 'year' | 'range';
 
 interface FinancialChartProps {
   months: string[];
@@ -18,81 +18,54 @@ export const FinancialChart: React.FC<FinancialChartProps> = ({
   net
 }) => {
   const [periodFilter, setPeriodFilter] = useState<PeriodFilterType>('month');
-  const [startDate, setStartDate] = useState<string>('2026-08-01');
-  const [endDate, setEndDate] = useState<string>('2027-12-31');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
-  // Generación dinámica de puntos según el filtro seleccionado
+  // Esta vista recibe proyecciones mensuales. No inventar series diarias o semanales.
   const chartData = useMemo(() => {
-    if (periodFilter === 'day') {
-      const days = [];
-      const now = new Date(2026, 7, 1);
-      for (let i = 0; i < 30; i++) {
-        const d = new Date(now);
-        d.setDate(now.getDate() + i);
-        const dayStr = `${d.getDate()}/${d.getMonth() + 1}`;
-        const inc = Math.round(250000 + Math.sin(i) * 80000);
-        const exp = Math.round(180000 + Math.cos(i) * 50000);
-        days.push({
-          label: dayStr,
-          income: Money.fromAmount(inc),
-          expense: Money.fromAmount(exp),
-          net: Money.fromAmount(inc - exp)
-        });
-      }
-      return days;
-    }
-
-    if (periodFilter === 'week') {
-      const weeks = [];
-      for (let i = 1; i <= 16; i++) {
-        const inc = Math.round(1500000 + (i % 4) * 300000);
-        const exp = Math.round(900000 + (i % 3) * 200000);
-        weeks.push({
-          label: `Sem ${i}`,
-          income: Money.fromAmount(inc),
-          expense: Money.fromAmount(exp),
-          net: Money.fromAmount(inc - exp)
-        });
-      }
-      return weeks;
-    }
-
-    if (periodFilter === 'year') {
-      const totalInc = income.reduce((acc, m) => acc + m.toAmount(), 0);
-      const totalExp = expense.reduce((acc, m) => acc + m.toAmount(), 0);
-      return [
-        {
-          label: 'Año 2026',
-          income: Money.fromAmount(Math.round(totalInc * 0.3)),
-          expense: Money.fromAmount(Math.round(totalExp * 0.3)),
-          net: Money.fromAmount(Math.round((totalInc - totalExp) * 0.3))
-        },
-        {
-          label: 'Año 2027',
-          income: Money.fromAmount(Math.round(totalInc * 0.7)),
-          expense: Money.fromAmount(Math.round(totalExp * 0.7)),
-          net: Money.fromAmount(Math.round((totalInc - totalExp) * 0.7))
-        }
-      ];
-    }
-
-    return months.map((m, idx) => ({
+    const monthNumbers: Record<string, string> = {
+      Ene: '01', Feb: '02', Mar: '03', Abr: '04', May: '05', Jun: '06',
+      Jul: '07', Ago: '08', Sep: '09', Oct: '10', Nov: '11', Dic: '12'
+    };
+    const monthly = months.map((m, idx) => ({
       label: m,
+      period: `20${m.slice(-2)}-${monthNumbers[m.slice(0, 3)] || '00'}`,
       income: income[idx] || Money.zero(),
       expense: expense[idx] || Money.zero(),
       net: net[idx] || Money.zero()
     }));
-  }, [periodFilter, months, income, expense, net]);
+    if (periodFilter === 'range') {
+      return monthly.filter(row =>
+        (!startDate || row.period >= startDate.slice(0, 7)) &&
+        (!endDate || row.period <= endDate.slice(0, 7))
+      );
+    }
+    if (periodFilter === 'year') {
+      const years = new Map<string, { label: string; income: Money; expense: Money; net: Money }>();
+      for (const row of monthly) {
+        const year = row.period.slice(0, 4);
+        const current = years.get(year) || { label: year, income: Money.zero(), expense: Money.zero(), net: Money.zero() };
+        years.set(year, {
+          label: year,
+          income: current.income.add(row.income),
+          expense: current.expense.add(row.expense),
+          net: current.net.add(row.net)
+        });
+      }
+      return [...years.values()];
+    }
+    return monthly;
+  }, [periodFilter, months, income, expense, net, startDate, endDate]);
 
   const maxVal = Math.max(
     ...chartData.map(d => d.income.toAmount()),
     ...chartData.map(d => d.expense.toAmount()),
-    ...chartData.map(d => Math.abs(d.net.toAmount())),
-    1000000
+    ...chartData.map(d => d.net.toAmount()),
+    1
   );
 
-  const minVal = 0;
+  const minVal = Math.min(0, ...chartData.map(d => d.net.toAmount()));
   const chartHeight = 220;
   const itemWidth = Math.max(70, Math.floor(1100 / Math.max(chartData.length, 1)));
   const svgWidth = Math.max(1000, chartData.length * itemWidth);
@@ -104,7 +77,7 @@ export const FinancialChart: React.FC<FinancialChartProps> = ({
 
   const pointsIncome = chartData.map((d, i) => `${i * itemWidth + itemWidth / 2},${getY(d.income.toAmount())}`).join(' ');
   const pointsExpense = chartData.map((d, i) => `${i * itemWidth + itemWidth / 2},${getY(d.expense.toAmount())}`).join(' ');
-  const pointsNet = chartData.map((d, i) => `${i * itemWidth + itemWidth / 2},${getY(Math.max(0, d.net.toAmount()))}`).join(' ');
+  const pointsNet = chartData.map((d, i) => `${i * itemWidth + itemWidth / 2},${getY(d.net.toAmount())}`).join(' ');
 
   return (
     <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-3.5 sm:p-5 lg:p-6 shadow-sm mb-6">
@@ -113,9 +86,9 @@ export const FinancialChart: React.FC<FinancialChartProps> = ({
         <div>
           <h2 className="text-base sm:text-lg font-bold text-[#172033] dark:text-white flex items-center gap-2">
             <LineChart className="w-5 h-5 text-[#0088FF] shrink-0" />
-            <span>Evolución Financiera (Líneas Dinámicas)</span>
+            <span>Proyección de flujo de caja</span>
           </h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Ingresos, egresos y flujo neto por período</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Estimaciones del escenario. No son movimientos registrados.</p>
         </div>
 
         {/* SELECTOR DÍA / SEMANA / MES / AÑO / RANGO */}
@@ -128,18 +101,14 @@ export const FinancialChart: React.FC<FinancialChartProps> = ({
               onChange={(event) => setPeriodFilter(event.target.value as PeriodFilterType)}
               className="mt-1 block w-full min-w-0 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#0F172A] px-3 py-2.5 text-sm font-semibold text-gray-900 dark:text-white"
             >
-              <option value="day">Día</option>
-              <option value="week">Semana</option>
               <option value="month">Mes</option>
               <option value="year">Año</option>
               <option value="range">Rango</option>
             </select>
           </label>
           <div className="hidden lg:flex lg:flex-wrap items-center bg-gray-100 dark:bg-gray-800 p-1 rounded-xl max-w-full shrink-0">
-            {(['day', 'week', 'month', 'year', 'range'] as PeriodFilterType[]).map((p) => {
+            {(['month', 'year', 'range'] as PeriodFilterType[]).map((p) => {
               const labels: Record<PeriodFilterType, string> = {
-                day: 'Día',
-                week: 'Semana',
                 month: 'Mes',
                 year: 'Año',
                 range: 'Rango'
@@ -247,6 +216,7 @@ export const FinancialChart: React.FC<FinancialChartProps> = ({
 
         <div style={{ width: `${svgWidth}px` }} className="relative h-[250px] pt-4">
           <svg width={svgWidth} height={chartHeight} className="overflow-visible">
+            <line x1="0" y1={getY(0)} x2={svgWidth} y2={getY(0)} stroke="currentColor" className="text-gray-400 dark:text-gray-500" strokeDasharray="5 5" />
             {[0, 0.25, 0.5, 0.75, 1].map((ratio, idx) => {
               const y = chartHeight - ratio * (chartHeight - 30);
               return (
@@ -294,7 +264,7 @@ export const FinancialChart: React.FC<FinancialChartProps> = ({
               const cx = idx * itemWidth + itemWidth / 2;
               const yInc = getY(d.income.toAmount());
               const yExp = getY(d.expense.toAmount());
-              const yNet = getY(Math.max(0, d.net.toAmount()));
+              const yNet = getY(d.net.toAmount());
 
               return (
                 <g

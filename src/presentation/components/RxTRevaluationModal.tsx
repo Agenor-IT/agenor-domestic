@@ -3,6 +3,7 @@ import { X, TrendingUp, TrendingDown, Calculator, CheckCircle2, AlertCircle, Loa
 import { SupabaseDomAccountingRepository } from '../../infrastructure/SupabaseDomAccountingRepository';
 import { DomAccountDTO } from '../../domain/repositories/IAccountingRepository';
 import { Money } from '../../domain/shared/Money';
+import { argentinaDate } from '../../domain/shared/argentinaDate';
 import { FormattedNumberInput } from './FormattedNumberInput';
 import { useDomesticAccess } from '../auth/DomesticAuthGate';
 
@@ -25,9 +26,11 @@ export const RxTRevaluationModal: React.FC<RxTRevaluationModalProps> = ({
   const { personaPadreId } = useDomesticAccess();
   const accountingRepo = useMemo(() => new SupabaseDomAccountingRepository(), []);
 
-  // Filter asset accounts eligible for RxT revaluation
+  // Sólo moneda extranjera e inversiones; caja, créditos y bienes del catálogo
+  // requieren reglas de medición diferentes.
   const assetAccounts = useMemo(() => {
-    return accounts.filter(a => a.kind === 'asset');
+    return accounts.filter(a => !a.isArchived && a.kind === 'asset' &&
+      ['1.1.02.03', '1.1.04.01'].includes(a.code));
   }, [accounts]);
 
   const [selectedAccountId, setSelectedAccountId] = useState<number | null>(null);
@@ -36,11 +39,12 @@ export const RxTRevaluationModal: React.FC<RxTRevaluationModalProps> = ({
   const [activeAccountIndex, setActiveAccountIndex] = useState(-1);
   const accountPickerRef = useRef<HTMLDivElement>(null);
 
-  const [unitsCount, setUnitsCount] = useState<number>(1000);
-  const [unitRate, setUnitRate] = useState<number>(1350);
+  const [unitsCount, setUnitsCount] = useState<number>(0);
+  const [unitRate, setUnitRate] = useState<number>(0);
   const [useUnitCalculator, setUseUnitCalculator] = useState<boolean>(true);
   const [targetTotalValue, setTargetTotalValue] = useState<number>(0);
   const [concept, setConcept] = useState<string>('Ajuste por Revaluación a Valor de Cotización (RxT)');
+  const [valuationSource, setValuationSource] = useState('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
@@ -51,6 +55,7 @@ export const RxTRevaluationModal: React.FC<RxTRevaluationModalProps> = ({
     setAccountListOpen(false);
     setActiveAccountIndex(-1);
     setFeedback(null);
+    setValuationSource('');
   }, [isOpen]);
 
   useEffect(() => {
@@ -94,6 +99,12 @@ export const RxTRevaluationModal: React.FC<RxTRevaluationModalProps> = ({
     }
     if (Math.abs(rxtDifference) < 0.01) {
       setFeedback({ text: 'No existe diferencia entre el valor de mercado y el valor en libros.', type: 'error' });
+      return;
+    }
+    if (!Number.isFinite(calculatedMarketValue) || calculatedMarketValue < 0 ||
+        (useUnitCalculator && (unitsCount <= 0 || unitRate <= 0)) ||
+        !valuationSource.trim() || !concept.trim()) {
+      setFeedback({ text: 'Ingresá un valor válido, el motivo y la fuente de la cotización.', type: 'error' });
       return;
     }
 
@@ -150,12 +161,12 @@ export const RxTRevaluationModal: React.FC<RxTRevaluationModalProps> = ({
         });
       }
 
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = argentinaDate();
       const res = await accountingRepo.recordJournalEntry({
         personaPadreId,
         entryDate: todayStr,
-        description: `${concept} - ${currentAccount.name}`,
-        referenceId: `AJU-RXT-${Date.now().toString().slice(-4)}`,
+        description: `${concept.trim()} - ${currentAccount.name} - Fuente: ${valuationSource.trim()}`,
+        referenceId: `AJU-RXT-${crypto.randomUUID()}`,
         lines
       });
 
@@ -397,6 +408,19 @@ export const RxTRevaluationModal: React.FC<RxTRevaluationModalProps> = ({
               onChange={(e) => setConcept(e.target.value)}
               placeholder="Ej: Revaluación Dólar MEP al cierre del mes..."
               className="w-full p-3 text-xs font-medium border border-gray-300 dark:border-gray-700 rounded-xl bg-white dark:bg-[#1E293B] text-gray-900 dark:text-white focus:ring-2 focus:ring-[#0088FF] outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
+              Fuente y fecha de cotización *
+            </label>
+            <input
+              type="text"
+              required
+              value={valuationSource}
+              onChange={(e) => setValuationSource(e.target.value)}
+              placeholder="Ej: extracto bancario 17/10/2026 o cotización documentada"
+              className="w-full rounded-xl border border-gray-300 bg-white p-3 text-xs text-gray-900 dark:border-gray-700 dark:bg-[#1E293B] dark:text-white"
             />
           </div>
 

@@ -1,5 +1,4 @@
 import { Money } from '../shared/Money';
-import { PaymentMethodType } from '../shared/PaymentMethod';
 
 export interface TransactionDTO {
   id?: string;
@@ -10,17 +9,26 @@ export interface TransactionDTO {
   amount: Money;
   description: string;
   occurredOn: string;
-  paymentMethod: PaymentMethodType;
+  paymentMethod: string;
   status: string;
+  revision?: number;
+  journalEntryId?: number | null;
   opNumber?: string;
   counterparty?: string;
   operationType?: string;
   paymentCondition?: 'contado' | 'cta_cte';
+  settlesTransactionId?: string | null;
+  classificationAccountId?: number | null;
 }
 
 export interface ITransactionRepository {
-  createTransaction(tx: TransactionDTO): Promise<TransactionDTO>;
-  updateTransaction(tx: TransactionDTO): Promise<TransactionDTO>;
-  deleteTransaction(id: string): Promise<void>;
+  saveTransaction(
+    tx: TransactionDTO,
+    lines: { accountId: number; debit: number; credit: number; memo?: string }[],
+    paymentMethodKind: 'cash' | 'bank' | 'card',
+    paymentAccountId: number | null,
+    expectedRevision: number
+  ): Promise<TransactionDTO>;
+  voidTransaction(id: string, personaPadreId: number, expectedRevision: number): Promise<void>;
   getTransactionsByTenant(personaPadreId: number): Promise<TransactionDTO[]>;
 }

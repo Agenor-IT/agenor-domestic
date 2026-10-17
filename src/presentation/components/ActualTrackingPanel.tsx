@@ -3,9 +3,7 @@ import { Money } from '../../domain/shared/Money';
 import { useDomesticAccess } from '../auth/DomesticAuthGate';
 import { TableSearchFilter } from './TableSearchFilter';
 import { SupabaseDomAccountingRepository } from '../../infrastructure/SupabaseDomAccountingRepository';
-import { SupabaseDomFixedAssetRepository } from '../../infrastructure/SupabaseDomFixedAssetRepository';
-import { DomAccountDTO } from '../../domain/repositories/IAccountingRepository';
-import { DomFixedAssetDTO } from '../../domain/assets/DomFixedAsset';
+import { DomAccountDTO, DomFiscalYearDTO } from '../../domain/repositories/IAccountingRepository';
 import {
   TrendingUp,
   TrendingDown,
@@ -33,6 +31,7 @@ import { RxTRevaluationModal } from './RxTRevaluationModal';
 import { ProjectionTable } from './ProjectionTable';
 import { FlowNode } from '../../domain/cashflow/CashFlowProjectionService';
 import { PaymentMethodType } from '../../domain/shared/PaymentMethod';
+import { argentinaDate } from '../../domain/shared/argentinaDate';
 
 interface ActualTrackingPanelProps {
   adjustments?: Record<string, number>;
@@ -91,42 +90,65 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
 
   const [dbAccounts, setDbAccounts] = useState<DomAccountDTO[]>([]);
   const [dbEntries, setDbEntries] = useState<any[]>([]);
-  const [dbFixedAssets, setDbFixedAssets] = useState<DomFixedAssetDTO[]>([]);
+  const [dbFiscalYears, setDbFiscalYears] = useState<DomFiscalYearDTO[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const accountingRepo = useMemo(() => new SupabaseDomAccountingRepository(), []);
-  const fixedAssetRepo = useMemo(() => new SupabaseDomFixedAssetRepository(), []);
 
   useEffect(() => {
+    setLoading(true);
     Promise.all([
-      accountingRepo.getAccounts(personaPadreId),
+      accountingRepo.getAccounts(personaPadreId, true),
       accountingRepo.getJournalEntries(personaPadreId),
-      fixedAssetRepo.getFixedAssets(personaPadreId)
+      accountingRepo.getFiscalYears(personaPadreId)
     ])
-      .then(([accs, entries, assets]) => {
-        setDbAccounts(accs);
+      .then(([accs, entries, fiscalYears]) => {
+        const today = argentinaDate();
+        const balances = new Map<number, number>();
+        const allBalances = new Map<number, number>();
+        const accountById = new Map(accs.map(account => [account.id, account]));
+        for (const entry of entries) {
+          const debit = entry.lines.reduce((sum: number, line: { debit: number }) => sum + line.debit, 0);
+          const credit = entry.lines.reduce((sum: number, line: { credit: number }) => sum + line.credit, 0);
+          if (entry.lines.length < 2 || Math.abs(debit - credit) > 0.01) {
+            throw new Error('Un asiento del Libro Diario está incompleto o descuadrado.');
+          }
+          for (const line of entry.lines) {
+            const account = accountById.get(line.accountId);
+            if (!account) throw new Error('Hay un renglón sin cuenta válida en el Libro Diario.');
+            const movement = account.nature === 'debit'
+              ? line.debit - line.credit : line.credit - line.debit;
+            allBalances.set(account.id, (allBalances.get(account.id) || 0) + movement);
+            if (entry.entryDate <= today) {
+              balances.set(account.id, (balances.get(account.id) || 0) + movement);
+            }
+          }
+        }
+        if (accs.some(account =>
+          Math.abs(account.currentBalance - (allBalances.get(account.id) || 0)) > 0.01
+        )) {
+          throw new Error('Los saldos de cuentas no coinciden con el Libro Diario.');
+        }
+        setDbAccounts(accs.map(account => ({
+          ...account,
+          currentBalance: Math.round((balances.get(account.id) || 0) * 100) / 100
+        })));
         setDbEntries(entries);
-        setDbFixedAssets(assets);
+        setDbFiscalYears(fiscalYears);
+        setLoadError(null);
       })
-      .catch(err => console.error('Error al cargar datos contables desde Supabase:', err));
-  }, [accountingRepo, fixedAssetRepo, adjustments, personaPadreId]);
+      .catch(err => {
+        console.error('Error al cargar datos contables desde Supabase:', err);
+        setLoadError(err instanceof Error ? err.message : 'No se pudieron cargar los libros contables.');
+      })
+      .finally(() => setLoading(false));
+  }, [accountingRepo, adjustments, personaPadreId, refreshKey]);
 
-  const todayDateStr = new Date().toLocaleDateString('es-AR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  });
-
-  const activeBank = adjustments['bank_available'] ?? 0.00;
-  const activeCash = adjustments['cash_available'] ?? 0.00;
-  const activeReceivables = adjustments['receivables'] ?? 0.00;
-  const passivePayables = adjustments['payables'] ?? 0.00;
-  const passiveCardStock = adjustments['card_installments'] ?? 0.00;
-  const ingresosEjecutados = adjustments['income_executed'] ?? 0.00;
-  const egresosEjecutados = adjustments['expense_executed'] ?? 0.00;
-
-  const totalActivo = activeBank + activeCash + activeReceivables;
-  const totalPasivo = passivePayables + passiveCardStock;
-  const patrimonioNeto = totalActivo - totalPasivo;
+  const todayISO = argentinaDate();
+  const todayDateStr = todayISO.split('-').reverse().join('/');
+  const reportYear = dbFiscalYears.find(year => year.startDate <= todayISO && year.endDate >= todayISO);
 
   // Clasificación por Rubros y Subrubros
   const assetAccounts = dbAccounts.filter(a => a.kind === 'asset' || a.kind === 'cash' || a.kind === 'bank' || a.kind === 'wallet');
@@ -136,49 +158,51 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
   const liabilityAccounts = dbAccounts.filter(a => a.kind === 'liability' || a.kind === 'card');
   const pasivoCorriente = liabilityAccounts.filter(a => !a.subrubro || a.subrubro === 'Pasivo Corriente' || a.subrubro === 'General');
   const pasivoNoCorriente = liabilityAccounts.filter(a => a.subrubro === 'Pasivo No Corriente');
+  const activeBank = dbAccounts.filter(a => a.code?.startsWith('1.1.02.')).reduce((sum, a) => sum + a.currentBalance, 0);
+  const activeCash = dbAccounts.find(a => a.code === '1.1.01.01')?.currentBalance || 0;
+  const activeReceivables = dbAccounts.find(a => a.code === '1.1.03.01')?.currentBalance || 0;
+  const passivePayables = dbAccounts.find(a => a.code === '2.1.01.01')?.currentBalance || 0;
+  const passiveCardStock = dbAccounts.find(a => a.code === '2.1.01.04')?.currentBalance || 0;
 
   const equityAccounts = dbAccounts.filter(a => a.kind === 'equity');
   const incomeAccounts = dbAccounts.filter(a => a.kind === 'income');
   const expenseAccounts = dbAccounts.filter(a => a.kind === 'expense');
+  const presentedAssetBalance = (account: DomAccountDTO) =>
+    account.nature === 'credit' ? -account.currentBalance : account.currentBalance;
 
-  const totalActivoCorriente = assetAccounts.length > 0
-    ? activoCorriente.reduce((sum, a) => sum + a.currentBalance, 0)
-    : (activeBank + activeCash + activeReceivables);
+  const totalActivoCorriente = activoCorriente.reduce((sum, a) => sum + presentedAssetBalance(a), 0);
+  // Los bienes del catálogo sólo integran el estado si existe su contrapartida contable.
+  const totalActivoNoCorriente = activoNoCorriente.reduce((sum, a) => sum + presentedAssetBalance(a), 0);
+  const totalActivoCalculado = totalActivoCorriente + totalActivoNoCorriente;
 
-  const fixedAssetsNetValue = dbFixedAssets.reduce((sum, a) => sum + (a.acquisitionCost - a.accumulatedDepreciation), 0);
-  const rawActivoNoCorriente = assetAccounts.length > 0
-    ? activoNoCorriente.reduce((sum, a) => sum + a.currentBalance, 0)
-    : 0;
+  const totalPasivoCorriente = pasivoCorriente.reduce((sum, a) => sum + a.currentBalance, 0);
+  const totalPasivoNoCorriente = pasivoNoCorriente.reduce((sum, a) => sum + a.currentBalance, 0);
 
-  const totalActivoNoCorriente = rawActivoNoCorriente > 0 ? rawActivoNoCorriente : fixedAssetsNetValue;
+  const totalPasivoCalculado = totalPasivoCorriente + totalPasivoNoCorriente;
 
-  const totalActivoCalculado = assetAccounts.length > 0
-    ? (totalActivoCorriente + totalActivoNoCorriente)
-    : totalActivo;
+  const totalPatrimonioNetoCalculado = equityAccounts.reduce((sum, a) => sum + a.currentBalance, 0);
+  const resultadoPendienteDeCierre = incomeAccounts.reduce((sum, a) => sum + a.currentBalance, 0)
+    - expenseAccounts.reduce((sum, a) => sum + a.currentBalance, 0);
+  const patrimonioNeto = totalPatrimonioNetoCalculado + resultadoPendienteDeCierre;
+  const diferenciaPatrimonial = totalActivoCalculado - totalPasivoCalculado - patrimonioNeto;
 
-  const totalPasivoCorriente = liabilityAccounts.length > 0
-    ? pasivoCorriente.reduce((sum, a) => sum + a.currentBalance, 0)
-    : (passivePayables + passiveCardStock);
-
-  const totalPasivoNoCorriente = liabilityAccounts.length > 0
-    ? pasivoNoCorriente.reduce((sum, a) => sum + a.currentBalance, 0)
-    : 0;
-
-  const totalPasivoCalculado = liabilityAccounts.length > 0
-    ? (totalPasivoCorriente + totalPasivoNoCorriente)
-    : totalPasivo;
-
-  const totalPatrimonioNetoCalculado = equityAccounts.length > 0
-    ? equityAccounts.reduce((sum, a) => sum + a.currentBalance, 0)
-    : patrimonioNeto;
-
-  const totalIngresosCalculados = incomeAccounts.length > 0
-    ? incomeAccounts.reduce((sum, a) => sum + a.currentBalance, 0)
-    : ingresosEjecutados;
-
-  const totalEgresosCalculados = expenseAccounts.length > 0
-    ? expenseAccounts.reduce((sum, a) => sum + a.currentBalance, 0)
-    : egresosEjecutados;
+  const resultByAccount = new Map<number, number>();
+  if (reportYear) {
+    for (const entry of dbEntries) {
+      if (entry.entryDate < reportYear.startDate || entry.entryDate > todayISO ||
+          entry.referenceId?.startsWith('REFUNDICION-')) continue;
+      for (const line of entry.lines || []) {
+        const account = dbAccounts.find(item => item.id === line.accountId);
+        if (!account || !['income', 'expense'].includes(account.kind)) continue;
+        const movement = account.nature === 'debit'
+          ? line.debit - line.credit : line.credit - line.debit;
+        resultByAccount.set(account.id, (resultByAccount.get(account.id) || 0) + movement);
+      }
+    }
+  }
+  const resultBalance = (account: DomAccountDTO) => resultByAccount.get(account.id) || 0;
+  const totalIngresosCalculados = incomeAccounts.reduce((sum, a) => sum + resultBalance(a), 0);
+  const totalEgresosCalculados = expenseAccounts.reduce((sum, a) => sum + resultBalance(a), 0);
 
   const resultadoNetoRealCalculado = totalIngresosCalculados - totalEgresosCalculados;
 
@@ -213,6 +237,8 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
       return {
         id: refStr,
         date: formattedDate,
+        isoDate: entry.entryDate,
+        entryNumber: entry.entryNumber,
         type: entryType,
         concept: entry.description,
         debitAccount: debitLine ? `${debitLine.accountCode} ${debitLine.accountName}` : 'Varias Cuentas',
@@ -238,31 +264,15 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
 
   // PLAN DE CUENTAS MAYORES DINÁMICO
   const ledgerAccountsList = useMemo(() => {
-    if (dbAccounts.length > 0) {
-      return dbAccounts.map(a => ({
+    return dbAccounts.map(a => ({
         code: a.code,
         name: `${a.code} - ${a.name}`,
-        initial: a.openingBalance,
+        initial: 0,
+        nature: a.nature,
         type: a.kind === 'asset' || a.kind === 'cash' || a.kind === 'bank' || a.kind === 'wallet' ? 'activo'
             : a.kind === 'liability' || a.kind === 'card' ? 'pasivo'
             : a.kind === 'equity' ? 'patrimonio' : 'resultado'
       }));
-    }
-    return [
-      { code: '1.1.01.01', name: '1.1.01.01 - Efectivo en Caja', initial: 0.00, type: 'activo' },
-      { code: '1.1.02.01', name: '1.1.02.01 - Cuentas Virtuales / Wallets', initial: 0.00, type: 'activo' },
-      { code: '1.1.02.02', name: '1.1.02.02 - Bancos / Cuentas Bancarias', initial: 0.00, type: 'activo' },
-      { code: '1.1.03.01', name: '1.1.03.01 - Cuentas por Cobrar', initial: 0.00, type: 'activo' },
-      { code: '2.1.01.01', name: '2.1.01.01 - Cuentas por Pagar (Proveedores)', initial: 0.00, type: 'pasivo' },
-      { code: '2.1.01.02', name: '2.1.01.02 - Tarjetas de Crédito', initial: 0.00, type: 'pasivo' },
-      { code: '3.1.01.01', name: '3.1.01.01 - Capital Neto del Hogar', initial: 0.00, type: 'patrimonio' },
-      { code: '4.1.01.01', name: '4.1.01.01 - Ventas e Ingresos Comerciales', initial: 0.00, type: 'resultado' },
-      { code: '4.1.01.02', name: '4.1.01.02 - Alquileres Ganados', initial: 0.00, type: 'resultado' },
-      { code: '4.2.01.01', name: '4.2.01.01 - Ingresos por Canje / Permuta', initial: 0.00, type: 'resultado' },
-      { code: '5.1.01.01', name: '5.1.01.01 - Alquiler Residencia / Inmuebles', initial: 0.00, type: 'resultado' },
-      { code: '5.1.01.02', name: '5.1.01.02 - Supermercado e Insumos', initial: 0.00, type: 'resultado' },
-      { code: '5.2.01.01', name: '5.2.01.01 - Ajustes y Reconciliación Contable', initial: 0.00, type: 'resultado' }
-    ];
   }, [dbAccounts]);
 
   const handleNavigateToLedger = (code: string) => {
@@ -274,8 +284,10 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
   const currentLedgerAccount = ledgerAccountsList.find(a => a.code === selectedLedgerAccount) || ledgerAccountsList[0];
 
   // MOVIMIENTOS Y SALDO ACUMULADO PARCIAL DEL LIBRO MAYOR PARA LA CUENTA SELECCIONADA
-  let currentRunningBalance = currentLedgerAccount ? currentLedgerAccount.initial : 0;
-  const isDebitNature = currentLedgerAccount ? (currentLedgerAccount.type === 'activo' || currentLedgerAccount.type === 'resultado') : true;
+  let currentRunningBalance = 0;
+  const isDebitNature = currentLedgerAccount
+    ? ('nature' in currentLedgerAccount ? currentLedgerAccount.nature === 'debit' : currentLedgerAccount.type === 'activo' || currentLedgerAccount.code.startsWith('5.'))
+    : true;
 
   const rawLedgerMovements = journalEntries
     .filter(entry => {
@@ -285,6 +297,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
       }
       return entry.debitAccount.includes(targetCode) || entry.creditAccount.includes(targetCode);
     })
+    .sort((a, b) => a.isoDate.localeCompare(b.isoDate) || a.entryNumber - b.entryNumber)
     .map(entry => {
       const targetCode = currentLedgerAccount?.code || '';
       let debit = 0;
@@ -292,13 +305,11 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
       let contraAccount = 'Varias Cuentas';
 
       if (entry.lines && entry.lines.length > 0) {
-        const myLine = entry.lines.find((l: any) => l.accountCode === targetCode || (l.accountCode && targetCode.startsWith(l.accountCode)) || (l.accountCode && l.accountCode.startsWith(targetCode)));
-        const otherLines = entry.lines.filter((l: any) => l !== myLine);
+        const myLines = entry.lines.filter((l: any) => l.accountCode === targetCode || (l.accountCode && targetCode.startsWith(l.accountCode)) || (l.accountCode && l.accountCode.startsWith(targetCode)));
+        const otherLines = entry.lines.filter((l: any) => !myLines.includes(l));
 
-        if (myLine) {
-          debit = Number(myLine.debit || 0);
-          credit = Number(myLine.credit || 0);
-        }
+        debit = myLines.reduce((sum: number, line: any) => sum + Number(line.debit || 0), 0);
+        credit = myLines.reduce((sum: number, line: any) => sum + Number(line.credit || 0), 0);
         if (otherLines.length > 0) {
           contraAccount = otherLines.map((l: any) => `${l.accountCode || ''} ${l.accountName || ''}`).join(', ');
         }
@@ -317,10 +328,9 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
         debit,
         credit
       };
-    })
-    .filter(m => m.concept.toLowerCase().includes(ledgerSearch.toLowerCase()));
+    });
 
-  const ledgerMovements = rawLedgerMovements.map(m => {
+  const allLedgerMovements = rawLedgerMovements.map(m => {
     if (isDebitNature) {
       currentRunningBalance = currentRunningBalance + m.debit - m.credit;
     } else {
@@ -331,11 +341,18 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
       runningBalance: currentRunningBalance
     };
   });
+  const ledgerMovements = allLedgerMovements.filter(m => m.concept.toLowerCase().includes(ledgerSearch.toLowerCase()));
 
-  const totalLedgerDebit = ledgerMovements.reduce((sum, m) => sum + m.debit, 0);
-  const totalLedgerCredit = ledgerMovements.reduce((sum, m) => sum + m.credit, 0);
-  const finalLedgerBalance = (currentLedgerAccount?.initial || 0) + (isDebitNature ? totalLedgerDebit - totalLedgerCredit : totalLedgerCredit - totalLedgerDebit);
+  const totalLedgerDebit = allLedgerMovements.reduce((sum, m) => sum + m.debit, 0);
+  const totalLedgerCredit = allLedgerMovements.reduce((sum, m) => sum + m.credit, 0);
+  const finalLedgerBalance = isDebitNature ? totalLedgerDebit - totalLedgerCredit : totalLedgerCredit - totalLedgerDebit;
 
+  if (loading) {
+    return <div role="status" className="p-4 text-sm text-gray-500">Cargando libros contables…</div>;
+  }
+  if (loadError || dbAccounts.length === 0 || !reportYear) {
+    return <div role="alert" className="rounded-xl border border-amber-500 p-4 text-sm text-amber-700 dark:text-amber-300">{loadError || (dbAccounts.length === 0 ? 'No hay plan de cuentas para emitir estados contables.' : 'No hay un ejercicio económico vigente para emitir los estados de hoy.')}</div>;
+  }
   return (
     <div className="space-y-8">
       {/* NAVEGADOR DE SECCIONES (ESTADOS FINANCIEROS, LIBRO DIARIO Y LIBRO MAYOR) */}
@@ -456,7 +473,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                     </div>
                     <div>
                       <h2 className="text-base font-bold text-[#172033] dark:text-white">Estado de Situación Patrimonial</h2>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Balance Tradicional (Activo vs Pasivo + PN) al {todayDateStr}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Saldos del Libro Diario al {todayDateStr}</p>
                     </div>
                   </div>
                   <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${
@@ -464,7 +481,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                       ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
                       : 'bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-300 border-red-300 dark:border-red-800'
                   }`}>
-                    {patrimonioNeto >= 0 ? 'Solvencia Positiva' : 'Patrimonio Negativo'}
+                    {patrimonioNeto >= 0 ? 'Patrimonio neto no negativo' : 'Patrimonio neto negativo'}
                   </span>
                 </div>
 
@@ -508,7 +525,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                                     {acc.code} {acc.name}
                                   </span>
                                   <strong className="font-bold text-gray-900 dark:text-white table-cell-num">
-                                    {Money.fromAmount(acc.currentBalance).toFormattedString()}
+                                    {Money.fromAmount(presentedAssetBalance(acc)).toFormattedString()}
                                   </strong>
                                 </div>
                               ))
@@ -547,7 +564,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                                 >
                                   <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
                                     <ArrowDownLeft className="w-3.5 h-3.5 text-purple-500" />
-                                    1.2.01 Cuentas por Cobrar
+                                    1.1.03 Cuentas por Cobrar
                                   </span>
                                   <strong className="font-bold text-emerald-600 dark:text-emerald-400 table-cell-num">
                                     {Money.fromAmount(activeReceivables).toFormattedString()}
@@ -576,45 +593,15 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                         {!collapsedSubrubros['1.2'] && (
                           <div className="space-y-2 pt-1 pl-1">
                             {(() => {
-                              const getAccountBalanceNoCorriente = (acc: DomAccountDTO): number => {
-                                if (acc.currentBalance > 0) return acc.currentBalance;
-
-                                const matchingAssets = dbFixedAssets.filter(fa => {
-                                  if (fa.assetAccountId && String(fa.assetAccountId) === String(acc.id)) return true;
-                                  if (fa.category === 'vehiculos' && (acc.code === '1.2.01.02' || acc.name.toLowerCase().includes('rodado') || acc.name.toLowerCase().includes('vehiculo'))) return true;
-                                  if (fa.category === 'inmuebles' && (acc.code === '1.2.01.01' || acc.name.toLowerCase().includes('inmueble'))) return true;
-                                  if (fa.category === 'tecnologia' && (acc.code === '1.2.01.03' || acc.name.toLowerCase().includes('tecnolog') || acc.name.toLowerCase().includes('informatic'))) return true;
-                                  if (fa.category === 'muebles' && (acc.code === '1.2.01.04' || acc.name.toLowerCase().includes('mueble'))) return true;
-                                  if (fa.category === 'maquinaria' && (acc.code === '1.2.01.05' || acc.name.toLowerCase().includes('maquinaria'))) return true;
-                                  if (fa.category === 'instalaciones' && (acc.code === '1.2.01.06' || acc.name.toLowerCase().includes('instalacion'))) return true;
-                                  return false;
-                                });
-
-                                return matchingAssets.reduce((sum, fa) => sum + Math.max(0, fa.acquisitionCost - fa.accumulatedDepreciation), 0);
-                              };
-
-                              const baseList = activoNoCorriente.length > 0 ? activoNoCorriente : [
-                                { id: 44, code: '1.2.01.02', name: 'Rodados y Vehículos', currentBalance: fixedAssetsNetValue, kind: 'asset', subrubro: 'Activo No Corriente' } as DomAccountDTO,
-                                { id: 34, code: '1.2.01.01', name: 'Inmuebles', currentBalance: 0, kind: 'asset', subrubro: 'Activo No Corriente' } as DomAccountDTO,
-                                { id: 45, code: '1.2.01.03', name: 'Equipos Informáticos y Tecnología', currentBalance: 0, kind: 'asset', subrubro: 'Activo No Corriente' } as DomAccountDTO
-                              ];
-
-                              const itemsWithBalance = baseList.map(acc => ({
-                                acc,
-                                balance: getAccountBalanceNoCorriente(acc)
-                              })).filter(item => item.balance > 0);
-
-                              const finalItems = itemsWithBalance.length > 0 ? itemsWithBalance : baseList.map(acc => ({ acc, balance: acc.currentBalance }));
-
-                              if (finalItems.length === 0) {
+                              if (activoNoCorriente.length === 0) {
                                 return (
                                   <div className="text-xs text-gray-400 dark:text-gray-500 italic px-2.5 py-1">
-                                    Sin cuentas contables ni bienes registrados en Activo No Corriente
+                                    Sin cuentas contables de Activo No Corriente
                                   </div>
                                 );
                               }
 
-                              return finalItems.map(({ acc, balance }) => (
+                              return activoNoCorriente.map(acc => (
                                 <div
                                   key={acc.id}
                                   onClick={() => handleNavigateToLedger(acc.code || '1.2.01.02')}
@@ -627,7 +614,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                                     <span>{acc.name}</span>
                                   </span>
                                   <strong className="font-bold text-gray-900 dark:text-white table-cell-num group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                                    {Money.fromAmount(balance).toFormattedString()}
+                                    {Money.fromAmount(presentedAssetBalance(acc)).toFormattedString()}
                                   </strong>
                                 </div>
                               ));
@@ -811,30 +798,19 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                                   </strong>
                                 </div>
                               ))
-                            ) : (
-                              <div
-                                onClick={() => handleNavigateToLedger('3.1.01')}
-                                title="Ver Libro Mayor de Capital Neto del Hogar"
-                                className="flex justify-between items-center p-2.5 bg-white dark:bg-[#0F172A] rounded-lg text-xs border border-gray-200/80 dark:border-gray-800 cursor-pointer hover:border-blue-500 hover:bg-blue-50/60 dark:hover:bg-blue-950/40 hover:shadow-xs transition-all"
-                              >
-                                <span className="font-semibold text-gray-700 dark:text-gray-300">
-                                  3.1.01 Capital Neto del Hogar
-                                </span>
-                                <strong className={`font-bold table-cell-num ${
-                                  totalPatrimonioNetoCalculado >= 0 ? 'text-purple-600 dark:text-purple-400' : 'text-red-600 dark:text-red-400'
-                                }`}>
-                                  {Money.fromAmount(totalPatrimonioNetoCalculado).toFormattedString()}
-                                </strong>
-                              </div>
-                            )}
+                            ) : <span className="text-xs text-gray-500">Sin cuentas patrimoniales.</span>}
                           </div>
                         )}
                       </div>
 
+                      <div className="flex justify-between items-center text-xs font-semibold text-gray-600 dark:text-gray-300">
+                        <span>Resultado pendiente de cierre</span>
+                        <strong>{Money.fromAmount(resultadoPendienteDeCierre).toFormattedString()}</strong>
+                      </div>
                       <div className="pt-2 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
                         <span className="text-xs font-bold text-gray-900 dark:text-white uppercase">TOTAL PATRIMONIO NETO</span>
                         <strong className="text-xs font-bold text-purple-600 dark:text-purple-400 table-cell-num">
-                          {Money.fromAmount(totalPatrimonioNetoCalculado).toFormattedString()}
+                          {Money.fromAmount(patrimonioNeto).toFormattedString()}
                         </strong>
                       </div>
                     </div>
@@ -845,7 +821,8 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
               {/* PIE DE VERIFICACIÓN DE ECUACIÓN PATRIMONIAL */}
               <div className="mt-4 p-3 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 rounded-xl flex flex-wrap justify-between items-center text-xs font-bold text-blue-900 dark:text-blue-300 gap-2">
                 <span>Ecuación Patrimonial:</span>
-                <span>Activo ({Money.fromAmount(totalActivoCalculado).toFormattedString()}) = Pasivo ({Money.fromAmount(totalPasivoCalculado).toFormattedString()}) + PN ({Money.fromAmount(totalPatrimonioNetoCalculado).toFormattedString()})</span>
+                <span>Activo {Money.fromAmount(totalActivoCalculado).toFormattedString()} · Pasivo + PN {Money.fromAmount(totalPasivoCalculado + patrimonioNeto).toFormattedString()}</span>
+                <span className={Math.abs(diferenciaPatrimonial) <= 0.01 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}>{Math.abs(diferenciaPatrimonial) <= 0.01 ? 'Cuadra' : `Diferencia: ${Money.fromAmount(diferenciaPatrimonial).toFormattedString()}`}</span>
               </div>
             </section>
           )}
@@ -861,7 +838,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                     </div>
                     <div>
                       <h2 className="text-base font-bold text-[#172033] dark:text-white">Estado de Resultados Real</h2>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">P&L Tradicional Apilado (Ingresos - Egresos)</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Devengado del {reportYear.startDate} al {todayISO}. Basado en asientos.</p>
                     </div>
                   </div>
                   <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${
@@ -880,7 +857,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                     <div className="flex items-center justify-between pb-2 border-b border-emerald-200 dark:border-emerald-900/80">
                       <h3 className="text-xs font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
                         <TrendingUp className="w-4 h-4" />
-                        (+) INGRESOS OPERATIVOS REALES COBRADOS
+                        (+) INGRESOS DEVENGADOS
                       </h3>
                     </div>
 
@@ -911,38 +888,11 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                                   {acc.code} {acc.name}
                                 </span>
                                 <strong className="font-bold text-emerald-600 dark:text-emerald-400 table-cell-num">
-                                  {Money.fromAmount(acc.currentBalance).toFormattedString()}
+                                  {Money.fromAmount(resultBalance(acc)).toFormattedString()}
                                 </strong>
                               </div>
                             ))
-                          ) : (
-                            <>
-                              <div
-                                onClick={() => handleNavigateToLedger('4.1.01')}
-                                title="Ver Libro Mayor de Honorarios Profesionales"
-                                className="flex justify-between items-center p-2.5 bg-white dark:bg-[#0F172A] rounded-lg text-xs border border-emerald-100 dark:border-emerald-900/40 cursor-pointer hover:border-emerald-500 hover:bg-emerald-50/60 dark:hover:bg-emerald-950/50 hover:shadow-xs transition-all"
-                              >
-                                <span className="font-semibold text-gray-700 dark:text-gray-300">
-                                  4.1.01 Honorarios Profesionales
-                                </span>
-                                <strong className="font-bold text-emerald-600 dark:text-emerald-400 table-cell-num">
-                                  {Money.fromAmount(1500000.00).toFormattedString()}
-                                </strong>
-                              </div>
-                              <div
-                                onClick={() => handleNavigateToLedger('4.1.02')}
-                                title="Ver Libro Mayor de Cobro Trabajo Consultoría"
-                                className="flex justify-between items-center p-2.5 bg-white dark:bg-[#0F172A] rounded-lg text-xs border border-emerald-100 dark:border-emerald-900/40 cursor-pointer hover:border-emerald-500 hover:bg-emerald-50/60 dark:hover:bg-emerald-950/50 hover:shadow-xs transition-all"
-                              >
-                                <span className="font-semibold text-gray-700 dark:text-gray-300">
-                                  4.1.02 Cobro Trabajo Consultoría
-                                </span>
-                                <strong className="font-bold text-emerald-600 dark:text-emerald-400 table-cell-num">
-                                  {Money.fromAmount(1262000.00).toFormattedString()}
-                                </strong>
-                              </div>
-                            </>
-                          )}
+                          ) : <span className="text-xs text-gray-500">Sin cuentas de ingresos.</span>}
                         </div>
                       )}
                     </div>
@@ -960,7 +910,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                     <div className="flex items-center justify-between pb-2 border-b border-red-200 dark:border-red-900/80">
                       <h3 className="text-xs font-bold text-red-800 dark:text-red-300 uppercase tracking-wider flex items-center gap-1.5">
                         <TrendingDown className="w-4 h-4" />
-                        (-) EGRESOS OPERATIVOS REALES PAGADOS
+                        (-) GASTOS DEVENGADOS
                       </h3>
                     </div>
 
@@ -991,50 +941,11 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                                   {acc.code} {acc.name}
                                 </span>
                                 <strong className="font-bold text-red-600 dark:text-red-400 table-cell-num">
-                                  {Money.fromAmount(acc.currentBalance).toFormattedString()}
+                                  {Money.fromAmount(resultBalance(acc)).toFormattedString()}
                                 </strong>
                               </div>
                             ))
-                          ) : (
-                            <>
-                              <div
-                                onClick={() => handleNavigateToLedger('5.1.01')}
-                                title="Ver Libro Mayor de Alquiler Residencia"
-                                className="flex justify-between items-center p-2.5 bg-white dark:bg-[#0F172A] rounded-lg text-xs border border-red-100 dark:border-red-900/40 cursor-pointer hover:border-red-500 hover:bg-red-50/60 dark:hover:bg-red-950/50 hover:shadow-xs transition-all"
-                              >
-                                <span className="font-semibold text-gray-700 dark:text-gray-300">
-                                  5.1.01 Alquiler Residencia
-                                </span>
-                                <strong className="font-bold text-red-600 dark:text-red-400 table-cell-num">
-                                  {Money.fromAmount(450000.00).toFormattedString()}
-                                </strong>
-                              </div>
-                              <div
-                                onClick={() => handleNavigateToLedger('5.1.02')}
-                                title="Ver Libro Mayor de Supermercado e Insumos"
-                                className="flex justify-between items-center p-2.5 bg-white dark:bg-[#0F172A] rounded-lg text-xs border border-red-100 dark:border-red-900/40 cursor-pointer hover:border-red-500 hover:bg-red-50/60 dark:hover:bg-red-950/50 hover:shadow-xs transition-all"
-                              >
-                                <span className="font-semibold text-gray-700 dark:text-gray-300">
-                                  5.1.02 Supermercado e Insumos
-                                </span>
-                                <strong className="font-bold text-red-600 dark:text-red-400 table-cell-num">
-                                  {Money.fromAmount(125400.00).toFormattedString()}
-                                </strong>
-                              </div>
-                              <div
-                                onClick={() => handleNavigateToLedger('5.1.03')}
-                                title="Ver Libro Mayor de Compra Electrodomésticos Cuota 1"
-                                className="flex justify-between items-center p-2.5 bg-white dark:bg-[#0F172A] rounded-lg text-xs border border-red-100 dark:border-red-900/40 cursor-pointer hover:border-red-500 hover:bg-red-50/60 dark:hover:bg-red-950/50 hover:shadow-xs transition-all"
-                              >
-                                <span className="font-semibold text-gray-700 dark:text-gray-300">
-                                  5.1.03 Compra Electrodomésticos Cuota 1
-                                </span>
-                                <strong className="font-bold text-red-600 dark:text-red-400 table-cell-num">
-                                  {Money.fromAmount(85000.00).toFormattedString()}
-                                </strong>
-                              </div>
-                            </>
-                          )}
+                          ) : <span className="text-xs text-gray-500">Sin cuentas de gastos.</span>}
                         </div>
                       )}
                     </div>
@@ -1059,7 +970,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                   <span className="text-xs font-bold uppercase tracking-wider block text-blue-900 dark:text-blue-300">
                     (=) RESULTADO NETO DEL EJERCICIO (P&L)
                   </span>
-                  <span className="text-[10px] text-gray-500 dark:text-gray-400 block">Diferencia entre Ingresos y Egresos reales</span>
+                  <span className="text-[10px] text-gray-500 dark:text-gray-400 block">Ingresos menos gastos devengados en el ejercicio</span>
                 </div>
                 <strong className="text-2xl font-bold text-[#12355b] dark:text-blue-400 table-cell-num">
                   {Money.fromAmount(resultadoNetoRealCalculado).toFormattedString()}
@@ -1867,8 +1778,8 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                 type="button"
                 onClick={async () => {
                   try {
-                    await accountingRepo.deleteAccount(1, deletingAccount.id);
-                    setDbAccounts(prev => prev.filter(a => a.id !== deletingAccount.id));
+                    await accountingRepo.deleteAccount(personaPadreId, deletingAccount.id);
+                    setRefreshKey(value => value + 1);
                     setDeletingAccount(null);
                   } catch (err: any) {
                     alert(err.message || 'Error al eliminar cuenta contable');
@@ -1903,15 +1814,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
         isOpen={isRxTModalOpen}
         onClose={() => setIsRxTModalOpen(false)}
         accounts={dbAccounts}
-        onSuccess={() => {
-          Promise.all([
-            accountingRepo.getAccounts(personaPadreId),
-            accountingRepo.getJournalEntries(personaPadreId)
-          ]).then(([accs, entries]) => {
-            setDbAccounts(accs);
-            setDbEntries(entries);
-          });
-        }}
+        onSuccess={() => setRefreshKey(value => value + 1)}
       />
     </div>
   );

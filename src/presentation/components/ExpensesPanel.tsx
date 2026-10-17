@@ -36,6 +36,7 @@ import { DomExpenseReceipt } from '../../domain/expenses/DomExpenseReceipt';
 import { SupabaseDomExpenseReceiptRepository } from '../../infrastructure/SupabaseDomExpenseReceiptRepository';
 import { Money } from '../../domain/shared/Money';
 import { INITIAL_MONTHS } from '../../domain/shared/initialSeedData';
+import { argentinaDate } from '../../domain/shared/argentinaDate';
 
 const EXPENSE_SOURCE_TYPES: { id: ExpenseSourceType; label: string; icon: any }[] = [
   { id: 'domestico', label: 'Doméstico', icon: Home },
@@ -469,7 +470,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
       setFeedback({ text: 'Por favor complete el nombre del proveedor o beneficiario.', type: 'error' });
       return;
     }
-    if (paymentCondition === 'cuenta_corriente' && (!dueDate || dueDate <= new Date().toISOString().slice(0, 10))) {
+    if (paymentCondition === 'cuenta_corriente' && (!dueDate || dueDate <= argentinaDate())) {
       setFeedback({ text: 'La fecha de vencimiento de una factura en Cta Cte debe ser futura.', type: 'error' });
       return;
     }
@@ -704,11 +705,11 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
 
         <button type="button" onClick={() => selectSourceFromKpi('todos')} aria-pressed={activeSourceTab === 'todos'} className={`min-w-0 rounded-2xl border bg-white p-3 text-left shadow-sm transition-colors hover:border-rose-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-600 dark:bg-[#0F172A] sm:p-5 ${activeSourceTab === 'todos' ? 'border-rose-600 ring-2 ring-rose-600/20' : 'border-gray-200 dark:border-gray-800'}`}>
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Egreso Total Actual</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Presupuesto mensual</span>
             <div className="rounded-xl bg-rose-500/10 p-2.5 text-rose-600 dark:text-rose-400"><DollarSign className="h-5 w-5" /></div>
           </div>
           <div className="mt-3"><span className="block break-all text-base font-black text-rose-600 dark:text-rose-400 table-cell-num sm:text-xl">{Money.fromAmount(totalMonthlyAll).toFormattedString()}</span></div>
-          <span className="mt-1 block text-[11px] text-gray-500 dark:text-gray-400">Todos los egresos activos</span>
+          <span className="mt-1 block text-[11px] text-gray-500 dark:text-gray-400">Egresos activos · no son pagos registrados</span>
         </button>
       </div>
 
@@ -1374,7 +1375,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
                     <input
                       type="date"
                       disabled={modalMode === 'ver'}
-                      min={new Date(Date.now() + 86400000).toISOString().slice(0, 10)}
+                      min={argentinaDate(1)}
                       value={dueDate}
                       onChange={e => setDueDate(e.target.value)}
                       className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-900 dark:text-white focus:ring-2 focus:ring-rose-500 outline-none disabled:opacity-70"

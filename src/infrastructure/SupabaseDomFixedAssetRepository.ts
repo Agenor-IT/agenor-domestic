@@ -1,12 +1,10 @@
 import { supabase } from './supabaseClient';
 import { IFixedAssetRepository } from '../domain/repositories/IFixedAssetRepository';
 import { DomFixedAssetDTO } from '../domain/assets/DomFixedAsset';
-import { SupabaseDomAccountingRepository } from './SupabaseDomAccountingRepository';
 
 const LOCAL_STORAGE_KEY = 'dom_fixed_assets_data';
 
 export class SupabaseDomFixedAssetRepository implements IFixedAssetRepository {
-  private accountingRepo = new SupabaseDomAccountingRepository();
 
   private getLocalAssets(): DomFixedAssetDTO[] {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -177,49 +175,9 @@ export class SupabaseDomFixedAssetRepository implements IFixedAssetRepository {
     date: string,
     periodDescription: string
   ): Promise<{ success: boolean; entryNumber: number; message: string }> {
-    const assets = await this.getFixedAssets(personaPadreId);
-    const asset = assets.find(a => a.id === assetId);
-
-    if (!asset) {
-      throw new Error('No se encontró el bien de uso especificado.');
-    }
-
-    if (amount <= 0) {
-      throw new Error('El monto de amortización debe ser mayor a cero.');
-    }
-
-    // Generar Asiento Contable
-    // DEBE: Cuenta de Egreso (Amortizaciones del Ejercicio)
-    // HABER: Cuenta Regularizadora (Amortización Acumulada)
-    const result = await this.accountingRepo.recordJournalEntry({
-      personaPadreId,
-      entryDate: date,
-      description: `Amortización ${periodDescription} - ${asset.code} ${asset.name}`,
-      referenceId: `AMORT-${asset.code}-${date}`,
-      lines: [
-        {
-          personaPadreId,
-          accountId: asset.depreciationExpenseAccountId,
-          debit: amount,
-          credit: 0,
-          memo: `Cargo Egreso Amortización ${asset.name}`
-        },
-        {
-          personaPadreId,
-          accountId: asset.accumulatedDepreciationAccountId,
-          debit: 0,
-          credit: amount,
-          memo: `Amortización Acumulada ${asset.name}`
-        }
-      ]
-    });
-
-    if (result.success) {
-      // Actualizar amortización acumulada del bien
-      const nextAcc = asset.accumulatedDepreciation + amount;
-      await this.updateFixedAsset(assetId, { accumulatedDepreciation: nextAcc });
-    }
-
-    return result;
+    // El catálogo vive en el navegador. Un asiento remoto seguido de una actualización
+    // local no es atómico y puede dejar el Libro Diario sin su bien de respaldo.
+    void personaPadreId; void assetId; void amount; void date; void periodDescription;
+    throw new Error('La amortización contable está pausada hasta que los bienes y el asiento se registren juntos en la base. El catálogo local se conserva.');
   }
 }

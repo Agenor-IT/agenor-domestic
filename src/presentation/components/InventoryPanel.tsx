@@ -20,6 +20,7 @@ import { SupabaseDomAccountingRepository } from '../../infrastructure/SupabaseDo
 import { DomInventoryItemDTO, DomInventoryItem } from '../../domain/inventory/DomInventoryItem';
 import { DomAccountDTO } from '../../domain/repositories/IAccountingRepository';
 import { Money } from '../../domain/shared/Money';
+import { argentinaDate } from '../../domain/shared/argentinaDate';
 import { useDomesticAccess } from '../auth/DomesticAuthGate';
 
 export const InventoryPanel: React.FC = () => {
@@ -52,7 +53,7 @@ export const InventoryPanel: React.FC = () => {
   // Formulario Movimiento
   const [movQuantity, setMovQuantity] = useState<string>('1');
   const [movUnitPrice, setMovUnitPrice] = useState<string>('0');
-  const [movDate, setMovDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [movDate, setMovDate] = useState<string>(argentinaDate());
   const [paymentAccountId, setPaymentAccountId] = useState<number>(0);
 
   const [submitting, setSubmitting] = useState<boolean>(false);
@@ -71,10 +72,10 @@ export const InventoryPanel: React.FC = () => {
       setItems(fetchedItems);
       setAccounts(fetchedAccounts);
 
-      const invAcc = fetchedAccounts.find(a => a.code === '1.1.03.01' || a.name.toLowerCase().includes('mercadería')) || fetchedAccounts[0];
-      const cogsAcc = fetchedAccounts.find(a => a.code === '5.1.01.01' || a.name.toLowerCase().includes('cmv')) || fetchedAccounts[0];
-      const salesAcc = fetchedAccounts.find(a => a.code === '4.1.01.01' || a.name.toLowerCase().includes('venta')) || fetchedAccounts[0];
-      const payAcc = fetchedAccounts.find(a => a.kind === 'bank' || a.kind === 'cash') || fetchedAccounts[0];
+      const invAcc = fetchedAccounts.find(a => a.code === '1.1.05.01');
+      const cogsAcc = fetchedAccounts.find(a => a.kind === 'expense' && a.name.toLowerCase().includes('costo de venta'));
+      const salesAcc = fetchedAccounts.find(a => a.kind === 'income' && a.name.toLowerCase().includes('venta'));
+      const payAcc = fetchedAccounts.find(a => a.code === '1.1.01.01' || a.code === '1.1.02.01');
 
       if (invAcc) setInventoryAccountId(invAcc.id);
       if (cogsAcc) setCogsAccountId(cogsAcc.id);
@@ -120,14 +121,14 @@ export const InventoryPanel: React.FC = () => {
     string,
     { invAccountCode: string; cogsAccountCode: string; defaultUnitMeasure: string }
   > = useMemo(() => ({
-    'Mercaderías de Reventa': { invAccountCode: '1.1.03.01', cogsAccountCode: '5.1.01.01', defaultUnitMeasure: 'Unidades' },
-    'Alimentos y Bebidas': { invAccountCode: '1.1.03.02', cogsAccountCode: '5.1.01.04', defaultUnitMeasure: 'Unidades' },
-    'Insumos y Limpieza': { invAccountCode: '1.1.03.02', cogsAccountCode: '5.1.01.05', defaultUnitMeasure: 'Packs' },
-    'Insumos y Consumibles': { invAccountCode: '1.1.03.02', cogsAccountCode: '5.1.01.05', defaultUnitMeasure: 'Unidades' }
+    'Mercaderías de Reventa': { invAccountCode: '1.1.05.01', cogsAccountCode: '', defaultUnitMeasure: 'Unidades' },
+    'Alimentos y Bebidas': { invAccountCode: '1.1.05.01', cogsAccountCode: '5.1.01.04', defaultUnitMeasure: 'Unidades' },
+    'Insumos y Limpieza': { invAccountCode: '1.1.05.01', cogsAccountCode: '5.1.01.05', defaultUnitMeasure: 'Packs' },
+    'Insumos y Consumibles': { invAccountCode: '1.1.05.01', cogsAccountCode: '5.1.01.05', defaultUnitMeasure: 'Unidades' }
   }), []);
 
   const inventoryAccountOptions = useMemo(() => {
-    const matched = accounts.filter(a => a.kind === 'asset' && a.code.startsWith('1.1.03'));
+    const matched = accounts.filter(a => a.kind === 'asset' && a.code.startsWith('1.1.05'));
     return matched.length > 0 ? matched : accounts.filter(a => a.kind === 'asset');
   }, [accounts]);
 
@@ -209,17 +210,15 @@ export const InventoryPanel: React.FC = () => {
       return;
     }
 
-    const finalInvAccId = inventoryAccountOptions.some(a => a.id === inventoryAccountId)
-      ? inventoryAccountId
-      : (inventoryAccountOptions[0]?.id || 1);
-
-    const finalCogsAccId = cogsAccountOptions.some(a => a.id === cogsAccountId)
-      ? cogsAccountId
-      : (cogsAccountOptions[0]?.id || 1);
-
-    const finalSalesAccId = salesAccountOptions.some(a => a.id === salesAccountId)
-      ? salesAccountId
-      : (salesAccountOptions[0]?.id || 1);
+    if (!inventoryAccountOptions.some(a => a.id === inventoryAccountId) ||
+        !cogsAccountOptions.some(a => a.id === cogsAccountId) ||
+        !salesAccountOptions.some(a => a.id === salesAccountId)) {
+      setFeedback({ text: 'Seleccioná cuentas válidas de inventario, costo y venta. No se asignan cuentas por defecto.', type: 'error' });
+      return;
+    }
+    const finalInvAccId = inventoryAccountId;
+    const finalCogsAccId = cogsAccountId;
+    const finalSalesAccId = salesAccountId;
 
     setSubmitting(true);
     setFeedback(null);
@@ -291,13 +290,18 @@ export const InventoryPanel: React.FC = () => {
       setFeedback({ text: 'La cantidad debe ser mayor a 0.', type: 'error' });
       return;
     }
+    if (!accounts.some(account => account.id === paymentAccountId &&
+        (account.code.startsWith('1.1.01.') || account.code.startsWith('1.1.02.')))) {
+      setFeedback({ text: 'Seleccioná una cuenta real de efectivo o banco.', type: 'error' });
+      return;
+    }
 
     setSubmitting(true);
     setFeedback(null);
 
     try {
       const res = await inventoryRepo.recordStockMovement(
-        1,
+        personaPadreId,
         {
           itemId: selectedItemForMovement.id,
           type: movementType,
@@ -306,7 +310,7 @@ export const InventoryPanel: React.FC = () => {
           totalAmount: qty * price,
           date: movDate
         },
-        paymentAccountId || accounts[0]?.id || 1
+        paymentAccountId
       );
 
       if (res.success) {
@@ -341,7 +345,7 @@ export const InventoryPanel: React.FC = () => {
                 Gestión de Bienes de Cambio (Inventarios & Stock)
               </h2>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                Control de Stock, Valuación y Asientos de Ventas y CMV
+                Catálogo local de stock. Compras y ventas contables pendientes de registro atómico.
               </p>
             </div>
           </div>
@@ -361,13 +365,13 @@ export const InventoryPanel: React.FC = () => {
         <div className="bg-white dark:bg-[#0F172A] p-4 sm:p-5 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between">
           <div className="min-w-0">
             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block truncate">
-              Valuación Total Inventario ($)
+              Valuación estimada del catálogo ($)
             </span>
             <span className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white mt-1 block truncate">
               {Money.fromAmount(totalInventoryValuation).toFormattedString()}
             </span>
             <span className="text-[11px] text-gray-400 mt-1 block truncate">
-              Total mercaderías a precio de costo
+              No integra el Balance sin asiento conciliado
             </span>
           </div>
           <div className="p-3 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-xl shrink-0 ml-2">
@@ -504,18 +508,20 @@ export const InventoryPanel: React.FC = () => {
                       <td data-label="Acciones" className="py-3.5 px-4 text-center">
                         <div className="flex items-center justify-center gap-1.5">
                           <button
+                            disabled
                             onClick={() => handleOpenMovementModal(data, 'purchase')}
-                            className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold shadow-sm transition-all flex items-center gap-1 cursor-pointer"
-                            title="Registrar Compra / Ingreso de Stock"
+                            className="px-2.5 py-1.5 bg-gray-600 text-white rounded-lg text-[11px] font-bold shadow-sm flex items-center gap-1 cursor-not-allowed opacity-60"
+                            title="Pendiente de catálogo persistente y asiento atómico"
                           >
                             <ArrowDownLeft className="w-3.5 h-3.5" />
                             <span>Comprar</span>
                           </button>
 
                           <button
+                            disabled
                             onClick={() => handleOpenMovementModal(data, 'sale')}
-                            className="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[11px] font-bold shadow-sm transition-all flex items-center gap-1 cursor-pointer"
-                            title="Registrar Venta / Egreso de Stock con Asiento CMV"
+                            className="px-2.5 py-1.5 bg-gray-600 text-white rounded-lg text-[11px] font-bold shadow-sm flex items-center gap-1 cursor-not-allowed opacity-60"
+                            title="Pendiente de catálogo persistente y asiento atómico"
                           >
                             <ArrowUpRight className="w-3.5 h-3.5" />
                             <span>Vender</span>

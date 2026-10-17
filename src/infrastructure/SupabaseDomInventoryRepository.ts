@@ -1,12 +1,10 @@
 import { supabase } from './supabaseClient';
 import { IInventoryRepository } from '../domain/repositories/IInventoryRepository';
 import { DomInventoryItemDTO, DomInventoryMovementDTO } from '../domain/inventory/DomInventoryItem';
-import { SupabaseDomAccountingRepository } from './SupabaseDomAccountingRepository';
 
 const LOCAL_STORAGE_KEY = 'dom_inventory_items_data';
 
 export class SupabaseDomInventoryRepository implements IInventoryRepository {
-  private accountingRepo = new SupabaseDomAccountingRepository();
 
   private getLocalItems(): DomInventoryItemDTO[] {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -152,110 +150,10 @@ export class SupabaseDomInventoryRepository implements IInventoryRepository {
   public async recordStockMovement(
     personaPadreId: number,
     movement: Omit<DomInventoryMovementDTO, 'id'>,
-    paymentAccountId: number = 1 // Por defecto Caja / Banco Naranja
+    paymentAccountId: number
   ): Promise<{ success: boolean; entryNumber?: number; message: string }> {
-    const items = await this.getInventoryItems(personaPadreId);
-    const item = items.find(i => i.id === movement.itemId);
-
-    if (!item) {
-      throw new Error('No se encontró el artículo de inventario.');
-    }
-
-    let newStock = item.currentStock;
-    let journalResult: { success: boolean; entryNumber: number; message: string } | null = null;
-
-    if (movement.type === 'purchase') {
-      // COMPRA DE STOCK
-      newStock += movement.quantity;
-      const totalAmount = movement.quantity * movement.unitPrice;
-
-      // Generar Asiento: DEBE Mercaderías (Inventario) / HABER Caja o Banco
-      journalResult = await this.accountingRepo.recordJournalEntry({
-        personaPadreId,
-        entryDate: movement.date,
-        description: `Compra de Stock (${movement.quantity} ${item.unitMeasure}) - ${item.sku} ${item.name}`,
-        referenceId: `COMPRA-STOCK-${item.sku}-${movement.date}`,
-        lines: [
-          {
-            personaPadreId,
-            accountId: item.inventoryAccountId,
-            debit: totalAmount,
-            credit: 0,
-            memo: `Ingreso Stock Mercaderías ${item.name}`
-          },
-          {
-            personaPadreId,
-            accountId: paymentAccountId,
-            debit: 0,
-            credit: totalAmount,
-            memo: `Pago Compra Mercaderías`
-          }
-        ]
-      });
-    } else if (movement.type === 'sale') {
-      // VENTA DE STOCK (Devengamiento del CMV e Ingreso por Venta)
-      if (item.currentStock < movement.quantity) {
-        throw new Error(`Stock insuficiente. Disponible: ${item.currentStock} ${item.unitMeasure}.`);
-      }
-
-      newStock -= movement.quantity;
-      const totalSaleAmount = movement.quantity * movement.unitPrice;
-      const totalCogsAmount = movement.quantity * item.unitCost; // Costo devengado
-
-      // Generar Asiento Venta e Ingreso + CMV
-      // DEBE: Caja/Banco (Monto Venta)
-      // DEBE: CMV Egreso (Monto Costo)
-      // HABER: Ventas Ingreso (Monto Venta)
-      // HABER: Mercaderías Inventario (Monto Costo)
-      journalResult = await this.accountingRepo.recordJournalEntry({
-        personaPadreId,
-        entryDate: movement.date,
-        description: `Venta e Integración CMV (${movement.quantity} ${item.unitMeasure}) - ${item.sku} ${item.name}`,
-        referenceId: `VENTA-CMV-${item.sku}-${movement.date}`,
-        lines: [
-          {
-            personaPadreId,
-            accountId: paymentAccountId,
-            debit: totalSaleAmount,
-            credit: 0,
-            memo: `Cobro Venta ${item.name}`
-          },
-          {
-            personaPadreId,
-            accountId: item.cogsAccountId,
-            debit: totalCogsAmount,
-            credit: 0,
-            memo: `Costo Mercadería Vendida (CMV)`
-          },
-          {
-            personaPadreId,
-            accountId: item.salesAccountId,
-            debit: 0,
-            credit: totalSaleAmount,
-            memo: `Ingreso por Ventas ${item.name}`
-          },
-          {
-            personaPadreId,
-            accountId: item.inventoryAccountId,
-            debit: 0,
-            credit: totalCogsAmount,
-            memo: `Descargo Inventario por Venta`
-          }
-        ]
-      });
-    } else if (movement.type === 'adjustment_positive') {
-      newStock += movement.quantity;
-    } else if (movement.type === 'adjustment_negative') {
-      newStock = Math.max(0, newStock - movement.quantity);
-    }
-
-    // Actualizar stock del item
-    await this.updateInventoryItem(item.id, { currentStock: newStock });
-
-    return {
-      success: true,
-      entryNumber: journalResult ? journalResult.entryNumber : undefined,
-      message: `Movimiento de stock registrado exitosamente. Stock actualizado: ${newStock} ${item.unitMeasure}.`
-    };
+    // Inventario local y Libro Diario remoto no comparten una transacción de base.
+    void personaPadreId; void movement; void paymentAccountId;
+    throw new Error('Compras y ventas de stock están pausadas hasta contar con un registro atómico de stock y asiento. El catálogo local se conserva.');
   }
 }

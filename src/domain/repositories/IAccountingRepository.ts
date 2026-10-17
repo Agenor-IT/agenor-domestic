@@ -48,16 +48,15 @@ export interface DomFiscalYearDTO {
 }
 
 export interface IAccountingRepository {
-  getAccounts(personaPadreId: number): Promise<DomAccountDTO[]>;
+  getAccounts(personaPadreId: number, includeArchived?: boolean): Promise<DomAccountDTO[]>;
   createAccount(account: Omit<DomAccountDTO, 'id'>): Promise<DomAccountDTO>;
   getJournalEntries(personaPadreId: number): Promise<DomJournalEntryDTO[]>;
   recordJournalEntry(entry: Omit<DomJournalEntryDTO, 'entryNumber'>): Promise<{ success: boolean; entryNumber: number; message: string }>;
   getFiscalYears(personaPadreId: number): Promise<DomFiscalYearDTO[]>;
   createFiscalYear(fiscalYear: Omit<DomFiscalYearDTO, 'id'>): Promise<DomFiscalYearDTO>;
-  recordOpeningEntry(personaPadreId: number, fiscalYearId: number, year: number): Promise<{ success: boolean; entryNumber: number; message: string }>;
-  updateAccountOpeningBalances(personaPadreId: number, balances: { accountId: number; openingBalance: number }[]): Promise<void>;
+  recordOpeningEntry(personaPadreId: number, fiscalYearId: number, balances: { accountId: number; openingBalance: number }[]): Promise<{ success: boolean; entryNumber: number | null; message: string }>;
   updateAccount(account: DomAccountDTO): Promise<DomAccountDTO>;
   deleteAccount(personaPadreId: number, accountId: number): Promise<void>;
-  closeFiscalYear(personaPadreId: number, fiscalYearId: number, year: number): Promise<{ success: boolean; entryNumber: number; message: string }>;
+  closeFiscalYear(personaPadreId: number, fiscalYearId: number): Promise<{ success: boolean; entryNumber: number | null; message: string }>;
 }
 

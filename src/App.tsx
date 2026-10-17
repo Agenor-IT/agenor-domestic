@@ -20,6 +20,9 @@ import { TransactionsPanel, TransactionItem } from './presentation/components/Tr
 import { useDarkMode } from './presentation/hooks/useDarkMode';
 import { SupabaseDomVentureRepository } from './infrastructure/SupabaseDomVentureRepository';
 import { DomVentureDTO } from './domain/ventures/DomVenture';
+import { SupabaseDomExpenseRepository } from './infrastructure/SupabaseDomExpenseRepository';
+import { DomExpenseDTO } from './domain/expenses/DomExpense';
+import { FlowNode } from './domain/cashflow/CashFlowProjectionService';
 
 import {
   BarChart3,
@@ -32,18 +35,14 @@ import {
 } from 'lucide-react';
 
 import { ProjectCashFlowUseCase } from './application/ProjectCashFlowUseCase';
-import {
-  INITIAL_MONTHS,
-  INITIAL_DEFAULT_IPC,
-  INITIAL_SECTIONS
-} from './domain/shared/initialSeedData';
-import { PaymentMethodType, DEFAULT_CUSTOM_PAYMENT_METHODS, CustomPaymentMethod } from './domain/shared/PaymentMethod';
+import { PaymentMethodType, CustomPaymentMethod } from './domain/shared/PaymentMethod';
 import { SupabaseDomTransactionRepository } from './infrastructure/SupabaseDomTransactionRepository';
 import { SupabaseDomAccountingRepository } from './infrastructure/SupabaseDomAccountingRepository';
-import { supabase } from './infrastructure/supabaseClient';
 import { useDomesticAccess } from './presentation/auth/DomesticAuthGate';
 import { DomAccountDTO } from './domain/repositories/IAccountingRepository';
 import { Money } from './domain/shared/Money';
+import { argentinaDate } from './domain/shared/argentinaDate';
+import { INITIAL_MONTHS } from './domain/shared/initialSeedData';
 
 export const App: React.FC = () => {
   const { email, personaPadreId, signOut } = useDomesticAccess();
@@ -64,126 +63,130 @@ export const App: React.FC = () => {
     window.scrollTo(0, 0);
   };
   const [openingBalance, setOpeningBalance] = useState<number>(0);
-  const [ipcRates, setIpcRates] = useState<number[]>(INITIAL_DEFAULT_IPC);
-  const [paymentMethods, setPaymentMethods] = useState<CustomPaymentMethod[]>(DEFAULT_CUSTOM_PAYMENT_METHODS);
   const [selectedMethods, setSelectedMethods] = useState<Record<string, PaymentMethodType>>({});
   const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState<boolean>(false);
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState<boolean>(false);
   const [isRxTModalOpen, setIsRxTModalOpen] = useState<boolean>(false);
   const [dbAccounts, setDbAccounts] = useState<DomAccountDTO[]>([]);
+  const paymentMethods = useMemo<CustomPaymentMethod[]>(() => dbAccounts
+    .filter(account =>
+      account.code.startsWith('1.1.01.') ||
+      ['1.1.02.01', '1.1.02.02', '2.1.01.04'].includes(account.code)
+    )
+    .map(account => ({
+      id: account.code,
+      name: account.name,
+      type: account.code === '2.1.01.04' ? 'card' as const
+        : account.code.startsWith('1.1.01.') ? 'cash' as const : 'bank' as const,
+      active: !account.isArchived,
+      accountId: account.id,
+      accountCode: account.code,
+      accountName: account.name
+    })), [dbAccounts]);
+  const [accountsLoading, setAccountsLoading] = useState(true);
+  const [accountsError, setAccountsError] = useState<string | null>(null);
 
   const INITIAL_TRANSACTIONS: TransactionItem[] = [];
 
   const [transactions, setTransactions] = useState<TransactionItem[]>(INITIAL_TRANSACTIONS);
   const [editingTransaction, setEditingTransaction] = useState<TransactionItem | null>(null);
   const [transactionModalMode, setTransactionModalMode] = useState<'nuevo' | 'editar' | 'ver'>('nuevo');
+  const [transactionError, setTransactionError] = useState<string | null>(null);
 
   const [adjustments, setAdjustments] = useState<Record<string, number>>({});
 
   const transactionRepo = useMemo(() => new SupabaseDomTransactionRepository(), []);
   const accountingRepo = useMemo(() => new SupabaseDomAccountingRepository(), []);
   const ventureRepo = useMemo(() => new SupabaseDomVentureRepository(), []);
+  const expenseRepo = useMemo(() => new SupabaseDomExpenseRepository(), []);
 
   const [dbVentures, setDbVentures] = useState<DomVentureDTO[]>([]);
+  const [dbExpenses, setDbExpenses] = useState<DomExpenseDTO[]>([]);
+  const [projectionError, setProjectionError] = useState<string | null>(null);
 
   const refreshAccounts = () => {
-    accountingRepo.getAccounts(personaPadreId)
-      .then(accs => setDbAccounts(accs))
-      .catch(err => console.error('Error al cargar cuentas contables:', err));
+    setAccountsLoading(true);
+    accountingRepo.getAccounts(personaPadreId, true)
+      .then(accs => {
+        setDbAccounts(accs);
+        setAccountsError(null);
+      })
+      .catch(err => {
+        console.error('Error al cargar cuentas contables:', err);
+        setAccountsError('No se pudo cargar el plan de cuentas. Los saldos no están disponibles.');
+      })
+      .finally(() => setAccountsLoading(false));
   };
 
   useEffect(() => {
     refreshAccounts();
   }, [accountingRepo, personaPadreId]);
 
-  // CARGAR VENTURES DESDE SUPABASE
+  // Presupuestos separados del Libro Diario y de los cobros/pagos efectivamente registrados.
   useEffect(() => {
-    ventureRepo.getVentures(personaPadreId)
-      .then(v => setDbVentures(v))
-      .catch(err => console.error('Error al cargar dom_ventures:', err));
-  }, [ventureRepo, currentTab, personaPadreId]);
+    Promise.all([
+      ventureRepo.getVentures(personaPadreId),
+      expenseRepo.getExpenses(personaPadreId)
+    ]).then(([ventures, expenses]) => {
+      setDbVentures(ventures);
+      setDbExpenses(expenses);
+      setProjectionError(null);
+    }).catch(err => {
+      console.error('Error al cargar fuentes del presupuesto:', err);
+      setProjectionError('No se pudo cargar el presupuesto. La proyección no está disponible.');
+    });
+  }, [ventureRepo, expenseRepo, currentTab, personaPadreId]);
 
   // CARGAR TRANSACCIONES DESDE SUPABASE AL INICIAR
   useEffect(() => {
     transactionRepo.getTransactionsByTenant(personaPadreId)
       .then(data => {
-        if (data && data.length > 0) {
           const mapped: TransactionItem[] = data.map(item => ({
             id: item.id || '',
             description: item.description,
             amount: item.amount.toAmount(),
             direction: item.direction,
             paymentMethod: item.paymentMethod,
-            occurredOn: item.occurredOn
+            occurredOn: item.occurredOn,
+            opNumber: item.opNumber,
+            counterparty: item.counterparty,
+            operationType: item.operationType,
+            paymentCondition: item.paymentCondition,
+            settlesTransactionId: item.settlesTransactionId,
+            classificationAccountId: item.classificationAccountId,
+            revision: item.revision,
+            journalEntryId: item.journalEntryId
           }));
           setTransactions(mapped);
-        }
       })
-      .catch(err => console.error('Error cargando dom_transactions desde Supabase:', err));
+      .catch(err => {
+        console.error('Error cargando dom_transactions desde Supabase:', err);
+        setTransactionError('No se pudieron cargar las operaciones.');
+      });
 
   }, [transactionRepo, personaPadreId]);
 
-  // CALCULO DINAMICO DE SECCIONES (Suma real de fuentes de ingresos activas: emprendimientos, alquileres, extraordinarios)
-  const dynamicSections = useMemo(() => {
-    const activeVentures = dbVentures.filter(v => v.status === 'activo');
-
-    const businessMonthlyTotals = INITIAL_MONTHS.map(month => {
-      return activeVentures
-        .filter(v => (v.sourceType || 'emprendimiento') === 'emprendimiento')
-        .reduce((sum, v) => {
-          const proj = v.monthlyProjections?.[month];
-          return sum + (proj !== undefined ? proj : v.baseMonthlyAmount);
-        }, 0);
-    });
-
-    const rentMonthlyTotals = INITIAL_MONTHS.map(month => {
-      return activeVentures
-        .filter(v => v.sourceType === 'alquiler')
-        .reduce((sum, v) => {
-          const proj = v.monthlyProjections?.[month];
-          return sum + (proj !== undefined ? proj : v.baseMonthlyAmount);
-        }, 0);
-    });
-
-    const extraMonthlyTotals = INITIAL_MONTHS.map(month => {
-      return activeVentures
-        .filter(v => v.sourceType === 'extraordinario')
-        .reduce((sum, v) => {
-          const proj = v.monthlyProjections?.[month];
-          return sum + (proj !== undefined ? proj : v.baseMonthlyAmount);
-        }, 0);
-    });
-
-    return INITIAL_SECTIONS.map(section => {
-      if (section.id === 'income-section' && section.children) {
-        return {
-          ...section,
-          children: section.children.map(child => {
-            if (child.id === 'income-business') {
-              return {
-                ...child,
-                origin: businessMonthlyTotals
-              };
-            }
-            if (child.id === 'income-rent') {
-              return {
-                ...child,
-                origin: rentMonthlyTotals
-              };
-            }
-            if (child.id === 'income-extra') {
-              return {
-                ...child,
-                origin: extraMonthlyTotals
-              };
-            }
-            return child;
-          })
-        };
-      }
-      return section;
-    });
-  }, [dbVentures]);
+  const projectionMonths = INITIAL_MONTHS;
+  const dynamicSections = useMemo<FlowNode[]>(() => {
+    const valueByMonth = (item: { monthlyProjections?: Record<string, number>; baseMonthlyAmount: number }) =>
+      projectionMonths.map(month => item.monthlyProjections?.[month] ?? item.baseMonthlyAmount);
+    return [
+      { id: 'flow-opening', label: 'Saldo inicial del escenario', flowType: 'initialBalance' },
+      { id: 'income-section', label: 'Ingresos presupuestados', flowType: 'group',
+        children: dbVentures.filter(item => item.status === 'activo').map<FlowNode>(item => ({
+          id: `venture-${item.id}`, label: `${item.clientName} · ${item.projectName}`,
+          flowType: 'income', origin: valueByMonth(item), defaultMethod: item.defaultPaymentMethod
+        })) },
+      { id: 'expense-section', label: 'Egresos presupuestados', flowType: 'group',
+        children: dbExpenses.filter(item => item.status === 'activo').map<FlowNode>(item => ({
+          id: `expense-${item.id}`, label: `${item.supplierName} · ${item.concept}`,
+          flowType: 'expense', origin: valueByMonth(item), defaultMethod: item.defaultPaymentMethod
+        })) },
+      { id: 'flow-net', label: 'Flujo neto proyectado', flowType: 'net' },
+      { id: 'flow-extra', label: 'Ingreso adicional necesario', flowType: 'extraNeeded' },
+      { id: 'flow-final', label: 'Saldo final proyectado', flowType: 'finalBalance' }
+    ];
+  }, [dbVentures, dbExpenses, projectionMonths]);
 
   const useCase = useMemo(() => new ProjectCashFlowUseCase(), []);
 
@@ -192,49 +195,15 @@ export const App: React.FC = () => {
       nodes: dynamicSections,
       selectedMethods,
       openingBalance,
-      ipcRates,
-      periodCount: INITIAL_MONTHS.length
+      periodCount: projectionMonths.length
     });
-  }, [useCase, dynamicSections, selectedMethods, openingBalance, ipcRates]);
+  }, [useCase, dynamicSections, selectedMethods, openingBalance, projectionMonths]);
 
   const handleMethodChange = (nodeId: string, method: PaymentMethodType) => {
     setSelectedMethods(prev => ({
       ...prev,
       [nodeId]: method
     }));
-  };
-
-  const handleIpcChange = (index: number, val: number) => {
-    setIpcRates(prev => {
-      const next = [...prev];
-      next[index] = val;
-      return next;
-    });
-  };
-
-  const handleSavePaymentMethod = (data: {
-    id?: string;
-    name: string;
-    type: 'cash' | 'bank' | 'card';
-    active: boolean;
-    accountId?: number;
-    accountCode?: string;
-    accountName?: string;
-  }) => {
-    if (data.id) {
-      setPaymentMethods(prev => prev.map(pm => pm.id === data.id ? { ...pm, ...data } : pm));
-    } else {
-      const newId = data.name.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Date.now();
-      setPaymentMethods(prev => [...prev, { ...data, id: newId }]);
-    }
-  };
-
-  const handleTogglePaymentMethod = (id: string) => {
-    setPaymentMethods(prev => prev.map(pm => pm.id === id ? { ...pm, active: !pm.active } : pm));
-  };
-
-  const handleDeletePaymentMethod = (id: string) => {
-    setPaymentMethods(prev => prev.filter(pm => pm.id !== id));
   };
 
   const handleOpenNewTransactionModal = () => {
@@ -250,367 +219,222 @@ export const App: React.FC = () => {
   };
 
   const handleDeleteTransaction = async (id: string) => {
-    setTransactions(prev => prev.filter(t => t.id !== id));
+    const transaction = transactions.find(item => item.id === id);
+    if (!transaction || !window.confirm('¿Anular esta operación? Se conservará el asiento original y se registrará su reversión.')) return;
+    setTransactionError(null);
     try {
-      if (!id.startsWith('tx-')) {
-        await transactionRepo.deleteTransaction(id);
-        console.log('Transacción eliminada de Supabase dom_transactions:', id);
-      }
+      await transactionRepo.voidTransaction(id, personaPadreId, transaction.revision || 0);
+      setTransactions(prev => prev.filter(item => item.id !== id));
+      refreshAccounts();
+      setAdjustments(prev => ({ ...prev, _refresh: (prev._refresh || 0) + 1 }));
     } catch (err) {
-      console.error('Error al eliminar transacción en Supabase:', err);
+      setTransactionError(err instanceof Error ? err.message : 'No se pudo anular la operación.');
     }
   };
 
-  const INITIAL_COMPONENT_BALANCES: Record<string, number> = {
-    bank_available: 0.00,
-    cash_available: 0.00,
-    receivables: 0.00,
-    payables: 0.00,
-    card_installments: 0.00,
-    income_executed: 0.00,
-    expense_executed: 0.00,
-  };
+  const handleCreateOrUpdateTransaction = async (data: TransactionSubmitData): Promise<void> => {
+    if (!Number.isFinite(data.amount) || data.amount <= 0 ||
+        Math.abs(data.amount * 100 - Math.round(data.amount * 100)) > 0.000001) {
+      throw new Error('El importe debe ser positivo y tener hasta dos decimales.');
+    }
+    if (data.operationType === 'canje') {
+      throw new Error('El canje requiere una registración específica.');
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data.occurredOn)) {
+      throw new Error('Seleccioná una fecha válida.');
+    }
+    if (data.occurredOn > argentinaDate()) {
+      throw new Error('No se puede registrar una operación futura como realizada.');
+    }
+    if (!data.description.trim() || !data.counterparty.trim() || !data.opNumber.trim()) {
+      throw new Error('Completá concepto, contraparte y número de operación.');
+    }
 
-  const handleCreateOrUpdateTransaction = async (data: TransactionSubmitData) => {
-    const paymentCond = data.paymentCondition || 'contado';
-    const opType = data.operationType || 'venta';
-    const opNum = data.opNumber || `OP-${Date.now().toString().slice(-4)}`;
-    const party = data.counterparty || 'Cliente / Proveedor General';
+    const condition = data.paymentCondition;
+    const opType = data.operationType;
+    const isIncome = ['venta', 'honorarios', 'alquiler_ganado', 'cobro'].includes(opType);
+    if ((isIncome ? 'income' : 'expense') !== data.direction) {
+      throw new Error('El tipo de operación y su dirección no coinciden.');
+    }
+    if ((opType === 'cobro' || opType === 'pago' || opType === 'pago_tarjeta') && condition !== 'contado') {
+      throw new Error('Cobros y pagos requieren una cuenta de tesorería.');
+    }
 
-    if (editingTransaction) {
-      setTransactions(prev => prev.map(t => t.id === editingTransaction.id ? { ...t, ...data } : t));
-      try {
-        await transactionRepo.updateTransaction({
-          id: editingTransaction.id,
-          personaPadreId,
-          direction: data.direction,
-          amount: Money.fromAmount(data.amount),
-          description: data.description,
-          occurredOn: data.occurredOn,
-          paymentMethod: data.paymentMethod as any,
-          status: 'confirmed',
-          opNumber: opNum,
-          counterparty: party,
-          operationType: opType,
-          paymentCondition: paymentCond
-        });
-        console.log('Transacción actualizada exitosamente en Supabase dom_transactions');
-      } catch (err) {
-        console.error('Error actualizando en Supabase dom_transactions:', err);
-      }
+    const method = condition === 'contado'
+      ? paymentMethods.find(item => item.id === data.paymentMethod && item.active)
+      : undefined;
+    if (condition === 'contado' && !method) {
+      throw new Error('Seleccioná un medio de pago activo.');
+    }
+    const methodKind: 'cash' | 'bank' | 'card' = method?.type || 'cash';
+    if (methodKind === 'card' && !['compra', 'alquiler_perdido'].includes(opType)) {
+      throw new Error('Este tipo de operación no admite tarjeta de crédito.');
+    }
+
+    const accounts = await accountingRepo.getAccounts(personaPadreId);
+    const account = (code: string): DomAccountDTO => {
+      const found = accounts.find(item => item.code === code && !item.isArchived);
+      if (!found) throw new Error('Falta una cuenta activa del plan contable: ' + code);
+      return found;
+    };
+    const requiresClassification = !['cobro', 'pago', 'pago_tarjeta'].includes(opType);
+    const classification = requiresClassification
+      ? accounts.find(item => item.id === data.classificationAccountId && !item.isArchived)
+      : undefined;
+    const isCapitalizableAsset = opType === 'compra' && classification?.kind === 'asset' &&
+      (classification.code.startsWith('1.2.01.') || classification.code.startsWith('1.1.05.'));
+    if (requiresClassification && (!classification ||
+        (classification.kind !== data.direction && !isCapitalizableAsset) ||
+        classification.nature !== (data.direction === 'income' ? 'credit' : 'debit'))) {
+      throw new Error('Seleccioná una cuenta válida de resultado o un bien capitalizable para esta operación.');
+    }
+    const financialAccount = condition === 'contado' && methodKind !== 'card'
+      ? accounts.find(item => !item.isArchived && (
+          (method?.accountId && item.id === method.accountId) ||
+          (method?.accountCode && item.code === method.accountCode)
+        ))
+      : null;
+    if (condition === 'contado' && methodKind !== 'card' && !financialAccount) {
+      throw new Error('El medio de pago no tiene una cuenta contable activa vinculada.');
+    }
+    if (financialAccount && (
+        !['asset', 'cash', 'bank', 'wallet'].includes(financialAccount.kind) ||
+        (methodKind === 'cash' && !financialAccount.code.startsWith('1.1.01.')) ||
+        (methodKind === 'bank' && !['1.1.02.01', '1.1.02.02'].includes(financialAccount.code))
+      )) {
+      throw new Error('El medio de pago no está vinculado a una cuenta de tesorería.');
+    }
+
+    const financial = () => {
+      if (!financialAccount) throw new Error('Seleccioná una cuenta de tesorería.');
+      return financialAccount;
+    };
+
+    let debitAccount: DomAccountDTO;
+    let creditAccount: DomAccountDTO;
+    if (opType === 'venta' || opType === 'honorarios') {
+      debitAccount = condition === 'cta_cte' ? account('1.1.03.01') : financial();
+      creditAccount = classification!;
+    } else if (opType === 'alquiler_ganado') {
+      debitAccount = condition === 'cta_cte' ? account('1.1.03.01') : financial();
+      creditAccount = classification!;
+    } else if (opType === 'compra' || opType === 'alquiler_perdido') {
+      debitAccount = classification!;
+      creditAccount = condition === 'cta_cte' ? account('2.1.01.01')
+        : methodKind === 'card' ? account('2.1.01.04') : financial();
+    } else if (opType === 'cobro') {
+      debitAccount = financial();
+      creditAccount = account('1.1.03.01');
+    } else if (opType === 'pago') {
+      debitAccount = account('2.1.01.01');
+      creditAccount = financial();
+    } else if (opType === 'pago_tarjeta') {
+      debitAccount = account('2.1.01.04');
+      creditAccount = financial();
     } else {
-      try {
-        const created = await transactionRepo.createTransaction({
-          personaPadreId,
-          direction: data.direction,
-          amount: Money.fromAmount(data.amount),
-          description: data.description,
-          occurredOn: data.occurredOn,
-          paymentMethod: data.paymentMethod as any,
-          status: 'confirmed',
-          opNumber: opNum,
-          counterparty: party,
-          operationType: opType,
-          paymentCondition: paymentCond
-        });
-
-        const newTx: TransactionItem = {
-          id: created.id || 'tx-' + Date.now(),
-          ...data,
-          opNumber: opNum,
-          counterparty: party,
-          operationType: opType,
-          paymentCondition: paymentCond
-        };
-        setTransactions(prev => [newTx, ...prev]);
-        console.log('Nueva transacción guardada exitosamente en Supabase dom_transactions:', created);
-      } catch (err) {
-        console.error('Error guardando en Supabase dom_transactions:', err);
-        const newTx: TransactionItem = {
-          id: 'tx-' + Date.now(),
-          ...data,
-          opNumber: opNum,
-          counterparty: party,
-          operationType: opType,
-          paymentCondition: paymentCond
-        };
-        setTransactions(prev => [newTx, ...prev]);
-      }
+      throw new Error('Tipo de operación no admitido.');
     }
 
-    // SINCRONIZACIÓN DE PRECIO ACTUAL: ACTUALIZA EL VALOR ACTUAL EN dom_expenses
-    if (data.linkedExpenseId && data.amount > 0) {
-      try {
-        await supabase
-          .from('dom_expenses')
-          .update({ base_monthly_amount: data.amount })
-          .eq('id', data.linkedExpenseId)
-          .eq('persona_padre_id', personaPadreId);
-        console.log(`Valor Actual del egreso ID ${data.linkedExpenseId} sincronizado a ${data.amount}`);
-      } catch (err) {
-        console.error('Error al actualizar base_monthly_amount en dom_expenses:', err);
-      }
-    }
+    const amount = Money.fromAmount(data.amount);
+    const operationId = editingTransaction?.id || data.requestId;
+    const expectedRevision = editingTransaction?.revision || 0;
+    const opNumber = data.opNumber.trim();
+    const counterparty = data.counterparty.trim();
+    const saved = await transactionRepo.saveTransaction({
+      id: operationId,
+      personaPadreId,
+      direction: data.direction,
+      amount,
+      description: data.description.trim(),
+      occurredOn: data.occurredOn,
+      paymentMethod: condition === 'cta_cte' ? 'cta_cte' : data.paymentMethod,
+      status: 'confirmed',
+      opNumber,
+      counterparty,
+      operationType: opType,
+      paymentCondition: condition,
+      settlesTransactionId: data.settlesTransactionId || null,
+      classificationAccountId: classification?.id || null
+    }, [
+      { accountId: debitAccount.id, debit: amount.toAmount(), credit: 0, memo: data.description },
+      { accountId: creditAccount.id, debit: 0, credit: amount.toAmount(), memo: data.description }
+    ], methodKind, financialAccount?.id || null, expectedRevision);
 
-    // SINCRONIZACIÓN DE PRECIO ACTUAL: ACTUALIZA EL VALOR ACTUAL EN dom_ventures
-    if (data.linkedVentureId && data.amount > 0) {
-      try {
-        await supabase
-          .from('dom_ventures')
-          .update({ base_monthly_amount: data.amount })
-          .eq('id', data.linkedVentureId)
-          .eq('persona_padre_id', personaPadreId);
-        console.log(`Valor Actual de la fuente de ingreso ID ${data.linkedVentureId} sincronizado a ${data.amount}`);
-        ventureRepo.getVentures(personaPadreId).then(v => setDbVentures(v));
-      } catch (err) {
-        console.error('Error al actualizar base_monthly_amount en dom_ventures:', err);
-      }
-    }
-
-    const methodObj = paymentMethods.find(p => p.id === data.paymentMethod);
-    const methodType = methodObj?.type || 'cash';
-
-    // MATRIZ DE REGISTRO CONTABLE PROFESIONAL POR PARTIDA DOBLE (RT 17)
-    try {
-      const dbAccs = await accountingRepo.getAccounts(personaPadreId);
-
-      const cashAcc = dbAccs.find((a: DomAccountDTO) => a.code === '1.1.01.01') || dbAccs[0];
-      const bankAcc = dbAccs.find((a: DomAccountDTO) => a.code === '1.1.02.01') || dbAccs[0];
-      const recAcc = dbAccs.find((a: DomAccountDTO) => a.code === '1.1.03.01') || dbAccs[0];
-      const payAcc = dbAccs.find((a: DomAccountDTO) => a.code === '2.1.01.01') || dbAccs[0];
-      const salesIncAcc = dbAccs.find((a: DomAccountDTO) => a.code === '4.1.01.01') || dbAccs.find((a: DomAccountDTO) => a.kind === 'income') || dbAccs[0];
-      const rentIncAcc = dbAccs.find((a: DomAccountDTO) => a.code === '4.1.01.02') || salesIncAcc;
-      const barterIncAcc = dbAccs.find((a: DomAccountDTO) => a.code === '4.2.01.01') || salesIncAcc;
-      const rentExpAcc = dbAccs.find((a: DomAccountDTO) => a.code === '5.1.01.01') || dbAccs.find((a: DomAccountDTO) => a.kind === 'expense') || dbAccs[0];
-      const suppliesExpAcc = dbAccs.find((a: DomAccountDTO) => a.code === '5.1.01.02') || rentExpAcc;
-
-      const customAssignedAcc = methodObj?.accountCode
-        ? dbAccs.find((a: DomAccountDTO) => a.code === methodObj.accountCode)
-        : methodObj?.accountId
-        ? dbAccs.find((a: DomAccountDTO) => a.id === methodObj.accountId)
-        : null;
-
-      const financialAcc = customAssignedAcc || (methodType === 'cash' ? cashAcc : bankAcc);
-
-      let lines = [];
-      let prefix = paymentCond === 'contado' ? '[CONTADO]' : '[CTA CTE]';
-
-      if (opType === 'venta' || opType === 'honorarios') {
-        if (paymentCond === 'contado') {
-          lines = [
-            { personaPadreId, accountId: financialAcc.id, debit: data.amount, credit: 0, memo: `Cobro de contado: ${party}` },
-            { personaPadreId, accountId: salesIncAcc.id, debit: 0, credit: data.amount, memo: `Ingreso por venta/honorarios: ${party}` }
-          ];
-        } else {
-          lines = [
-            { personaPadreId, accountId: recAcc.id, debit: data.amount, credit: 0, memo: `Crédito en Cta Cte: ${party}` },
-            { personaPadreId, accountId: salesIncAcc.id, debit: 0, credit: data.amount, memo: `Venta devengada en Cta Cte: ${party}` }
-          ];
-        }
-      } else if (opType === 'compra') {
-        if (paymentCond === 'contado') {
-          lines = [
-            { personaPadreId, accountId: suppliesExpAcc.id, debit: data.amount, credit: 0, memo: `Egreso por compra: ${party}` },
-            { personaPadreId, accountId: financialAcc.id, debit: 0, credit: data.amount, memo: `Pago de contado: ${party}` }
-          ];
-        } else {
-          lines = [
-            { personaPadreId, accountId: suppliesExpAcc.id, debit: data.amount, credit: 0, memo: `Compra devengada en Cta Cte: ${party}` },
-            { personaPadreId, accountId: payAcc.id, debit: 0, credit: data.amount, memo: `Deuda comercial en Cta Cte: ${party}` }
-          ];
-        }
-      } else if (opType === 'cobro') {
-        lines = [
-          { personaPadreId, accountId: financialAcc.id, debit: data.amount, credit: 0, memo: `Cobro efectivo/banco: ${party}` },
-          { personaPadreId, accountId: recAcc.id, debit: 0, credit: data.amount, memo: `Cancelación crédito Cta Cte: ${party}` }
-        ];
-      } else if (opType === 'pago') {
-        lines = [
-          { personaPadreId, accountId: payAcc.id, debit: data.amount, credit: 0, memo: `Cancelación deuda Cta Cte: ${party}` },
-          { personaPadreId, accountId: financialAcc.id, debit: 0, credit: data.amount, memo: `Pago efectivo/banco: ${party}` }
-        ];
-      } else if (opType === 'alquiler_ganado') {
-        if (paymentCond === 'contado') {
-          lines = [
-            { personaPadreId, accountId: financialAcc.id, debit: data.amount, credit: 0, memo: `Cobro alquiler: ${party}` },
-            { personaPadreId, accountId: rentIncAcc.id, debit: 0, credit: data.amount, memo: `Alquiler ganado: ${party}` }
-          ];
-        } else {
-          lines = [
-            { personaPadreId, accountId: recAcc.id, debit: data.amount, credit: 0, memo: `Alquiler a cobrar en Cta Cte: ${party}` },
-            { personaPadreId, accountId: rentIncAcc.id, debit: 0, credit: data.amount, memo: `Alquiler ganado devengado: ${party}` }
-          ];
-        }
-      } else if (opType === 'alquiler_perdido') {
-        if (paymentCond === 'contado') {
-          lines = [
-            { personaPadreId, accountId: rentExpAcc.id, debit: data.amount, credit: 0, memo: `Alquiler residencia: ${party}` },
-            { personaPadreId, accountId: financialAcc.id, debit: 0, credit: data.amount, memo: `Pago alquiler de contado: ${party}` }
-          ];
-        } else {
-          lines = [
-            { personaPadreId, accountId: rentExpAcc.id, debit: data.amount, credit: 0, memo: `Alquiler devengado en Cta Cte: ${party}` },
-            { personaPadreId, accountId: payAcc.id, debit: 0, credit: data.amount, memo: `Deuda por alquiler: ${party}` }
-          ];
-        }
-      } else if (opType === 'canje') {
-        lines = [
-          { personaPadreId, accountId: suppliesExpAcc.id, debit: data.amount, credit: 0, memo: `Recepción de bien/servicio en canje: ${party}` },
-          { personaPadreId, accountId: barterIncAcc.id, debit: 0, credit: data.amount, memo: `Entrega de bien/servicio en canje: ${party}` }
-        ];
-      } else {
-        lines = [
-          { personaPadreId, accountId: financialAcc.id, debit: data.direction === 'income' ? data.amount : 0, credit: data.direction === 'expense' ? data.amount : 0, memo: data.description },
-          { personaPadreId, accountId: data.direction === 'income' ? salesIncAcc.id : suppliesExpAcc.id, debit: data.direction === 'expense' ? data.amount : 0, credit: data.direction === 'income' ? data.amount : 0, memo: data.description }
-        ];
-      }
-
-      await accountingRepo.recordJournalEntry({
-        personaPadreId,
-        entryDate: data.occurredOn,
-        description: `${prefix} [${opType.toUpperCase()}] ${party}: ${data.description}`,
-        referenceId: opNum,
-        lines
-      });
-
-      console.log('Asiento contable registrado exitosamente para la transacción:', opNum);
-    } catch (err) {
-      console.error('Error al registrar asiento contable de transacción:', err);
-    }
-
-    setAdjustments(prev => {
-      const getPrev = (key: string) => prev[key] !== undefined ? prev[key] : INITIAL_COMPONENT_BALANCES[key];
-
-      if (paymentCond === 'cta_cte') {
-        if (data.direction === 'income') {
-          return {
-            ...prev,
-            income_executed: getPrev('income_executed') + data.amount,
-            receivables: getPrev('receivables') + data.amount
-          };
-        } else {
-          const targetDebt = methodType === 'card' ? 'card_installments' : 'payables';
-          return {
-            ...prev,
-            expense_executed: getPrev('expense_executed') + data.amount,
-            [targetDebt]: getPrev(targetDebt) + data.amount
-          };
-        }
-      } else if (opType === 'cobro' || opType === 'pago') {
-        if (data.direction === 'income') {
-          const targetAccount = methodType === 'cash' ? 'cash_available' : 'bank_available';
-          return {
-            ...prev,
-            [targetAccount]: getPrev(targetAccount) + data.amount,
-            receivables: Math.max(0, getPrev('receivables') - data.amount)
-          };
-        } else {
-          const targetDebt = methodType === 'card' ? 'card_installments' : 'payables';
-          const targetAccount = methodType === 'cash' ? 'cash_available' : 'bank_available';
-          return {
-            ...prev,
-            [targetDebt]: Math.max(0, getPrev(targetDebt) - data.amount),
-            [targetAccount]: getPrev(targetAccount) - data.amount
-          };
-        }
-      } else {
-        // contado
-        if (data.direction === 'income') {
-          const targetAccount = methodType === 'cash' ? 'cash_available' : 'bank_available';
-          return {
-            ...prev,
-            income_executed: getPrev('income_executed') + data.amount,
-            [targetAccount]: getPrev(targetAccount) + data.amount
-          };
-        } else {
-          const nextExpense = getPrev('expense_executed') + data.amount;
-          if (methodType === 'card') {
-            return {
-              ...prev,
-              expense_executed: nextExpense,
-              card_installments: getPrev('card_installments') + data.amount
-            };
-          } else {
-            const targetAccount = methodType === 'cash' ? 'cash_available' : 'bank_available';
-            return {
-              ...prev,
-              expense_executed: nextExpense,
-              [targetAccount]: getPrev(targetAccount) - data.amount
-            };
-          }
-        }
-      }
-    });
+    const item: TransactionItem = {
+      id: saved.id || operationId,
+      description: saved.description,
+      amount: saved.amount.toAmount(),
+      direction: saved.direction,
+      paymentMethod: saved.paymentMethod,
+      occurredOn: saved.occurredOn,
+      opNumber: saved.opNumber,
+      counterparty: saved.counterparty,
+      operationType: saved.operationType,
+      paymentCondition: saved.paymentCondition,
+      settlesTransactionId: saved.settlesTransactionId,
+      classificationAccountId: saved.classificationAccountId,
+      revision: saved.revision,
+      journalEntryId: saved.journalEntryId
+    };
+    setTransactions(previous => editingTransaction
+      ? previous.map(tx => tx.id === item.id ? item : tx)
+      : [item, ...previous]);
+    refreshAccounts();
+    setAdjustments(previous => ({ ...previous, _refresh: (previous._refresh || 0) + 1 }));
+    setEditingTransaction(null);
+    setTransactionModalMode('nuevo');
   };
 
   const handleApplyAdjustment = async (data: AdjustmentData) => {
-    const baseInitial = INITIAL_COMPONENT_BALANCES[data.componentKey] ?? 0;
-    const current = adjustments[data.componentKey] !== undefined ? adjustments[data.componentKey] : baseInitial;
-
-    let computedNextVal = current;
-    let computedDelta = 0;
-
-    if (data.adjustmentType === 'set_balance') {
-      computedNextVal = data.amount;
-      computedDelta = data.amount - current;
-    } else if (data.adjustmentType === 'increase') {
-      computedNextVal = current + data.amount;
-      computedDelta = data.amount;
-    } else if (data.adjustmentType === 'decrease') {
-      computedNextVal = current - data.amount;
-      computedDelta = -data.amount;
-    }
-
     try {
       const dbAccs = await accountingRepo.getAccounts(personaPadreId);
 
       const accountCodeMap: Record<string, string> = {
         bank_available: '1.1.02.01',
+        bank_accounts: '1.1.02.02',
         cash_available: '1.1.01.01',
         receivables: '1.1.03.01',
         payables: '2.1.01.01',
-        card_installments: '2.1.01.02',
-        income_executed: '4.1.01.01',
-        expense_executed: '5.1.01.01'
+        card_installments: '2.1.01.04'
       };
 
-      const targetCode = accountCodeMap[data.componentKey] || '1.1.02.01';
-      const targetAcc = dbAccs.find((a: DomAccountDTO) => a.code === targetCode) || dbAccs[0];
-      const expenseAdjAcc = dbAccs.find((a: DomAccountDTO) => a.code === '5.2.01.01') || dbAccs.find((a: DomAccountDTO) => a.kind === 'expense');
-      const incomeAdjAcc = dbAccs.find((a: DomAccountDTO) => a.code === '4.2.01.01') || dbAccs.find((a: DomAccountDTO) => a.kind === 'income');
+      const targetCode = accountCodeMap[data.componentKey];
+      const targetAcc = dbAccs.find((a: DomAccountDTO) => a.code === targetCode);
+      const contraAcc = dbAccs.find((a: DomAccountDTO) => a.id === data.contraAccountId);
+      if (!targetAcc || !contraAcc || targetAcc.isArchived || contraAcc.isArchived ||
+          targetAcc.id === contraAcc.id) {
+        throw new Error('Elegí una cuenta objetivo y una contrapartida activas y diferentes.');
+      }
+      const current = targetAcc.currentBalance;
+      const computedDelta = data.adjustmentType === 'set_balance'
+        ? data.amount - current
+        : data.adjustmentType === 'increase' ? data.amount : -data.amount;
+      if (Math.round((current + computedDelta) * 100) < 0) {
+        throw new Error('El ajuste dejaría la cuenta con saldo negativo.');
+      }
+      if (Math.abs(computedDelta) < 0.01) {
+        throw new Error('El importe no modifica el saldo actual.');
+      }
 
-      if (targetAcc && Math.abs(computedDelta) >= 0.01) {
+      if (Math.abs(computedDelta) >= 0.01) {
         const absDelta = Math.abs(computedDelta);
-        let lines = [];
-
-        if (targetAcc.nature === 'debit') {
-          if (computedDelta > 0) {
-            lines = [
-              { personaPadreId, accountId: targetAcc.id, debit: absDelta, credit: 0, memo: `Ajuste: ${data.reason}` },
-              { personaPadreId, accountId: incomeAdjAcc?.id || targetAcc.id, debit: 0, credit: absDelta, memo: `Reconciliación: ${data.reason}` }
-            ];
-          } else {
-            lines = [
-              { personaPadreId, accountId: expenseAdjAcc?.id || targetAcc.id, debit: absDelta, credit: 0, memo: `Reconciliación: ${data.reason}` },
-              { personaPadreId, accountId: targetAcc.id, debit: 0, credit: absDelta, memo: `Ajuste: ${data.reason}` }
-            ];
-          }
-        } else {
-          if (computedDelta > 0) {
-            lines = [
-              { personaPadreId, accountId: expenseAdjAcc?.id || targetAcc.id, debit: absDelta, credit: 0, memo: `Reconciliación: ${data.reason}` },
-              { personaPadreId, accountId: targetAcc.id, debit: 0, credit: absDelta, memo: `Ajuste: ${data.reason}` }
-            ];
-          } else {
-            lines = [
-              { personaPadreId, accountId: targetAcc.id, debit: absDelta, credit: 0, memo: `Ajuste: ${data.reason}` },
-              { personaPadreId, accountId: incomeAdjAcc?.id || targetAcc.id, debit: 0, credit: absDelta, memo: `Reconciliación: ${data.reason}` }
-            ];
-          }
+        const targetIsDebit = (targetAcc.nature === 'debit') === (computedDelta > 0);
+        const lines = [
+          { personaPadreId, accountId: targetAcc.id, debit: targetIsDebit ? absDelta : 0,
+            credit: targetIsDebit ? 0 : absDelta, memo: `Ajuste: ${data.reason}` },
+          { personaPadreId, accountId: contraAcc.id, debit: targetIsDebit ? 0 : absDelta,
+            credit: targetIsDebit ? absDelta : 0, memo: `Contrapartida: ${data.reason}` }
+        ];
+        const contraMovement = contraAcc.nature === 'debit'
+          ? lines[1].debit - lines[1].credit
+          : lines[1].credit - lines[1].debit;
+        if (['asset', 'cash', 'bank', 'wallet', 'liability', 'card'].includes(contraAcc.kind) &&
+            Math.round((contraAcc.currentBalance + contraMovement) * 100) < 0) {
+          throw new Error('La contrapartida quedaría con saldo negativo.');
         }
 
-        const todayStr = new Date().toISOString().split('T')[0];
-        const entryRef = `AJU-${Date.now().toString().slice(-4)}`;
+        const todayStr = argentinaDate();
+        const entryRef = `AJU-${crypto.randomUUID()}`;
 
         await accountingRepo.recordJournalEntry({
           personaPadreId,
@@ -622,53 +446,23 @@ export const App: React.FC = () => {
 
         console.log('Asiento de ajuste registrado exitosamente en Supabase dom_journal_entries:', entryRef);
       }
+      refreshAccounts();
+      setAdjustments(prev => ({ ...prev, _refresh: (prev._refresh || 0) + 1 }));
     } catch (err) {
       console.error('Error al registrar asiento de ajuste en Supabase:', err);
+      throw err;
     }
-
-    setAdjustments(prev => ({
-      ...prev,
-      [data.componentKey]: computedNextVal
-    }));
   };
 
-  const accountsReceivable = Money.fromAmount(adjustments['receivables'] ?? 0);
-  const accountsPayable = Money.fromAmount(adjustments['payables'] ?? 0);
-  const cashAvailable = Money.fromAmount(adjustments['cash_available'] ?? 0);
-  const bankAvailable = Money.fromAmount(adjustments['bank_available'] ?? 0);
-  const totalCardLimit = paymentMethods
-    .filter(pm => pm.active && pm.type === 'card')
-    .reduce((sum, pm) => sum + (pm.creditLimit || 0), 0);
-
-  const initialCardDebtFromMethods = paymentMethods
-    .filter(pm => pm.active && pm.type === 'card')
-    .reduce((sum, pm) => {
-      const limit = pm.creditLimit || 0;
-      const initAvail = pm.initialAvailable !== undefined ? pm.initialAvailable : limit;
-      return sum + Math.max(0, limit - initAvail);
-    }, 0);
-
-  const hasDirectCardsAvailAdj = adjustments['cards_available'] !== undefined;
-
-  let dynamicCardsAvailable = 0;
-
-  if (hasDirectCardsAvailAdj) {
-    dynamicCardsAvailable = Math.max(0, adjustments['cards_available']);
-  } else {
-    const cardDebt = adjustments['card_installments'] !== undefined
-      ? adjustments['card_installments']
-      : (initialCardDebtFromMethods + transactions
-          .filter(t => {
-            const pm = paymentMethods.find(m => m.id === t.paymentMethod);
-            return pm?.type === 'card' || t.paymentMethod === 'card';
-          })
-          .reduce((sum, t) => sum + (t.direction === 'expense' ? t.amount : -t.amount), 0)
-        );
-
-    dynamicCardsAvailable = Math.max(0, totalCardLimit - cardDebt);
-  }
-
-  const cardsAvailable = Money.fromAmount(dynamicCardsAvailable);
+  const accountBalance = (code: string) => dbAccounts.find(account => account.code === code)?.currentBalance || 0;
+  const verifiedAccountBalance = (code: string) => dbAccounts.find(account => account.code === code)?.currentBalance;
+  const accountsReceivable = Money.fromAmount(accountBalance('1.1.03.01'));
+  const accountsPayable = Money.fromAmount(dbAccounts
+    .filter(account => account.code.startsWith('2.1.01.') && account.code !== '2.1.01.04')
+    .reduce((sum, account) => sum + account.currentBalance, 0));
+  const cashAvailable = Money.fromAmount(accountBalance('1.1.01.01'));
+  const bankAvailable = Money.fromAmount(accountBalance('1.1.02.01') + accountBalance('1.1.02.02'));
+  const cardsAvailable = null;
 
   return (
     <div className="flex min-h-dvh min-w-0 bg-[#F4F6F8] dark:bg-[#070D1B] text-[#172033] dark:text-gray-100 transition-colors duration-300">
@@ -727,6 +521,7 @@ export const App: React.FC = () => {
                   </div>
                 }
               />
+              {transactionError && <p role="alert" className="mb-3 rounded-xl border border-red-500 p-3 text-sm text-red-700 dark:text-red-300">{transactionError}</p>}
               <TransactionsPanel
                 transactions={transactions}
                 onEditTransaction={handleOpenEditTransactionModal}
@@ -780,7 +575,7 @@ export const App: React.FC = () => {
                   aria-pressed={reportsView === 'overdues'}
                   className={`rounded-xl px-3 py-2.5 text-xs font-bold transition-colors ${reportsView === 'overdues' ? 'bg-[#12355b] text-white shadow-sm dark:bg-[#0088FF]' : 'text-gray-700 hover:bg-white/50 dark:text-gray-300 dark:hover:bg-gray-800'}`}
                 >
-                  Atrasos y moras
+                  Pendientes
                 </button>
               </div>
               {reportsView === 'summary' ? (
@@ -796,32 +591,40 @@ export const App: React.FC = () => {
                       Revaluar activos (RxT)
                     </button>
                   </div>
-                  <MainDashboardKPIs
-                    accountsReceivable={accountsReceivable}
-                    accountsPayable={accountsPayable}
-                    cashAvailable={cashAvailable}
-                    bankAvailable={bankAvailable}
-                    cardsAvailable={cardsAvailable}
-                  />
-                  <FinancialChart
-                    months={INITIAL_MONTHS}
+                  {accountsLoading ? (
+                    <p role="status" className="mb-4 text-sm text-gray-500">Cargando saldos contables…</p>
+                  ) : accountsError || dbAccounts.length === 0 ? (
+                    <p role="alert" className="mb-4 rounded-xl border border-amber-500 p-4 text-sm text-amber-700 dark:text-amber-300">
+                      {accountsError || 'No hay plan de cuentas para mostrar saldos.'}
+                    </p>
+                  ) : (
+                    <MainDashboardKPIs
+                      accountsReceivable={accountsReceivable}
+                      accountsPayable={accountsPayable}
+                      cashAvailable={cashAvailable}
+                      bankAvailable={bankAvailable}
+                      cardsAvailable={cardsAvailable}
+                    />
+                  )}
+                  {projectionError ? <div role="alert" className="rounded-xl border border-amber-500 p-4 text-sm">{projectionError}</div> : <FinancialChart
+                    months={projectionMonths}
                     income={projection.income}
                     expense={projection.expense}
                     net={projection.net}
-                  />
+                  />}
                 </div>
               ) : reportsView === 'accounting' ? (
                 <ActualTrackingPanel
                   adjustments={adjustments}
                   nodes={nodes}
-                  months={INITIAL_MONTHS}
+                  months={projectionMonths}
                   selectedMethods={selectedMethods}
                   onMethodChange={handleMethodChange}
                   openingBalance={openingBalance}
                   onOpeningBalanceChange={setOpeningBalance}
                 />
               ) : (
-                <OverduesPanel />
+                <OverduesPanel transactions={transactions} />
               )}
             </>
           )}
@@ -830,12 +633,13 @@ export const App: React.FC = () => {
           {currentTab === 'escenario' && (
             <>
               <PageHeader
-                title="Escenario Base Sin Ingreso Extra"
-                subtitle="Simulación de saldo remanente y proyección acumulada de faltante"
+                title="Escenario de caja sin aporte adicional"
+                subtitle="Proyección desde fuentes y egresos registrados"
                 icon={BarChart3}
                 iconBgColor="bg-amber-600"
               />
-              <NoExtraScenarioPanel />
+              <NoExtraScenarioPanel months={projectionMonths} income={projection.income}
+                expense={projection.expense} openingBalance={openingBalance} loadError={projectionError} />
             </>
           )}
 
@@ -843,19 +647,13 @@ export const App: React.FC = () => {
           {currentTab === 'parametros' && (
             <>
               <PageHeader
-                title="Parámetros de Ajuste e Inflación IPC"
-                subtitle="Configuración de medios de pago, tasas de inflación y reglas de cálculo"
+                title="Configuración contable"
+                subtitle="Cuentas de pago y ejercicios económicos"
                 icon={Settings}
                 iconBgColor="bg-slate-700"
               />
               <ParametersPanel
-                ipcRates={ipcRates}
-                onIpcChange={handleIpcChange}
                 paymentMethods={paymentMethods}
-                accounts={dbAccounts}
-                onSavePaymentMethod={handleSavePaymentMethod}
-                onTogglePaymentMethod={handleTogglePaymentMethod}
-                onDeletePaymentMethod={handleDeletePaymentMethod}
               />
             </>
           )}
@@ -878,6 +676,8 @@ export const App: React.FC = () => {
         onClose={() => setIsTransactionModalOpen(false)}
         onSubmit={handleCreateOrUpdateTransaction}
         paymentMethods={paymentMethods}
+        accounts={dbAccounts}
+        transactions={transactions}
         initialData={editingTransaction ? (editingTransaction as any) : undefined}
       />
 
@@ -885,16 +685,14 @@ export const App: React.FC = () => {
         isOpen={isAdjustmentModalOpen}
         onClose={() => setIsAdjustmentModalOpen(false)}
         onApplyAdjustment={handleApplyAdjustment}
-        adjustments={adjustments}
+        accounts={dbAccounts}
         liveValues={{
-          bank_available: bankAvailable.toAmount(),
-          cash_available: cashAvailable.toAmount(),
-          cards_available: dynamicCardsAvailable,
-          receivables: accountsReceivable.toAmount(),
-          payables: accountsPayable.toAmount(),
-          card_installments: adjustments['card_installments'] ?? initialCardDebtFromMethods,
-          income_executed: adjustments['income_executed'] ?? 0,
-          expense_executed: adjustments['expense_executed'] ?? 0
+          bank_available: verifiedAccountBalance('1.1.02.01'),
+          bank_accounts: verifiedAccountBalance('1.1.02.02'),
+          cash_available: verifiedAccountBalance('1.1.01.01'),
+          receivables: verifiedAccountBalance('1.1.03.01'),
+          payables: verifiedAccountBalance('2.1.01.01'),
+          card_installments: verifiedAccountBalance('2.1.01.04')
         }}
       />
 

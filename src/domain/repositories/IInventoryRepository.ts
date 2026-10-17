@@ -8,6 +8,6 @@ export interface IInventoryRepository {
   recordStockMovement(
     personaPadreId: number,
     movement: Omit<DomInventoryMovementDTO, 'id'>,
-    paymentAccountId?: number // Cuenta para contrapartida de caja/banco o cliente
+    paymentAccountId: number // Cuenta de tesorería elegida explícitamente
   ): Promise<{ success: boolean; entryNumber?: number; message: string }>;
 }

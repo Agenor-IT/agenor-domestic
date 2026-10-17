@@ -24,6 +24,10 @@ export interface TransactionItem {
   counterparty?: string;
   operationType?: string;
   paymentCondition?: 'contado' | 'cta_cte';
+  settlesTransactionId?: string | null;
+  classificationAccountId?: number | null;
+  revision?: number;
+  journalEntryId?: number | null;
 }
 
 interface TransactionsPanelProps {
@@ -143,8 +147,8 @@ export const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
                     <button type="button" onClick={() => onEditTransaction(tx)} className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold text-blue-600 dark:text-blue-400" aria-label={`Editar ${tx.description}`}>
                       <Pencil className="h-4 w-4" aria-hidden="true" />Editar
                     </button>
-                    <button type="button" onClick={() => onDeleteTransaction(tx.id)} className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold text-red-600 dark:text-red-400" aria-label={`Eliminar ${tx.description}`}>
-                      <Trash2 className="h-4 w-4" aria-hidden="true" />Eliminar
+                    <button type="button" onClick={() => onDeleteTransaction(tx.id)} className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold text-red-600 dark:text-red-400" aria-label={`Anular ${tx.description}`}>
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />Anular
                     </button>
                   </div>
                 </li>
@@ -229,7 +233,7 @@ export const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
                           type="button"
                           onClick={() => onDeleteTransaction(tx.id)}
                           className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-lg transition-colors cursor-pointer"
-                          title="Eliminar operación"
+                          title="Anular operación con asiento de reversión"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

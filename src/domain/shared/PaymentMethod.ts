@@ -13,12 +13,6 @@ export interface CustomPaymentMethod {
   initialBalance?: number;
 }
 
-export const DEFAULT_CUSTOM_PAYMENT_METHODS: CustomPaymentMethod[] = [
-  { id: 'efectivo', name: 'Efectivo', type: 'cash', active: true, accountCode: '1.1.01.01', accountName: 'Caja Efectivo', initialBalance: 0 },
-  { id: 'ca_naranja', name: 'CA Naranja', type: 'bank', active: true, accountCode: '1.1.02.01', accountName: 'Cuentas Virtuales / Wallets', initialBalance: 0 },
-  { id: 'tarjeta_naranja', name: 'Tarjeta Naranja', type: 'card', active: true, accountCode: '2.1.01.02', accountName: 'Tarjetas de Crédito', creditLimit: 750000, initialAvailable: 505647.70 },
-];
-
 export class PaymentMethod {
   private readonly type: PaymentMethodType;
 

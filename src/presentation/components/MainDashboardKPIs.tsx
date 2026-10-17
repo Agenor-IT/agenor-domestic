@@ -13,7 +13,7 @@ interface MainDashboardKPIsProps {
   accountsPayable: Money;
   cashAvailable: Money;
   bankAvailable: Money;
-  cardsAvailable: Money;
+  cardsAvailable: Money | null;
 }
 
 export const MainDashboardKPIs: React.FC<MainDashboardKPIsProps> = ({
@@ -85,10 +85,10 @@ export const MainDashboardKPIs: React.FC<MainDashboardKPIsProps> = ({
       <div className="kpi-card bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl p-3.5 sm:p-4 shadow-sm flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <span className="text-[11px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block truncate">Disponible Tarjetas</span>
-          <strong className="block text-xl sm:text-2xl font-bold text-amber-700 dark:text-amber-400 mt-1.5 table-cell-num truncate" title={cardsAvailable.toFormattedString()}>
-            {cardsAvailable.toFormattedString()}
+          <strong className="block text-xl sm:text-2xl font-bold text-amber-700 dark:text-amber-400 mt-1.5 table-cell-num truncate" title={cardsAvailable?.toFormattedString() || 'Sin configurar'}>
+            {cardsAvailable?.toFormattedString() || '—'}
           </strong>
-          <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium block mt-1 truncate">Margen libre en tarjetas</span>
+          <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium block mt-1 truncate">Requiere límite vigente verificado</span>
         </div>
         <div className="p-2 sm:p-2.5 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 rounded-xl shrink-0">
           <CreditCard className="w-4 h-4 sm:w-5 sm:h-5" />

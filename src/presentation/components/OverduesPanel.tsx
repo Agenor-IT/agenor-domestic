@@ -1,22 +1,31 @@
 import React, { useState } from 'react';
-import { INITIAL_ACTUAL_STATE } from '../../domain/shared/initialSeedData';
+import { TransactionItem } from './TransactionsPanel';
 import { Money } from '../../domain/shared/Money';
 import { TableSearchFilter } from './TableSearchFilter';
-import { AlertTriangle, CheckCircle } from 'lucide-react';
+import { Clock3, CheckCircle } from 'lucide-react';
 
-export const OverduesPanel: React.FC = () => {
+export const OverduesPanel: React.FC<{ transactions: TransactionItem[] }> = ({ transactions }) => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'pending' | 'receivables'>('pending');
 
-  const pendingList = INITIAL_ACTUAL_STATE.pending_required.filter(item =>
-    item.label.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  const receivablesList = INITIAL_ACTUAL_STATE.receivables.filter(item =>
-    item.label.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const openOperations = transactions
+    .filter(item => item.paymentCondition === 'cta_cte' && item.journalEntryId != null)
+    .map(item => {
+      const settled = transactions.filter(payment => payment.settlesTransactionId === item.id)
+        .reduce((sum, payment) => sum + payment.amount, 0);
+      return {
+        direction: item.direction,
+        label: `${item.counterparty || item.description} · ${item.opNumber || item.occurredOn}`,
+        amount: Math.round((item.amount - settled) * 100) / 100,
+        note: 'Sin vencimiento registrado'
+      };
+    }).filter(item => item.amount > 0 && item.label.toLowerCase().includes(searchTerm.toLowerCase()));
+  const pendingList = openOperations.filter(item => item.direction === 'expense');
+  const receivablesList = openOperations.filter(item => item.direction === 'income');
 
   return (
     <div className="space-y-6">
+      <p className="text-xs text-gray-500 dark:text-gray-400">Saldos de operaciones a cuenta corriente, descontando cobros y pagos registrados. Sin fecha de vencimiento no se califican como atrasos.</p>
       <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm overflow-hidden">
         <TableSearchFilter
           searchTerm={searchTerm}
@@ -32,7 +41,7 @@ export const OverduesPanel: React.FC = () => {
                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
-                Pagar Prioritario ({pendingList.length})
+                Por pagar ({pendingList.length})
               </button>
               <button
                 onClick={() => setActiveTab('receivables')}
@@ -42,7 +51,7 @@ export const OverduesPanel: React.FC = () => {
                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
-                Cobros Pendientes ({receivablesList.length})
+                Por cobrar ({receivablesList.length})
               </button>
             </div>
           }
@@ -54,18 +63,18 @@ export const OverduesPanel: React.FC = () => {
               <table className="mobile-record-table w-full min-w-[540px] text-left text-xs border-collapse">
                 <thead>
                   <tr className="bg-gray-100 dark:bg-gray-800/80 text-gray-700 dark:text-gray-300 font-bold uppercase tracking-wider border-b border-gray-200 dark:border-gray-800">
-                    <th className="py-3 px-4 sticky left-0 bg-gray-100 dark:bg-gray-800/80 z-10">Prioridad / Compromiso</th>
+                    <th className="py-3 px-4 sticky left-0 bg-gray-100 dark:bg-gray-800/80 z-10">Compromiso</th>
                     <th className="py-3 px-4 whitespace-nowrap">Estado / Vencimiento</th>
                     <th className="py-3 px-4 text-right whitespace-nowrap">Monto Pendiente</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                   {pendingList.map((item, idx) => (
-                    <tr key={idx} className="record-row hover:bg-red-50/20 dark:hover:bg-red-950/20 transition-colors">
+                    <tr key={idx} className="record-row hover:bg-blue-50/20 dark:hover:bg-blue-950/20 transition-colors">
                       <td data-label="Compromiso" data-primary="true" className="py-3 px-4 font-semibold text-gray-900 dark:text-gray-100 sticky left-0 bg-white dark:bg-[#0F172A] z-10">
-                        <span className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />{item.label}</span>
+                        <span className="flex items-center gap-2"><Clock3 className="w-4 h-4 text-blue-500 shrink-0" />{item.label}</span>
                       </td>
-                      <td data-label="Estado / Vencimiento" className="py-3 px-4 font-medium text-red-700 dark:text-red-400 whitespace-nowrap">
+                      <td data-label="Estado / Vencimiento" className="py-3 px-4 font-medium text-blue-700 dark:text-blue-400 whitespace-nowrap">
                         {item.note || 'Pendiente de cancelación'}
                       </td>
                       <td data-label="Monto pendiente" className="py-3 px-4 text-right font-bold text-[#b54747] dark:text-red-400 table-cell-num text-sm whitespace-nowrap">

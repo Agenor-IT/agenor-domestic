@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { FormattedNumberInput } from './FormattedNumberInput';
-import { X, SlidersHorizontal, CheckCircle2 } from 'lucide-react';
+import { X, SlidersHorizontal } from 'lucide-react';
+import { DomAccountDTO } from '../../domain/repositories/IAccountingRepository';
+import { SearchableStructureSelect } from './SearchableStructureSelect';
 
 export interface AdjustmentData {
   componentKey: string;
@@ -9,64 +11,79 @@ export interface AdjustmentData {
   adjustmentType: 'set_balance' | 'increase' | 'decrease';
   amount: number;
   reason: string;
+  contraAccountId: number;
 }
 
 interface AdjustmentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onApplyAdjustment: (data: AdjustmentData) => void;
-  adjustments?: Record<string, number>;
-  liveValues?: Record<string, number>;
+  onApplyAdjustment: (data: AdjustmentData) => Promise<void>;
+  liveValues?: Record<string, number | undefined>;
+  accounts: DomAccountDTO[];
 }
 
 const ADJUSTABLE_COMPONENTS = [
   // SITUACIÓN PATRIMONIAL
-  { key: 'bank_available', label: 'Disponible Bancos / Naranja X', section: 'balance', currentVal: 0.00 },
-  { key: 'cash_available', label: 'Disponible en Efectivo', section: 'balance', currentVal: 0.00 },
-  { key: 'cards_available', label: 'Disponible Libre en Tarjetas de Crédito', section: 'balance', currentVal: 0.00 },
-  { key: 'receivables', label: 'Cuentas por Cobrar', section: 'balance', currentVal: 0.00 },
-  { key: 'payables', label: 'Obligaciones Pendientes Prioritarias', section: 'balance', currentVal: 0.00 },
-  { key: 'card_installments', label: 'Consumos de Tarjeta en Cuotas / Deuda Tarjetas', section: 'balance', currentVal: 0.00 },
-  // ESTADO DE RESULTADOS
-  { key: 'income_executed', label: 'Ingresos Reales Cobrados', section: 'results', currentVal: 0.00 },
-  { key: 'expense_executed', label: 'Egresos Reales Pagados', section: 'results', currentVal: 0.00 },
+  { key: 'bank_available', label: 'Billeteras / Naranja X', section: 'balance' },
+  { key: 'bank_accounts', label: 'Cuentas bancarias', section: 'balance' },
+  { key: 'cash_available', label: 'Disponible en Efectivo', section: 'balance' },
+  { key: 'receivables', label: 'Cuentas por Cobrar', section: 'balance' },
+  { key: 'payables', label: 'Proveedores comerciales', section: 'balance' },
+  { key: 'card_installments', label: 'Deuda de tarjetas', section: 'balance' },
 ];
 
 export const AdjustmentModal: React.FC<AdjustmentModalProps> = ({
   isOpen,
   onClose,
   onApplyAdjustment,
-  adjustments = {},
-  liveValues = {}
+  liveValues = {},
+  accounts
 }) => {
   const [selectedKey, setSelectedKey] = useState<string>(ADJUSTABLE_COMPONENTS[0].key);
   const [adjustmentType, setAdjustmentType] = useState<'set_balance' | 'increase' | 'decrease'>('set_balance');
   const [amount, setAmount] = useState<number>(0);
   const [reason, setReason] = useState<string>('');
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [contraAccountId, setContraAccountId] = useState('');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   if (!isOpen) return null;
 
   const currentComp = ADJUSTABLE_COMPONENTS.find(c => c.key === selectedKey) || ADJUSTABLE_COMPONENTS[0];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isNaN(amount) || amount < 0) return;
-
-    onApplyAdjustment({
-      componentKey: currentComp.key,
-      componentLabel: currentComp.label,
-      targetSection: currentComp.section as 'balance' | 'results',
-      adjustmentType,
-      amount,
-      reason: reason || 'Ajuste de arqueo y reconciliación contable'
-    });
-
-    setSuccessMsg(`Ajuste registrado exitosamente sobre ${currentComp.label}`);
-    setTimeout(() => {
-      setSuccessMsg(null);
+    if (!Number.isFinite(amount) || amount < 0 ||
+        Math.abs(amount * 100 - Math.round(amount * 100)) > 0.000001 || !reason.trim()) {
+      setErrorMsg('Ingresá un importe válido y el motivo del ajuste.');
+      return;
+    }
+    if (liveValues[currentComp.key] === undefined) {
+      setErrorMsg('No se pudo verificar el saldo de esta cuenta.');
+      return;
+    }
+    if (!contraAccountId) {
+      setErrorMsg('Elegí una cuenta de contrapartida.');
+      return;
+    }
+    setSaving(true);
+    setErrorMsg(null);
+    try {
+      await onApplyAdjustment({
+        componentKey: currentComp.key,
+        componentLabel: currentComp.label,
+        targetSection: currentComp.section as 'balance' | 'results',
+        adjustmentType,
+        amount,
+        reason: reason.trim(),
+        contraAccountId: Number(contraAccountId)
+      });
       onClose();
-    }, 1200);
+    } catch (error) {
+      setErrorMsg(error instanceof Error ? error.message : 'No se pudo registrar el ajuste.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -80,12 +97,13 @@ export const AdjustmentModal: React.FC<AdjustmentModalProps> = ({
             </div>
             <div className="min-w-0">
               <h3 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white truncate">Nuevo Ajuste Contable</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">Reconciliación de saldos en Resultados y Patrimonio</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">Registrá ambas cuentas y el motivo del ajuste</p>
             </div>
           </div>
 
           <button
             onClick={onClose}
+            disabled={saving}
             className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors shrink-0 ml-2"
           >
             <X className="w-5 h-5" />
@@ -95,13 +113,7 @@ export const AdjustmentModal: React.FC<AdjustmentModalProps> = ({
         {/* CONTENIDO Y FORMULARIO */}
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4 sm:p-6">
-          {successMsg ? (
-            <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-2xl flex items-center gap-3 text-emerald-800 dark:text-emerald-300 text-xs font-bold">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-              {successMsg}
-            </div>
-          ) : (
-            <>
+          {errorMsg && <div role="alert" className="rounded-xl border border-red-500 p-3 text-xs text-red-700 dark:text-red-300">{errorMsg}</div>}
               {/* SELECTOR DE COMPONENTE A AJUSTAR */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
@@ -114,20 +126,10 @@ export const AdjustmentModal: React.FC<AdjustmentModalProps> = ({
                 >
                   <optgroup label="Situación Patrimonial (Balance)">
                     {ADJUSTABLE_COMPONENTS.filter(c => c.section === 'balance').map(c => {
-                      const liveVal = liveValues && liveValues[c.key] !== undefined ? liveValues[c.key] : (adjustments[c.key] !== undefined ? adjustments[c.key] : c.currentVal);
+                      const liveVal = liveValues[c.key];
                       return (
                         <option key={c.key} value={c.key}>
-                          {c.label} (Saldo actual: ${liveVal.toLocaleString('es-AR', { minimumFractionDigits: 2 })})
-                        </option>
-                      );
-                    })}
-                  </optgroup>
-                  <optgroup label="Estado de Resultados (P&L)">
-                    {ADJUSTABLE_COMPONENTS.filter(c => c.section === 'results').map(c => {
-                      const liveVal = liveValues && liveValues[c.key] !== undefined ? liveValues[c.key] : (adjustments[c.key] !== undefined ? adjustments[c.key] : c.currentVal);
-                      return (
-                        <option key={c.key} value={c.key}>
-                          {c.label} (Saldo actual: ${liveVal.toLocaleString('es-AR', { minimumFractionDigits: 2 })})
+                          {c.label} · {liveVal === undefined ? 'Saldo no disponible' : `$ ${liveVal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`}
                         </option>
                       );
                     })}
@@ -192,6 +194,27 @@ export const AdjustmentModal: React.FC<AdjustmentModalProps> = ({
 
               {/* MOTIVO O CONCEPTO DEL AJUSTE */}
               <div>
+                <label htmlFor="adjustment-counterpart" className="mb-1.5 block text-xs font-bold uppercase text-gray-700 dark:text-gray-300">
+                  Cuenta de contrapartida *
+                </label>
+                <SearchableStructureSelect
+                  id="adjustment-counterpart"
+                  value={contraAccountId}
+                  options={accounts.filter(account => !account.isArchived).map(account => ({
+                    id: String(account.id),
+                    label: `${account.code} · ${account.name}`,
+                    detail: account.kind
+                  }))}
+                  onChange={setContraAccountId}
+                  placeholder="Buscar cuenta por código o nombre"
+                  emptyLabel="No hay cuentas disponibles."
+                  disabled={saving}
+                  accent="emerald"
+                />
+                <p className="mt-1 text-[10px] text-gray-500">Una transferencia o una deuda no se registran como ingreso.</p>
+              </div>
+
+              <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                   Motivo / Concepto del Ajuste Contable
                 </label>
@@ -205,26 +228,24 @@ export const AdjustmentModal: React.FC<AdjustmentModalProps> = ({
                 />
               </div>
 
-            </>
-          )}
           </div>
-          {!successMsg && (
-              <div className="flex shrink-0 flex-col-reverse gap-2.5 border-t border-gray-100 bg-white p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] dark:border-gray-800 dark:bg-[#0F172A] sm:flex-row sm:gap-3 sm:px-6 sm:pb-6">
+          <div className="flex shrink-0 flex-col-reverse gap-2.5 border-t border-gray-100 bg-white p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] dark:border-gray-800 dark:bg-[#0F172A] sm:flex-row sm:gap-3 sm:px-6 sm:pb-6">
                 <button
                   type="button"
                   onClick={onClose}
+                  disabled={saving}
                   className="w-full sm:flex-1 py-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold text-xs rounded-xl transition-colors cursor-pointer text-center"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
+                  disabled={saving}
                   className="w-full sm:flex-1 py-3 bg-[#00A86B] hover:bg-[#008f5b] text-white font-bold text-xs rounded-xl transition-all shadow-md cursor-pointer text-center"
                 >
                   Aplicar Ajuste Contable
                 </button>
-              </div>
-          )}
+          </div>
         </form>
       </div>
     </div>

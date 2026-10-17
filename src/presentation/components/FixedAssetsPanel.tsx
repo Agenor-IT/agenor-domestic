@@ -19,6 +19,7 @@ import { SupabaseDomAccountingRepository } from '../../infrastructure/SupabaseDo
 import { DomFixedAssetDTO, DomFixedAsset } from '../../domain/assets/DomFixedAsset';
 import { DomAccountDTO } from '../../domain/repositories/IAccountingRepository';
 import { Money } from '../../domain/shared/Money';
+import { argentinaDate } from '../../domain/shared/argentinaDate';
 import { useDomesticAccess } from '../auth/DomesticAuthGate';
 
 export const FixedAssetsPanel: React.FC = () => {
@@ -39,7 +40,7 @@ export const FixedAssetsPanel: React.FC = () => {
   const [code, setCode] = useState<string>('');
   const [name, setName] = useState<string>('');
   const [category, setCategory] = useState<string>('tecnologia');
-  const [acquisitionDate, setAcquisitionDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [acquisitionDate, setAcquisitionDate] = useState<string>(argentinaDate());
   const [acquisitionCost, setAcquisitionCost] = useState<number>(1000000);
   const [usefulLifeYears, setUsefulLifeYears] = useState<number>(5);
   const [residualValue, setResidualValue] = useState<number>(0);
@@ -51,7 +52,7 @@ export const FixedAssetsPanel: React.FC = () => {
   // Formulario Amortizar
   const [amortAmount, setAmortAmount] = useState<number>(0);
   const [amortPeriod, setAmortPeriod] = useState<string>('Ejercicio 2026');
-  const [amortDate, setAmortDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [amortDate, setAmortDate] = useState<string>(argentinaDate());
 
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -103,7 +104,7 @@ export const FixedAssetsPanel: React.FC = () => {
     setEditingAsset(null);
     setCode('');
     setName('');
-    setAcquisitionDate(new Date().toISOString().split('T')[0]);
+    setAcquisitionDate(argentinaDate());
     setAcquisitionCost(1000000);
     setResidualValue(0);
     setLocation('');
@@ -201,17 +202,15 @@ export const FixedAssetsPanel: React.FC = () => {
       return;
     }
 
-    const finalAssetAccId = assetAccountOptions.some(a => a.id === assetAccountId)
-      ? assetAccountId
-      : (assetAccountOptions[0]?.id || 1);
-
-    const finalAccAmortId = accAmortAccountOptions.some(a => a.id === accumulatedAccountId)
-      ? accumulatedAccountId
-      : (accAmortAccountOptions[0]?.id || 1);
-
-    const finalExpAmortId = expAmortAccountOptions.some(a => a.id === expenseAccountId)
-      ? expenseAccountId
-      : (expAmortAccountOptions[0]?.id || 1);
+    if (!assetAccountOptions.some(a => a.id === assetAccountId) ||
+        !accAmortAccountOptions.some(a => a.id === accumulatedAccountId) ||
+        !expAmortAccountOptions.some(a => a.id === expenseAccountId)) {
+      setFeedback({ text: 'Seleccioná cuentas válidas de activo, amortización acumulada y gasto.', type: 'error' });
+      return;
+    }
+    const finalAssetAccId = assetAccountId;
+    const finalAccAmortId = accumulatedAccountId;
+    const finalExpAmortId = expenseAccountId;
 
     setSubmitting(true);
     setFeedback(null);
@@ -286,7 +285,7 @@ export const FixedAssetsPanel: React.FC = () => {
 
     try {
       const res = await fixedAssetRepo.recordDepreciationEntry(
-        1,
+        personaPadreId,
         selectedAssetForAmort.id,
         amortAmount,
         amortDate,
@@ -325,7 +324,7 @@ export const FixedAssetsPanel: React.FC = () => {
                 Gestión de Bienes de Uso (Activos Fijos)
               </h2>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                Seguimiento de Bienes de Uso, Amortización Acumulada y Asientos al Diario
+                Catálogo local de bienes. Su valor no integra el Balance sin asientos conciliados.
               </p>
             </div>
           </div>
@@ -379,13 +378,13 @@ export const FixedAssetsPanel: React.FC = () => {
         <div className="bg-white dark:bg-[#0F172A] p-4 sm:p-5 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between sm:col-span-2 lg:col-span-1">
           <div className="min-w-0">
             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block truncate">
-              Valor Neto en Libros ($)
+              Valor neto estimado del catálogo ($)
             </span>
             <span className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 block truncate">
               {Money.fromAmount(totalNetBookValue).toFormattedString()}
             </span>
             <span className="text-[11px] text-gray-400 mt-1 block truncate">
-              Valor residual contable actual
+              Cálculo local; no equivale al saldo del Libro Mayor
             </span>
           </div>
           <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-xl shrink-0 ml-2">
@@ -526,9 +525,10 @@ export const FixedAssetsPanel: React.FC = () => {
                       <td data-label="Acciones" className="py-3.5 px-4 text-center">
                         <div className="flex items-center justify-center gap-1.5">
                           <button
+                            disabled
                             onClick={() => handleOpenAmortModal(data)}
-                            className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-[11px] font-bold shadow-sm transition-all flex items-center gap-1 cursor-pointer"
-                            title="Calcular y Registrar Asiento de Amortización"
+                            className="px-2.5 py-1.5 bg-gray-600 text-white rounded-lg text-[11px] font-bold shadow-sm flex items-center gap-1 cursor-not-allowed opacity-60"
+                            title="Pendiente de catálogo persistente y asiento atómico"
                           >
                             <Calculator className="w-3.5 h-3.5" />
                             <span>Amortizar</span>

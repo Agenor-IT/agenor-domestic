@@ -1,9 +1,10 @@
 import { FormattedNumberInput } from './FormattedNumberInput';
 import React, { useState, useEffect, useMemo } from 'react';
-import { SupabaseDomAccountingRepository, DEFAULT_DOM_ACCOUNTS } from '../../infrastructure/SupabaseDomAccountingRepository';
+import { SupabaseDomAccountingRepository } from '../../infrastructure/SupabaseDomAccountingRepository';
 import { DomFiscalYearDTO } from '../../domain/repositories/IAccountingRepository';
 import { Calendar, CheckCircle2, Lock, Play, RotateCcw, Plus, AlertCircle, Check, Loader2, Search } from 'lucide-react';
 import { useDomesticAccess } from '../auth/DomesticAuthGate';
+import { argentinaDate } from '../../domain/shared/argentinaDate';
 
 interface FiscalYearsSectionProps {
   onRefreshData?: () => void;
@@ -103,7 +104,12 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
       setActionLoadingId(fy.id);
       setModalError(null);
       const fetched = await accountingRepo.getAccounts(personaPadreId);
-      const allAccs = (fetched && fetched.length > 0) ? fetched : DEFAULT_DOM_ACCOUNTS;
+      if (fetched.length === 0) {
+        throw new Error('No hay cuentas contables disponibles para registrar la apertura.');
+      }
+      const allAccs = fetched.filter(a =>
+        ['asset', 'cash', 'bank', 'wallet', 'liability', 'card'].includes(a.kind) && !a.isArchived
+      );
 
       setOpeningAccounts(allAccs.map(a => ({
         accountId: a.id,
@@ -111,7 +117,7 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
         name: a.name,
         kind: a.kind,
         nature: a.nature,
-        openingBalance: a.openingBalance || 0
+        openingBalance: 0
       })));
       setOpeningSearch('');
       setOpeningTargetYear(fy);
@@ -141,14 +147,11 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
         return;
       }
 
-      // 2. Persistir saldos iniciales en dom_accounts
-      await accountingRepo.updateAccountOpeningBalances(1, openingAccounts.map(a => ({
-        accountId: a.accountId,
-        openingBalance: Number(a.openingBalance || 0)
-      })));
-
-      // 3. Generar Asiento de Apertura
-      const res = await accountingRepo.recordOpeningEntry(1, openingTargetYear.id, openingTargetYear.year);
+      const res = await accountingRepo.recordOpeningEntry(
+        personaPadreId,
+        openingTargetYear.id,
+        openingAccounts.map(a => ({ accountId: a.accountId, openingBalance: Number(a.openingBalance || 0) }))
+      );
       setBannerMessage({ text: res.message || `Asiento de Apertura generado con éxito (N° ${res.entryNumber}).`, type: 'success' });
       setIsOpeningModalOpen(false);
       setOpeningTargetYear(null);
@@ -166,7 +169,7 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
     if (!closingYearTarget) return;
     try {
       setActionLoadingId(closingYearTarget.id);
-      const res = await accountingRepo.closeFiscalYear(1, closingYearTarget.id, closingYearTarget.year);
+      const res = await accountingRepo.closeFiscalYear(personaPadreId, closingYearTarget.id);
       setBannerMessage({ text: res.message || `Ejercicio ${closingYearTarget.year} cerrado y Asiento de Refundición generado (N° ${res.entryNumber}).`, type: 'success' });
       setClosingYearTarget(null);
       await loadFiscalYears();
@@ -240,6 +243,8 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
           {fiscalYears.map((fy) => {
             const isOpen = fy.status === 'open';
             const isWorking = actionLoadingId === fy.id;
+            const hasPriorYear = fiscalYears.some(other => other.endDate < fy.startDate);
+            const today = argentinaDate();
 
             return (
               <div
@@ -286,11 +291,11 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
                     <span className="font-semibold text-gray-500 dark:text-gray-400">Asiento de Apertura (`APERTURA`):</span>
                     {fy.openingEntryId ? (
                       <span className="font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
-                        Registrado (Asiento N° {fy.openingEntryId})
+                        Registrado (ID {fy.openingEntryId})
                       </span>
                     ) : (
                       <span className="font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800">
-                        Pendiente de Generación
+                        {hasPriorYear ? 'Saldos arrastrados' : 'Pendiente de Generación'}
                       </span>
                     )}
                   </div>
@@ -299,8 +304,10 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
                     <span className="font-semibold text-gray-500 dark:text-gray-400">Asiento de Refundición (`REFUNDICION`):</span>
                     {fy.closingEntryId ? (
                       <span className="font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800">
-                        Registrado (Asiento N° {fy.closingEntryId})
+                        Registrado (ID {fy.closingEntryId})
                       </span>
+                    ) : !isOpen ? (
+                      <span className="font-bold text-gray-500">Cerrado sin resultados</span>
                     ) : (
                       <span className="font-bold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded border border-gray-200 dark:border-gray-700">
                         Pendiente de Cierre
@@ -314,7 +321,7 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
                   <div className="pt-3 border-t border-gray-200 dark:border-gray-700/60 flex flex-wrap items-center gap-2">
                     <button
                       type="button"
-                      disabled={isWorking || !!fy.openingEntryId}
+                      disabled={isWorking || !!fy.openingEntryId || hasPriorYear}
                       onClick={() => handleOpenOpeningModal(fy)}
                       className={`flex-1 px-3 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                         fy.openingEntryId
@@ -327,12 +334,12 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
                       ) : (
                         <Play className="w-3.5 h-3.5" />
                       )}
-                      <span>{fy.openingEntryId ? 'Apertura Registrada' : 'Generar Asiento Apertura'}</span>
+                      <span>{fy.openingEntryId ? 'Apertura Registrada' : hasPriorYear ? 'Saldos arrastrados' : 'Generar Asiento Apertura'}</span>
                     </button>
 
                     <button
                       type="button"
-                      disabled={isWorking}
+                      disabled={isWorking || fy.endDate > today}
                       onClick={() => setClosingYearTarget(fy)}
                       className="flex-1 px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                     >
@@ -341,7 +348,7 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
                       ) : (
                         <RotateCcw className="w-3.5 h-3.5" />
                       )}
-                      <span>Cerrar Ejercicio (Refundición)</span>
+                      <span>{fy.endDate > today ? 'Cierre disponible al finalizar el ejercicio' : 'Cerrar Ejercicio (Refundición)'}</span>
                     </button>
                   </div>
                 )}

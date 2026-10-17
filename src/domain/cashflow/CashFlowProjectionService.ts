@@ -132,15 +132,15 @@ export class CashFlowProjectionService {
       const currentInitial = i === 0 ? openingBalance : final[i - 1];
       initial.push(currentInitial);
 
-      const currentNet = currentInitial.add(incomeMoney[i]).subtract(expenseMoney[i]);
+      const currentNet = incomeMoney[i].subtract(expenseMoney[i]);
+      const currentFinal = currentInitial.add(currentNet);
       net.push(currentNet);
 
-      const currentExtra = currentNet.isNegative()
-        ? Money.fromAmount(Math.abs(currentNet.toAmount()))
+      const currentExtra = currentFinal.isNegative()
+        ? Money.fromAmount(Math.abs(currentFinal.toAmount()))
         : Money.zero();
       extraNeeded.push(currentExtra);
 
-      const currentFinal = currentNet.add(currentExtra);
       final.push(currentFinal);
     }
 

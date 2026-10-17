@@ -514,7 +514,7 @@ export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }
         <button type="button" onClick={() => selectSourceFromKpi('todos')} aria-pressed={activeSourceTab === 'todos'} className={`min-w-0 rounded-2xl border bg-white p-3 text-left shadow-sm transition-colors hover:border-[#0088FF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#0088FF] dark:bg-[#0F172A] sm:p-5 ${activeSourceTab === 'todos' ? 'border-[#0088FF] ring-2 ring-[#0088FF]/20' : 'border-gray-200 dark:border-gray-800'}`}>
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Ingreso total mensual
+              Ingresos previstos por mes
             </span>
             <div className="p-2.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl">
               <DollarSign className="w-5 h-5" />
@@ -525,7 +525,7 @@ export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }
               {Money.fromAmount(totalMonthlyAll).toFormattedString()}
             </span>
           </div>
-          <span className="mt-1 block text-[11px] text-gray-500 dark:text-gray-400">Todas las fuentes activas</span>
+          <span className="mt-1 block text-[11px] text-gray-500 dark:text-gray-400">Fuentes activas · no son cobros registrados</span>
         </button>
       </div>
 
