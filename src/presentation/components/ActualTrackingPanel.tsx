@@ -285,9 +285,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
 
   // MOVIMIENTOS Y SALDO ACUMULADO PARCIAL DEL LIBRO MAYOR PARA LA CUENTA SELECCIONADA
   let currentRunningBalance = 0;
-  const isDebitNature = currentLedgerAccount
-    ? ('nature' in currentLedgerAccount ? currentLedgerAccount.nature === 'debit' : currentLedgerAccount.type === 'activo' || currentLedgerAccount.code.startsWith('5.'))
-    : true;
+  const isDebitNature = currentLedgerAccount?.nature !== 'credit';
 
   const rawLedgerMovements = journalEntries
     .filter(entry => {
