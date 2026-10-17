@@ -292,13 +292,20 @@ BEGIN
     FROM public.dom_accounts
     WHERE id = v_classification_id AND persona_padre_id = p_persona_padre_id
       AND NOT is_archived;
-    IF NOT FOUND OR (v_classification_kind <> (p_transaction->>'direction') AND NOT
-      (v_operation_type = 'compra' AND v_classification_kind = 'asset' AND
-       EXISTS (SELECT 1 FROM public.dom_accounts
-         WHERE id = v_classification_id AND persona_padre_id = p_persona_padre_id
-           AND (code LIKE '1.2.01.%' OR code LIKE '1.1.05.%'))))
-       OR v_classification_nature <> CASE WHEN v_classification_kind = 'income'
-          THEN 'credit' ELSE 'debit' END THEN
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Seleccioná una cuenta de resultado válida del hogar'
+        USING errcode = '22023';
+    END IF;
+    IF v_classification_kind <> p_transaction->>'direction'
+       AND NOT (v_operation_type = 'compra' AND v_classification_kind = 'asset' AND
+         EXISTS (SELECT 1 FROM public.dom_accounts
+           WHERE id = v_classification_id AND persona_padre_id = p_persona_padre_id
+             AND (code LIKE '1.2.01.%' OR code LIKE '1.1.05.%'))) THEN
+      RAISE EXCEPTION 'Seleccioná una cuenta de resultado válida del hogar'
+        USING errcode = '22023';
+    END IF;
+    IF (v_classification_kind = 'income' AND v_classification_nature <> 'credit')
+       OR (v_classification_kind <> 'income' AND v_classification_nature <> 'debit') THEN
       RAISE EXCEPTION 'Seleccioná una cuenta de resultado válida del hogar'
         USING errcode = '22023';
     END IF;
