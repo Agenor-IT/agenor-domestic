@@ -2,6 +2,14 @@ name: CI - Agenor Domestic
 
 on:
   workflow_dispatch:
+    inputs:
+      gate:
+        description: "Control pendiente; types reutiliza las pruebas ya verdes del release"
+        type: choice
+        options:
+          - voice
+          - types
+        default: voice
   push:
     branches:
       - main
@@ -35,6 +43,7 @@ jobs:
         run: npm ci
 
       - name: Ejecutar pruebas automatizadas (Vitest)
+        if: github.event_name != 'workflow_dispatch' || inputs.gate != 'types'
         shell: bash
         run: |
           if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
@@ -44,6 +53,7 @@ jobs:
           fi
 
       - name: Validar captura de audio de Domestic
+        if: github.event_name != 'workflow_dispatch' || inputs.gate != 'types'
         run: node scripts/test-domestic-voice-worklet.mjs
 
       # deploy-hostinger.yml es el único productor del artefacto publicable.

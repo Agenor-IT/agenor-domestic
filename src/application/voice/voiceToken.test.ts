@@ -7,7 +7,7 @@ const request = (origin = 'https://domestic.agenorsoft.app', authorization = 'Be
 function fixture() {
   const authorize = vi.fn(async () => ({ userId: 'domestic-user', personaPadreId: 123 }));
   const fetch = vi.fn(async () => new Response(JSON.stringify({ name: 'auth_tokens/example-ephemeral' }), { status: 200 }));
-  const env = vi.fn((name: string) => name === 'DOMESTIC_GEMINI_API_KEY' ? 'example-server-only-key' : undefined);
+  const env = vi.fn((name: string): string | undefined => name === 'DOMESTIC_GEMINI_API_KEY' ? 'example-server-only-key' : undefined);
   return { authorize, fetch, env, handler: createVoiceHandler({ authorize, fetch, env, now: () => 1_000_000 }) };
 }
 
