@@ -30,7 +30,10 @@ export function createVoiceHandler(dependencies: VoiceDependencies) {
     if (!actor || !Number.isInteger(actor.personaPadreId) || actor.personaPadreId <= 0) return reply(403, 'DOM_VOICE_ACCESS_DENIED');
     const body = await request.text();
     if (body.length > 256 || body && body.trim() !== '{}') return reply(400, 'DOM_VOICE_INVALID_REQUEST');
-    const key = dependencies.env('DOMESTIC_GEMINI_API_KEY');
+    // The owner may explicitly authorize a shared provider credential. No implicit cross-app fallback.
+    const secretName = dependencies.env('DOMESTIC_GEMINI_SECRET_NAME') || 'DOMESTIC_GEMINI_API_KEY';
+    if (!['DOMESTIC_GEMINI_API_KEY', 'NUTRIVA_GEMINI_API_KEY'].includes(secretName)) return reply(503, 'DOM_VOICE_NOT_CONFIGURED');
+    const key = dependencies.env(secretName);
     if (!key?.trim()) return reply(503, 'DOM_VOICE_NOT_CONFIGURED');
     const model = dependencies.env('DOMESTIC_VOICE_MODEL') || 'gemini-3.8-live';
     if (!/^gemini-[a-z0-9.-]+$/.test(model)) return reply(503, 'DOM_VOICE_NOT_CONFIGURED');

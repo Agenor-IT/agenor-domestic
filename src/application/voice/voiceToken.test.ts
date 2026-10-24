@@ -25,6 +25,19 @@ describe('Domestic voice token', () => {
     const f = fixture(); f.env.mockImplementation(name => name === 'NUTRIVA_GEMINI_API_KEY' ? 'unrelated' : undefined);
     expect((await f.handler(request())).status).toBe(503); expect(f.fetch).not.toHaveBeenCalled();
   });
+  it('uses the Care provider credential only when explicitly configured by the owner', async () => {
+    const f = fixture();
+    f.env.mockImplementation(name => name === 'DOMESTIC_GEMINI_SECRET_NAME' ? 'NUTRIVA_GEMINI_API_KEY' : name === 'NUTRIVA_GEMINI_API_KEY' ? 'example-authorized-shared-key' : undefined);
+    const response = await f.handler(request());
+    expect(response.status).toBe(200);
+    expect(await response.text()).not.toContain('example-authorized-shared-key');
+    const args = f.fetch.mock.calls[0] as unknown as [string, RequestInit];
+    expect((args[1].headers as Record<string, string>)['x-goog-api-key']).toBe('example-authorized-shared-key');
+  });
+  it('rejects a configuration pointing at an unrelated secret', async () => {
+    const f = fixture(); f.env.mockImplementation(name => name === 'DOMESTIC_GEMINI_SECRET_NAME' ? 'SUPABASE_SERVICE_ROLE_KEY' : undefined);
+    expect((await f.handler(request())).status).toBe(503); expect(f.fetch).not.toHaveBeenCalled();
+  });
   it('returns only a one-use ephemeral token bound to Domestic tools and a ten-minute deadline', async () => {
     const f = fixture(); const response = await f.handler(request()); const text = await response.text();
     expect(response.status).toBe(200); expect(text).not.toContain('example-server-only-key');

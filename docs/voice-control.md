@@ -24,7 +24,7 @@ Los diálogos que usaban `window.confirm` ahora usan una confirmación accesible
 
 La función nueva `dom-voice` autentica el JWT con `getUser` y verifica `dom_current_persona_padre_id` bajo ese mismo JWT. No utiliza service role ni acepta un tenant del cuerpo del pedido. No requiere migraciones ni cambia Auth/RLS.
 
-La función necesita **su propio** secreto de servidor `DOMESTIC_GEMINI_API_KEY`. No busca ni reutiliza `NUTRIVA_GEMINI_API_KEY`. `DOMESTIC_VOICE_MODEL` es opcional y por defecto vale `gemini-3.8-live`, según el contrato Live consultado. La clave nunca va en `VITE_*` ni en el bundle.
+La credencial predeterminada es `DOMESTIC_GEMINI_API_KEY`. El owner autorizó expresamente el 24/10/2026 reutilizar la credencial del proveedor de Care: para este despliegue `DOMESTIC_GEMINI_SECRET_NAME=NUTRIVA_GEMINI_API_KEY`. Es una selección explícita de configuración, sin fallback automático; no se copia ni se expone su valor. El backend, las herramientas y los datos siguen siendo de Domestic. `DOMESTIC_VOICE_MODEL` es opcional y por defecto vale `gemini-3.8-live`, según el contrato Live consultado. La clave nunca va en `VITE_*` ni en el bundle.
 
 La emisión usa un token efímero de un uso, con un minuto para conectar y diez de vigencia, restringido al modelo, instrucciones y herramientas de Domestic. Sólo acepta el dominio productivo de Domestic y localhost/127.0.0.1:8090 como orígenes web. Hay un freno a reintentos de tokens por instancia; no se presenta como una cuota distribuida.
 
@@ -36,7 +36,7 @@ Pruebas focalizadas: `npm run test -- src/application/voice/VoiceCommandControll
 
 Evidencia del release: [CI 40143953481](https://github.com/Agenor-IT/agenor-domestic/actions/runs/40143953481) ejecutó 15 pruebas de controlador/backend y cuatro de audio, todas verdes. El único fallo fue una anotación de tipo del mock de credenciales; se corrigió sin cambiar su comportamiento. [CI 40144039372](https://github.com/Agenor-IT/agenor-domestic/actions/runs/40144039372) confirmó el typecheck completo en verde, reutilizando aquellas pruebas. CI usa Node 22 y `npm ci`. El lockfile se mantuvo en SHA256 `355109a084549dd72ef38fa46b1c4a2005de7bcc6204e3ad8a69c9bf08aa70df`.
 
-Las dos instalaciones locales no progresaron y se detuvieron; no se usaron como evidencia de validación. El build publicable queda exclusivamente en `deploy-hostinger.yml`. El frontend y backend de voz aún no se publicaron: se verificó que `DOMESTIC_GEMINI_API_KEY` no existe en los secretos del proyecto productivo. No se ha llamado a Gemini. La revisión visual y la prueba con micrófono real siguen pendientes de habilitar el servicio.
+Las dos instalaciones locales no progresaron y se detuvieron; no se usaron como evidencia de validación. El build publicable queda exclusivamente en `deploy-hostinger.yml`. La nueva selección explícita de credencial se valida antes del despliegue. La revisión visual y la prueba con micrófono real siguen pendientes de habilitar el servicio.
 
 Antes de habilitar producción: verificar una llamada real con micrófono, interrupciones, permiso denegado y cierre de pestaña; usar datos sintéticos autorizados para probar crear/editar/anular y sus postcondiciones contables. Las pruebas sintéticas de transporte no prueban el audio físico ni el acceso actual al modelo de Google.
 
