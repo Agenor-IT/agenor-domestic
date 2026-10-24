@@ -1672,7 +1672,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                   setDbAccounts(prev => prev.map(a => a.id === updated.id ? updated : a));
                   setEditingAccount(null);
                 } catch (err: any) {
-                  alert(err.message || 'Error al actualizar cuenta contable');
+                  setLoadError(err.message || 'Error al actualizar cuenta contable');
                 }
               }}
               className="flex min-h-0 flex-1 flex-col"
@@ -1746,7 +1746,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
 
       {/* MODAL CONFIRMACIÓN ELIMINAR CUENTA CONTABLE */}
       {deletingAccount && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div data-voice-confirmation className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 max-w-md w-full max-h-[92dvh] sm:max-h-[90vh] overflow-hidden shadow-2xl space-y-4 flex flex-col">
             <div className="flex items-center gap-3 text-rose-600">
               <AlertTriangle className="w-6 h-6 shrink-0" />
@@ -1781,7 +1781,7 @@ export const ActualTrackingPanel: React.FC<ActualTrackingPanelProps> = ({
                     setRefreshKey(value => value + 1);
                     setDeletingAccount(null);
                   } catch (err: any) {
-                    alert(err.message || 'Error al eliminar cuenta contable');
+                    setLoadError(err.message || 'Error al eliminar cuenta contable');
                   }
                 }}
                 className="w-full sm:w-auto px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-sm cursor-pointer text-center"

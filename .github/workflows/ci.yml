@@ -1,6 +1,7 @@
 name: CI - Agenor Domestic
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -34,7 +35,17 @@ jobs:
         run: npm ci
 
       - name: Ejecutar pruebas automatizadas (Vitest)
-        run: npm run test
+        shell: bash
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            npm run test -- src/application/voice/VoiceCommandController.test.ts src/application/voice/voiceToken.test.ts
+          else
+            npm run test
+          fi
 
-      - name: Compilación de producción (Vite + TypeScript)
-        run: npm run build
+      - name: Validar captura de audio de Domestic
+        run: node scripts/test-domestic-voice-worklet.mjs
+
+      # deploy-hostinger.yml es el único productor del artefacto publicable.
+      - name: Verificar tipos de TypeScript
+        run: npx --no-install tsc --noEmit

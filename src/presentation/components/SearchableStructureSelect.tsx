@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
+import { useVoiceValue } from '../hooks/useVoiceValue';
 
 export interface StructureOption {
   id: string;
@@ -37,6 +38,7 @@ export const SearchableStructureSelect: React.FC<SearchableStructureSelectProps>
   accent
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
@@ -72,11 +74,19 @@ export const SearchableStructureSelect: React.FC<SearchableStructureSelectProps>
     setActiveIndex(0);
   };
 
+  useVoiceValue(inputRef, next => {
+    const option = options.find(item => item.id === String(next));
+    if (option && !disabled) choose(option);
+  });
+
   return (
     <div ref={containerRef} className="min-w-0">
       <div className="relative">
         <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
         <input
+          ref={inputRef}
+          data-voice-options={JSON.stringify(options.map(option => ({ value: option.id, label: `${option.label}${option.detail ? ` · ${option.detail}` : ''}` })))}
+          data-voice-value={value}
           id={id}
           type="search"
           role="combobox"

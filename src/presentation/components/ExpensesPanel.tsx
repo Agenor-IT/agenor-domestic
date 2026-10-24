@@ -1,4 +1,5 @@
 import { SearchableSelect } from './SearchableSelect';
+import { confirmDomesticAction } from './DomesticConfirmation';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { FormattedNumberInput } from './FormattedNumberInput';
 import { useDomesticAccess } from '../auth/DomesticAuthGate';
@@ -396,7 +397,8 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
   };
 
   const handleDeleteReceipt = async (receipt: DomExpenseReceipt) => {
-    if (!window.confirm('¿Está seguro de eliminar este comprobante?')) return;
+    const expenseName = allExpenses.find(item => item.id === receipt.expenseId)?.supplierName || 'gasto';
+    if (!await confirmDomesticAction(`¿Eliminar el comprobante de ${expenseName} por $ ${receipt.amount.toLocaleString('es-AR')}${receipt.dueDate ? ` con vencimiento ${receipt.dueDate}` : ''}?`)) return;
     try {
       await receiptRepository.delete(receipt.id, receipt.personaPadreId);
       await loadReceipts();
@@ -526,7 +528,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
       setFeedback({ text: 'Este gasto tiene comprobantes asociados. Elimínelos primero.', type: 'error' });
       return;
     }
-    if (!window.confirm(`¿Está seguro de eliminar el registro "${name}"?`)) return;
+    if (!await confirmDomesticAction(`¿Eliminar el registro "${name}"?`)) return;
 
     try {
       await repository.deleteExpense(id, personaPadreId);
@@ -649,6 +651,7 @@ export const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ onExpensesChange }
       {/* FEEDBACK BANNER */}
       {feedback && (
         <div
+          role={feedback.type === 'error' ? 'alert' : 'status'}
           className={`p-4 rounded-xl text-xs font-medium flex items-center justify-between border ${
             feedback.type === 'success'
               ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'

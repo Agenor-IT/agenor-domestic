@@ -595,7 +595,7 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
 
       {/* MODAL CONFIRMACIÓN REFUNDICIÓN DE RESULTADOS */}
       {closingYearTarget && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div data-voice-confirmation className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-gray-800 rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 w-full sm:max-w-lg max-h-[100dvh] sm:max-h-[90vh] overflow-hidden shadow-2xl space-y-4 flex flex-col">
             <div className="flex shrink-0 items-center gap-3 text-rose-600 dark:text-rose-400">
               <RotateCcw className="w-6 h-6 shrink-0" />
@@ -625,6 +625,7 @@ export const FiscalYearsSection: React.FC<FiscalYearsSectionProps> = ({ onRefres
               <button
                 type="button"
                 onClick={handleConfirmCloseFiscalYear}
+                data-voice-effect="destructive"
                 disabled={actionLoadingId === closingYearTarget.id}
                 className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5"
               >

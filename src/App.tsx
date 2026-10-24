@@ -1,6 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Sidebar } from './presentation/components/Sidebar';
+import { NAVIGATION_ITEMS, Sidebar } from './presentation/components/Sidebar';
+import { useDomesticVoice } from './presentation/hooks/useDomesticVoice';
+import { DomesticVoicePanel } from './presentation/components/DomesticVoicePanel';
 import { BottomNav } from './presentation/components/BottomNav';
+import { confirmDomesticAction, DomesticConfirmation } from './presentation/components/DomesticConfirmation';
 import { HomeDueTasksPanel } from './presentation/components/HomeDueTasksPanel';
 import { PageHeader } from './presentation/components/PageHeader';
 import { MainDashboardKPIs } from './presentation/components/MainDashboardKPIs';
@@ -62,6 +65,11 @@ export const App: React.FC = () => {
     setCurrentTab(tab);
     window.scrollTo(0, 0);
   };
+  const voice = useDomesticVoice({
+    section: currentTab, personaPadreId,
+    sections: NAVIGATION_ITEMS.map(({ id, label }) => ({ id, label })),
+    onNavigate: tab => { setMobileMenuOpen(false); handleTabChange(tab); }
+  });
   const [openingBalance, setOpeningBalance] = useState<number>(0);
   const [selectedMethods, setSelectedMethods] = useState<Record<string, PaymentMethodType>>({});
   const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState<boolean>(false);
@@ -220,7 +228,7 @@ export const App: React.FC = () => {
 
   const handleDeleteTransaction = async (id: string) => {
     const transaction = transactions.find(item => item.id === id);
-    if (!transaction || !window.confirm('¿Anular esta operación? Se conservará el asiento original y se registrará su reversión.')) return;
+    if (!transaction || !await confirmDomesticAction(`¿Anular ${transaction.description}? Se conservará el asiento original y se registrará su reversión.`)) return;
     setTransactionError(null);
     try {
       await transactionRepo.voidTransaction(id, personaPadreId, transaction.revision || 0);
@@ -482,7 +490,9 @@ export const App: React.FC = () => {
           currentTab={currentTab}
           onTabChange={handleTabChange}
           onNewAdjustment={() => setIsAdjustmentModalOpen(true)}
-          onNewTransaction={handleOpenNewTransactionModal}
+          onOpenVoice={voice.open}
+          voiceActive={voice.active}
+          voiceVisible={voice.visible}
           onOpenRevaluation={() => setIsRxTModalOpen(true)}
           onOpenMore={() => setMobileMenuOpen(true)}
           moreOpen={mobileMenuOpen}
@@ -670,6 +680,8 @@ export const App: React.FC = () => {
         </main>
       </div>
 
+      <DomesticVoicePanel voice={voice} onNewTransaction={handleOpenNewTransactionModal} />
+      <DomesticConfirmation />
       <TransactionModal
         isOpen={isTransactionModalOpen}
         mode={transactionModalMode}

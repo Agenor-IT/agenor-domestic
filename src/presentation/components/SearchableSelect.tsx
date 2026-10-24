@@ -1,4 +1,5 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useVoiceValue } from '../hooks/useVoiceValue';
 
 type Props = React.SelectHTMLAttributes<HTMLSelectElement> & {
   children: React.ReactNode;
@@ -80,10 +81,17 @@ export function SearchableSelect({
     input.current?.blur();
   };
 
+  useVoiceValue(input, next => {
+    const option = options.find(item => item.value === String(next) && !item.disabled);
+    if (option && !disabled) choose(option);
+  });
+
   return (
     <div ref={root} className="relative min-w-0">
       <input
         ref={input}
+        data-voice-options={JSON.stringify(options.filter(option => !option.disabled).map(({ value, label }) => ({ value, label })))}
+        data-voice-value={currentValue}
         id={id || generatedId}
         type="search"
         role="combobox"

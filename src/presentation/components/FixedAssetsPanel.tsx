@@ -1,4 +1,5 @@
 import { SearchableSelect } from './SearchableSelect';
+import { confirmDomesticAction } from './DomesticConfirmation';
 import { FormattedNumberInput } from './FormattedNumberInput';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
@@ -137,12 +138,14 @@ export const FixedAssetsPanel: React.FC = () => {
   };
 
   const handleDeleteAsset = async (asset: DomFixedAssetDTO) => {
-    if (!window.confirm(`¿Está seguro de eliminar el Bien de Uso "${asset.name}" (${asset.code})?`)) return;
+    if (!await confirmDomesticAction(`¿Eliminar el Bien de Uso "${asset.name}" (${asset.code})?`)) return;
+    setFeedback(null);
     try {
       await fixedAssetRepo.deleteFixedAsset(asset.id);
-      loadData();
+      await loadData();
+      setFeedback({ text: `Bien de Uso "${asset.name}" eliminado.`, type: 'success' });
     } catch (err: any) {
-      alert(err.message || 'Error al eliminar Bien de Uso.');
+      setFeedback({ text: err.message || 'Error al eliminar Bien de Uso.', type: 'error' });
     }
   };
 
@@ -313,6 +316,7 @@ export const FixedAssetsPanel: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      {feedback && !isNewAssetModalOpen && !isAmortizeModalOpen && <p role={feedback.type === 'error' ? 'alert' : 'status'} className="rounded-xl border border-gray-300 p-3 text-sm dark:border-gray-700">{feedback.text}</p>}
       {/* HEADER DEL MÓDULO BIENES DE USO */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-[#0F172A] p-4 sm:p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
         <div>

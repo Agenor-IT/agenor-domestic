@@ -1,4 +1,5 @@
 import { SearchableSelect } from './SearchableSelect';
+import { confirmDomesticAction } from './DomesticConfirmation';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { FormattedNumberInput } from './FormattedNumberInput';
 import { useDomesticAccess } from '../auth/DomesticAuthGate';
@@ -288,7 +289,7 @@ export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(`¿Está seguro de eliminar el registro "${name}"?`)) return;
+    if (!await confirmDomesticAction(`¿Eliminar el registro "${name}"?`)) return;
 
     try {
       await repository.deleteVenture(id, 1);
@@ -442,6 +443,7 @@ export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }
       {/* FEEDBACK BANNER */}
       {feedback && (
         <div
+          role={feedback.type === 'error' ? 'alert' : 'status'}
           className={`p-4 rounded-xl flex items-center justify-between font-medium text-xs border ${
             feedback.type === 'success'
               ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'

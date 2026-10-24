@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useVoiceValue } from '../hooks/useVoiceValue';
 
 interface FormattedNumberInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value'> {
   value: number;
@@ -20,6 +21,7 @@ export const FormattedNumberInput: React.FC<FormattedNumberInputProps> = ({
 }) => {
   const [displayValue, setDisplayValue] = useState<string>('');
   const [isFocused, setIsFocused] = useState<boolean>(false);
+  const voiceRef = useRef<HTMLInputElement>(null);
 
   // Formato número ARS (1.234,56)
   const formatNumber = (num: number): string => {
@@ -125,8 +127,17 @@ export const FormattedNumberInput: React.FC<FormattedNumberInputProps> = ({
     }
   };
 
+  useVoiceValue(voiceRef, next => {
+    if (typeof next !== 'number' || !Number.isFinite(next) || disabled) return;
+    onChange(next);
+    setDisplayValue(formatNumber(next));
+  });
+
   return (
     <input
+      ref={voiceRef}
+      data-voice-number="true"
+      data-voice-value={value}
       type="text"
       inputMode="decimal"
       disabled={disabled}
