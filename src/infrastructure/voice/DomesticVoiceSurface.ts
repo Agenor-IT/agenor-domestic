@@ -6,6 +6,15 @@ const visible = (element: HTMLElement) => !!element.getClientRects().length
 const compact = (value: string | null | undefined, limit = 600) => (value || '').replace(/\s+/g, ' ').trim().slice(0, limit);
 const nextPaint = () => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 
+export function activeDomesticVoiceRoot(): HTMLElement {
+  const dialogs = [...document.querySelectorAll<HTMLElement>('[role="dialog"], [data-voice-dialog], div.fixed.inset-0')]
+    .filter(element => visible(element) && element.querySelector('button,input,textarea'));
+  dialogs.sort((a, b) => (Number.parseInt(getComputedStyle(a).zIndex) || 0) - (Number.parseInt(getComputedStyle(b).zIndex) || 0));
+  const root = dialogs.at(-1) || document.getElementById('main-content');
+  if (!root) throw new Error('La pantalla todavía no está lista.');
+  return root;
+}
+
 /** A bounded adapter over Domestic's own visible controls. Never accepts CSS, JS, URLs or SQL from the model. */
 export class DomesticVoiceSurface implements VoiceSurface {
   private ids = new WeakMap<HTMLElement, string>();
@@ -29,12 +38,7 @@ export class DomesticVoiceSurface implements VoiceSurface {
   }
 
   private root(): HTMLElement {
-    const dialogs = [...document.querySelectorAll<HTMLElement>('[role="dialog"], [data-voice-dialog], div.fixed.inset-0')]
-      .filter(element => visible(element) && element.querySelector('button,input,textarea'));
-    dialogs.sort((a, b) => (Number.parseInt(getComputedStyle(a).zIndex) || 0) - (Number.parseInt(getComputedStyle(b).zIndex) || 0));
-    const root = dialogs.at(-1) || document.getElementById('main-content');
-    if (!root) throw new Error('La pantalla todavía no está lista.');
-    return root;
+    return activeDomesticVoiceRoot();
   }
 
   private label(element: HTMLElement) {

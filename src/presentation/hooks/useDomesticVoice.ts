@@ -4,7 +4,7 @@ import { VoiceState, VoiceStep } from '../../domain/voice/VoiceControl';
 import { argentinaDate } from '../../domain/shared/argentinaDate';
 import { DOMESTIC_VOICE_PROTOCOL_VERSION } from '../../domain/voice/voiceProtocol';
 import { supabase } from '../../infrastructure/supabaseClient';
-import { compactVoiceScreen, DomesticVoiceSurface } from '../../infrastructure/voice/DomesticVoiceSurface';
+import { activeDomesticVoiceRoot, compactVoiceScreen, DomesticVoiceSurface } from '../../infrastructure/voice/DomesticVoiceSurface';
 import type { DomesticLiveSession, VoiceCredentials, VoiceToolCall } from '../../infrastructure/voice/DomesticLiveSession';
 
 const messages: Record<string, string> = {
@@ -27,6 +27,8 @@ export function useDomesticVoice(options: VoiceOptions) {
   const current = useRef(options); current.current = options;
   const [visible, setVisible] = useState(false);
   const [expanded, setExpanded] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const previousDialog = useRef<HTMLElement | null>(null);
   const [state, setState] = useState<VoiceState>('idle');
   const [muted, setMuted] = useState(false);
   const [transcript, setTranscript] = useState('');
@@ -134,12 +136,32 @@ export function useDomesticVoice(options: VoiceOptions) {
   };
   const close = () => { stop(); setVisible(false); };
   useEffect(() => {
+    let marked: HTMLElement | null = null;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      let root: HTMLElement | null = null;
+      if (visible) { try { root = activeDomesticVoiceRoot(); } catch { /* loading */ } }
+      const dialog = root && root !== document.getElementById('main-content') ? root : null;
+      if (dialog && dialog !== previousDialog.current) setExpanded(false);
+      previousDialog.current = dialog;
+      setDialogOpen(Boolean(dialog));
+      if (marked && (marked !== dialog || expanded)) marked.removeAttribute('data-domestic-voice-modal');
+      marked = dialog && !expanded ? dialog : null;
+      marked?.setAttribute('data-domestic-voice-modal', '');
+    };
+    update();
+    const observer = new MutationObserver(() => { if (!frame) frame = requestAnimationFrame(update); });
+    if (visible) observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style', 'hidden', 'aria-hidden'] });
+    return () => { observer.disconnect(); cancelAnimationFrame(frame); marked?.removeAttribute('data-domestic-voice-modal'); };
+  }, [visible, expanded]);
+  useEffect(() => {
     const leave = () => { if (document.hidden) stop(); };
     document.addEventListener('visibilitychange', leave);
     return () => { document.removeEventListener('visibilitychange', leave); generation.current++; controller.current?.stop(); session.current?.stop(); };
   }, []);
   return {
-    visible, expanded, state, active, muted, transcript, answer, error, open, close, start, stop,
+    visible, expanded, dialogOpen, state, active, muted, transcript, answer, error, open, close, start, stop,
     collapse: () => setExpanded(value => !value),
     toggleMute: () => { const value = !muted; session.current?.mute(value); setMuted(value); },
     interrupt: () => { controller.current?.stop(); session.current?.interrupt(); setState('listening'); }

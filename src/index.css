@@ -313,3 +313,10 @@ textarea:focus-visible {
   scrollbar-width: thin;
   scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
 }
+/* The collapsed voice dock reserves its own space above an active modal. */
+[data-domestic-voice-modal] {
+  padding-top: calc(4rem + env(safe-area-inset-top)) !important;
+}
+[data-domestic-voice-modal] > div {
+  max-height: calc(100dvh - 4.5rem - env(safe-area-inset-top)) !important;
+}
