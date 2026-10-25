@@ -1,4 +1,4 @@
-import { domesticLiveConfig, DOMESTIC_VOICE_PROTOCOL_VERSION } from '../../../src/domain/voice/voiceProtocol.ts';
+import { domesticLiveSetup, DOMESTIC_VOICE_PROTOCOL_VERSION } from '../../../src/domain/voice/voiceProtocol.ts';
 
 export interface VoiceDependencies {
   env(name: string): string | undefined;
@@ -48,7 +48,8 @@ export function createVoiceHandler(dependencies: VoiceDependencies) {
         body: JSON.stringify({
           uses: 1, expireTime: new Date(now + maxSeconds * 1000).toISOString(),
           newSessionExpireTime: new Date(now + 60_000).toISOString(),
-          liveConnectConstraints: { model: `models/${model}`, config: domesticLiveConfig() }
+          // REST uses the wire setup message. liveConnectConstraints is SDK-only.
+          bidiGenerateContentSetup: domesticLiveSetup(model)
         }), signal: AbortSignal.timeout(15_000)
       });
       if (!response.ok) return reply(response.status === 429 ? 429 : 503, response.status === 429 ? 'DOM_VOICE_QUOTA' : 'DOM_VOICE_PROVIDER_UNAVAILABLE');

@@ -12,6 +12,13 @@ function fixture() {
 }
 
 describe('Domestic voice token', () => {
+  it.each(['http://localhost:8090', 'http://127.0.0.1:8090'])('allows the authorized local frontend origin %s', async origin => {
+    const f = fixture();
+    const response = await f.handler(request(origin));
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe(origin);
+    expect(f.authorize).toHaveBeenCalledTimes(1);
+  });
   it('denies other app origins before authentication or provider access', async () => {
     const f = fixture(); expect((await f.handler(request('https://care.example'))).status).toBe(403);
     expect(f.authorize).not.toHaveBeenCalled(); expect(f.fetch).not.toHaveBeenCalled();
@@ -44,7 +51,11 @@ describe('Domestic voice token', () => {
     const args = f.fetch.mock.calls[0] as unknown as [string, RequestInit];
     const body = JSON.parse(String(args[1].body));
     expect(body.uses).toBe(1); expect(Date.parse(body.expireTime) - 1_000_000).toBe(600_000);
-    expect(body.liveConnectConstraints.config.tools[0].functionDeclarations.map((tool: { name: string }) => tool.name)).toEqual(['read_domestic_screen', 'open_domestic_section', 'use_domestic_controls']);
+    expect(body).not.toHaveProperty('liveConnectConstraints');
+    expect(body.bidiGenerateContentSetup.model).toBe('models/gemini-3.8-live');
+    expect(body.bidiGenerateContentSetup.generationConfig).toEqual({ responseModalities: ['AUDIO'] });
+    expect(body.bidiGenerateContentSetup.systemInstruction.parts[0].text).toContain('Agenor Domestic');
+    expect(body.bidiGenerateContentSetup.tools[0].functionDeclarations.map((tool: { name: string }) => tool.name)).toEqual(['read_domestic_screen', 'open_domestic_section', 'use_domestic_controls']);
     expect(response.headers.get('cache-control')).toBe('no-store');
   });
   it('does not create multiple tokens from immediate retries', async () => {
