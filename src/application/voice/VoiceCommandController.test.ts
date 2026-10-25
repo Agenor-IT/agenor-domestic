@@ -35,6 +35,11 @@ describe('Domestic voice execution boundary', () => {
     expect((await f.controller.execute('a', 'one', [{ controlId: 'save' }])).status).toBe('failed');
     expect(f.apply).not.toHaveBeenCalled();
   });
+  it.each(['No edites el gasto', 'No cambies el importe', 'No modifiques la fecha', 'No actualices el registro', 'No quiero editar el gasto'])('does not write for the negative order: %s', async text => {
+    const f = fixture(); f.turn(text);
+    expect((await f.controller.execute('negative', 'one', [{ controlId: 'save' }])).status).toBe('failed');
+    expect(f.apply).not.toHaveBeenCalled();
+  });
   it('replays a receipt without repeating the write, and blocks a new call ID in the same user turn', async () => {
     const f = fixture(); f.turn();
     const steps = [{ controlId: 'save' }];

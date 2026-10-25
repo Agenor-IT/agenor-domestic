@@ -183,7 +183,15 @@ export class DomesticLiveSession {
       this.toolQueue = this.toolQueue.then(async () => {
         if (!this.active) return;
         this.callbacks?.state('working');
-        if (calls.some(call => call.name !== 'read_domestic_screen')) await this.waitForSpeech();
+        if (calls.some(call => call.name !== 'read_domestic_screen')) {
+          const speechReady = await this.waitForSpeech();
+          if (!this.active) return;
+          if (!speechReady && this.turn.id === issuingTurn) {
+            this.send({ toolResponse: { functionResponses: calls.map(call => ({ id: call.id, name: call.name, response: { status: 'failed', message: 'Todavía no terminó la orden verbal. No ejecuté la acción; esperá a que la persona termine de hablar.' } })) } });
+            this.callbacks?.state('listening');
+            return;
+          }
+        }
         if (this.turn.id !== issuingTurn) {
           this.send({ toolResponse: { functionResponses: calls.map(call => ({ id: call.id, name: call.name, response: { status: 'cancelled', message: 'La persona dio una nueva orden. Leé la pantalla y atendé esa orden.' } })) } });
           return;

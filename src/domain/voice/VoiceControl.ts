@@ -34,7 +34,7 @@ export function isVoiceConfirmation(text: string): boolean {
 
 export function permitsVoiceWrite(text: string): boolean {
   const normalized = normalizeVoiceText(text);
-  return !/\b(no (?:guardes|registres|crees|elimines|anules)|cancela|cancelar|me arrepenti)\b/.test(normalized)
-    && !/\b(?:no (?:quiero|hay que|debes|voy a)|sin) (?:guardar|registrar|crear|eliminar|anular|modificar)\b/.test(normalized)
+  return !/\b(no (?:guardes|registres|crees|elimines|anules|edites|cambies|modifiques|actualices|pagues|cobres)|cancela|cancelar|me arrepenti)\b/.test(normalized)
+    && !/\b(?:no (?:quiero|hay que|debes|voy a)|sin) (?:guardar|registrar|crear|agregar|anotar|cargar|eliminar|borrar|anular|editar|modificar|cambiar|actualizar|pagar|cobrar|activar|desactivar|revaluar|ajustar)\b/.test(normalized)
     && /\b(crea|crear|creame|agrega|agregar|agregame|agregalo|anota|anotar|anotame|anotalo|registra|registrar|registralo|carga|cargar|cargame|cargalo|guarda|guardar|guardalo|edita|editar|modifica|modificar|cambia|cambiar|actualiza|actualizar|actualizalo|elimina|eliminar|borra|borrar|anula|anular|paga|pagar|cobra|cobrar|activa|activar|desactiva|desactivar|revalua|revaluar|ajusta|ajustar|confirmo|confirmar)\b/.test(normalized);
 }
