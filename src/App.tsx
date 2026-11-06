@@ -1,25 +1,45 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, Suspense } from 'react';
 import { NAVIGATION_ITEMS, Sidebar } from './presentation/components/Sidebar';
 import { useDomesticVoice } from './presentation/hooks/useDomesticVoice';
-import { DomesticVoicePanel } from './presentation/components/DomesticVoicePanel';
 import { BottomNav } from './presentation/components/BottomNav';
+import { ReceiptDraft, receiptTransactionFields } from './domain/receipts/ReceiptDraft';
 import { confirmDomesticAction, DomesticConfirmation } from './presentation/components/DomesticConfirmation';
 import { HomeDueTasksPanel } from './presentation/components/HomeDueTasksPanel';
 import { PageHeader } from './presentation/components/PageHeader';
 import { MainDashboardKPIs } from './presentation/components/MainDashboardKPIs';
-import { FinancialChart } from './presentation/components/FinancialChart';
-import { ActualTrackingPanel } from './presentation/components/ActualTrackingPanel';
-import { NoExtraScenarioPanel } from './presentation/components/NoExtraScenarioPanel';
-import { ParametersPanel } from './presentation/components/ParametersPanel';
-import { OverduesPanel } from './presentation/components/OverduesPanel';
-import { AdjustmentModal, AdjustmentData } from './presentation/components/AdjustmentModal';
-import { TransactionModal, TransactionSubmitData } from './presentation/components/TransactionModal';
-import { RxTRevaluationModal } from './presentation/components/RxTRevaluationModal';
-import { FixedAssetsPanel } from './presentation/components/FixedAssetsPanel';
-import { InventoryPanel } from './presentation/components/InventoryPanel';
-import { VenturesPanel } from './presentation/components/VenturesPanel';
-import { ExpensesPanel } from './presentation/components/ExpensesPanel';
-import { TransactionsPanel, TransactionItem } from './presentation/components/TransactionsPanel';
+import { SupabaseDomMonthlyCashRepository } from './infrastructure/SupabaseDomMonthlyCashRepository';
+import { SupabaseDomConsumptionRepository } from './infrastructure/SupabaseDomConsumptionRepository';
+import type { AdjustmentData } from './presentation/components/AdjustmentModal';
+import type { TransactionSubmitData } from './presentation/components/TransactionModal';
+import type { TransactionItem } from './presentation/components/TransactionsPanel';
+
+// Lazy-loaded secondary panels and heavy modals
+const MonthlyCashPanel = React.lazy(() => import('./presentation/components/MonthlyCashPanel').then(m => ({ default: m.MonthlyCashPanel })));
+const ProductsConsumptionPanel = React.lazy(() => import('./presentation/components/ProductsConsumptionPanel').then(m => ({ default: m.ProductsConsumptionPanel })));
+const FixedAssetsPanel = React.lazy(() => import('./presentation/components/FixedAssetsPanel').then(m => ({ default: m.FixedAssetsPanel })));
+const InventoryPanel = React.lazy(() => import('./presentation/components/InventoryPanel').then(m => ({ default: m.InventoryPanel })));
+const ParametersPanel = React.lazy(() => import('./presentation/components/ParametersPanel').then(m => ({ default: m.ParametersPanel })));
+const ExpensesPanel = React.lazy(() => import('./presentation/components/ExpensesPanel').then(m => ({ default: m.ExpensesPanel })));
+const VenturesPanel = React.lazy(() => import('./presentation/components/VenturesPanel').then(m => ({ default: m.VenturesPanel })));
+const FinancialChart = React.lazy(() => import('./presentation/components/FinancialChart').then(m => ({ default: m.FinancialChart })));
+const ActualTrackingPanel = React.lazy(() => import('./presentation/components/ActualTrackingPanel').then(m => ({ default: m.ActualTrackingPanel })));
+const RecpamInflationSection = React.lazy(() => import('./presentation/components/RecpamInflationSection').then(m => ({ default: m.RecpamInflationSection })));
+const FiscalYearsSection = React.lazy(() => import('./presentation/components/FiscalYearsSection').then(m => ({ default: m.FiscalYearsSection })));
+const OverduesPanel = React.lazy(() => import('./presentation/components/OverduesPanel').then(m => ({ default: m.OverduesPanel })));
+const TransactionsPanel = React.lazy(() => import('./presentation/components/TransactionsPanel').then(m => ({ default: m.TransactionsPanel })));
+const TransactionModal = React.lazy(() => import('./presentation/components/TransactionModal').then(m => ({ default: m.TransactionModal })));
+const AdjustmentModal = React.lazy(() => import('./presentation/components/AdjustmentModal').then(m => ({ default: m.AdjustmentModal })));
+const RxTRevaluationModal = React.lazy(() => import('./presentation/components/RxTRevaluationModal').then(m => ({ default: m.RxTRevaluationModal })));
+const ReceiptCaptureModal = React.lazy(() => import('./presentation/components/ReceiptCaptureModal').then(m => ({ default: m.ReceiptCaptureModal })));
+const DomesticVoicePanel = React.lazy(() => import('./presentation/components/DomesticVoicePanel').then(m => ({ default: m.DomesticVoicePanel })));
+
+const PanelSkeleton: React.FC = () => (
+  <div className="space-y-4 animate-pulse p-2 sm:p-4" role="status" aria-label="Cargando módulo">
+    <div className="h-7 w-48 bg-gray-200 dark:bg-gray-800 rounded-xl"></div>
+    <div className="h-28 w-full bg-gray-200 dark:bg-gray-800 rounded-2xl"></div>
+    <div className="h-64 w-full bg-gray-200 dark:bg-gray-800 rounded-2xl"></div>
+  </div>
+);
 import { useDarkMode } from './presentation/hooks/useDarkMode';
 import { SupabaseDomVentureRepository } from './infrastructure/SupabaseDomVentureRepository';
 import { DomVentureDTO } from './domain/ventures/DomVenture';
@@ -28,12 +48,13 @@ import { DomExpenseDTO } from './domain/expenses/DomExpense';
 import { FlowNode } from './domain/cashflow/CashFlowProjectionService';
 
 import {
-  BarChart3,
-  Settings,
+  Wallet,
+  Receipt,
+  Building2,
+  BookOpen,
   SlidersHorizontal,
   PlusCircle,
-  ArrowLeftRight,
-  BookOpen,
+  Camera,
   TrendingUp
 } from 'lucide-react';
 
@@ -51,18 +72,40 @@ export const App: React.FC = () => {
   const { email, personaPadreId, signOut } = useDomesticAccess();
   const { darkMode, toggleDarkMode } = useDarkMode();
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
-  const [reportsView, setReportsView] = useState<'summary' | 'accounting' | 'overdues'>('summary');
+  const [plannerView, setPlannerView] = useState<'tarjetas' | 'vencimientos' | 'presupuesto'>('tarjetas');
+  const [assetsView, setAssetsView] = useState<'bienes_uso' | 'consumo'>('bienes_uso');
+  const [accountingView, setAccountingView] = useState<'balance' | 'cierre_rt6' | 'parametros'>('balance');
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
-  useEffect(() => {
-    if (currentTab === 'atrasos') {
-      setReportsView('overdues');
-      setCurrentTab('seguimiento');
-    }
-  }, [currentTab]);
-
   const handleTabChange = (tab: string) => {
-    setCurrentTab(tab);
+    if (tab === 'dashboard' || tab === 'home') {
+      setCurrentTab('dashboard');
+    } else if (tab === 'transacciones' || tab === 'billetera') {
+      setCurrentTab('billetera');
+          } else if (tab === 'planificador' || tab === 'tarjetas') {
+      setCurrentTab('planificador');
+      setPlannerView('tarjetas');
+    } else if (tab === 'atrasos' || tab === 'vencimientos') {
+      setCurrentTab('planificador');
+      setPlannerView('vencimientos');
+    } else if (tab === 'egresos' || tab === 'fuentes_ingresos' || tab === 'presupuesto') {
+      setCurrentTab('planificador');
+      setPlannerView('presupuesto');
+    } else if (tab === 'patrimonio' || tab === 'bienes_uso') {
+      setCurrentTab('patrimonio');
+      setAssetsView('bienes_uso');
+    } else if (tab === 'bienes_cambio' || tab === 'productos_consumo') {
+      setCurrentTab('patrimonio');
+      setAssetsView('consumo');
+    } else if (tab === 'contable' || tab === 'seguimiento') {
+      setCurrentTab('contable');
+      setAccountingView('balance');
+    } else if (tab === 'parametros') {
+      setCurrentTab('contable');
+      setAccountingView('parametros');
+    } else {
+      setCurrentTab(tab);
+    }
     window.scrollTo(0, 0);
   };
   const voice = useDomesticVoice({
@@ -75,6 +118,13 @@ export const App: React.FC = () => {
   const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState<boolean>(false);
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState<boolean>(false);
   const [isRxTModalOpen, setIsRxTModalOpen] = useState<boolean>(false);
+  const receiptInput = useRef<HTMLInputElement>(null);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptDraft, setReceiptDraft] = useState<ReceiptDraft | null>(null);
+  const [newPurchase, setNewPurchase] = useState(false);
+  const purchaseDefaults = useMemo<Partial<TransactionSubmitData> | undefined>(() => newPurchase ? { operationType: 'compra', direction: 'expense' } : undefined, [newPurchase]);
+  const receiptFields = useMemo(() => receiptDraft ? receiptTransactionFields(receiptDraft) : undefined, [receiptDraft]);
+  const openReceiptCamera = () => receiptInput.current?.click();
   const [dbAccounts, setDbAccounts] = useState<DomAccountDTO[]>([]);
   const paymentMethods = useMemo<CustomPaymentMethod[]>(() => dbAccounts
     .filter(account =>
@@ -104,6 +154,8 @@ export const App: React.FC = () => {
   const [adjustments, setAdjustments] = useState<Record<string, number>>({});
 
   const transactionRepo = useMemo(() => new SupabaseDomTransactionRepository(), []);
+  const consumptionRepo = useMemo(() => new SupabaseDomConsumptionRepository(), []);
+  const monthlyCashRepo = useMemo(() => new SupabaseDomMonthlyCashRepository(), []);
   const accountingRepo = useMemo(() => new SupabaseDomAccountingRepository(), []);
   const ventureRepo = useMemo(() => new SupabaseDomVentureRepository(), []);
   const expenseRepo = useMemo(() => new SupabaseDomExpenseRepository(), []);
@@ -143,7 +195,7 @@ export const App: React.FC = () => {
       console.error('Error al cargar fuentes del presupuesto:', err);
       setProjectionError('No se pudo cargar el presupuesto. La proyección no está disponible.');
     });
-  }, [ventureRepo, expenseRepo, currentTab, personaPadreId]);
+  }, [ventureRepo, expenseRepo, personaPadreId]);
 
   // CARGAR TRANSACCIONES DESDE SUPABASE AL INICIAR
   useEffect(() => {
@@ -163,7 +215,8 @@ export const App: React.FC = () => {
             settlesTransactionId: item.settlesTransactionId,
             classificationAccountId: item.classificationAccountId,
             revision: item.revision,
-            journalEntryId: item.journalEntryId
+            journalEntryId: item.journalEntryId,
+            purchaseItems: item.purchaseItems
           }));
           setTransactions(mapped);
       })
@@ -214,13 +267,25 @@ export const App: React.FC = () => {
     }));
   };
 
-  const handleOpenNewTransactionModal = () => {
+  const [modalInitialData, setModalInitialData] = useState<Partial<TransactionSubmitData> | undefined>(undefined);
+
+  const handleOpenNewTransactionModal = (forcedDirection?: 'income' | 'expense' | React.MouseEvent) => {
+    const direction = (forcedDirection === 'income' || forcedDirection === 'expense') ? forcedDirection : undefined;
+    setNewPurchase(direction === 'expense');
+    setReceiptDraft(null);
     setEditingTransaction(null);
+    setModalInitialData(direction ? {
+      direction,
+      operationType: direction === 'expense' ? 'compra' : 'venta',
+      paymentCondition: 'contado'
+    } : undefined);
     setTransactionModalMode('nuevo');
     setIsTransactionModalOpen(true);
   };
 
   const handleOpenEditTransactionModal = (tx: TransactionItem) => {
+    setNewPurchase(false);
+    setReceiptDraft(null);
     setEditingTransaction(tx);
     setTransactionModalMode('editar');
     setIsTransactionModalOpen(true);
@@ -362,7 +427,8 @@ export const App: React.FC = () => {
       operationType: opType,
       paymentCondition: condition,
       settlesTransactionId: data.settlesTransactionId || null,
-      classificationAccountId: classification?.id || null
+      classificationAccountId: classification?.id || null,
+      purchaseItems: data.purchaseItems
     }, [
       { accountId: debitAccount.id, debit: amount.toAmount(), credit: 0, memo: data.description },
       { accountId: creditAccount.id, debit: 0, credit: amount.toAmount(), memo: data.description }
@@ -382,7 +448,8 @@ export const App: React.FC = () => {
       settlesTransactionId: saved.settlesTransactionId,
       classificationAccountId: saved.classificationAccountId,
       revision: saved.revision,
-      journalEntryId: saved.journalEntryId
+      journalEntryId: saved.journalEntryId,
+      purchaseItems: saved.purchaseItems
     };
     setTransactions(previous => editingTransaction
       ? previous.map(tx => tx.id === item.id ? item : tx)
@@ -470,7 +537,8 @@ export const App: React.FC = () => {
     .reduce((sum, account) => sum + account.currentBalance, 0));
   const cashAvailable = Money.fromAmount(accountBalance('1.1.01.01'));
   const bankAvailable = Money.fromAmount(accountBalance('1.1.02.01') + accountBalance('1.1.02.02'));
-  const cardsAvailable = null;
+  const cardDebtBalance = verifiedAccountBalance('2.1.01.04');
+  const cardDebt = cardDebtBalance == null ? null : Money.fromAmount(cardDebtBalance);
 
   return (
     <div className="flex min-h-dvh min-w-0 bg-[#F4F6F8] dark:bg-[#070D1B] text-[#172033] dark:text-gray-100 transition-colors duration-300">
@@ -493,27 +561,33 @@ export const App: React.FC = () => {
           onOpenVoice={voice.open}
           voiceActive={voice.active}
           voiceVisible={voice.visible}
-          onOpenRevaluation={() => setIsRxTModalOpen(true)}
+          onOpenCamera={openReceiptCamera}
           onOpenMore={() => setMobileMenuOpen(true)}
           moreOpen={mobileMenuOpen}
         />
 
         <main id="main-content" className="flex-1 min-w-0 w-full px-3 pt-[max(1rem,env(safe-area-inset-top))] pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-5 sm:pt-5 lg:px-6 lg:pt-6 lg:pb-8 xl:px-8 2xl:px-10">
-          {/* MÓDULO HOME */}
+          {/* 0. MÓDULO HOME (TODO LIST MINIMALISTA) */}
           {currentTab === 'dashboard' && (
             <HomeDueTasksPanel onOpenExpenses={() => handleTabChange('egresos')} />
           )}
 
-          {/* MÓDULO TRANSACCIONES */}
-          {currentTab === 'transacciones' && (
-            <>
+          <Suspense fallback={<PanelSkeleton />}>
+
+          {/* 1. MÓDULO BILLETERA & DIARIO (SALDOS + MOVIMIENTOS INTEGRADOS) */}
+          {(currentTab === 'billetera' || currentTab === 'transacciones') && (
+            <div className="space-y-6">
               <PageHeader
-                title="Transacciones"
-                icon={ArrowLeftRight}
+                title="Billetera & Diario Operativo"
+                subtitle="Registro contable automático, tesorería y comprobantes"
+                icon={Wallet}
                 iconBgColor="bg-[#0088FF]"
-                actionContainerClassName="hidden lg:flex"
+                actionContainerClassName="flex"
                 action={
                   <div className="flex flex-wrap items-center gap-2.5">
+                    <button type="button" onClick={openReceiptCamera} className="flex items-center gap-2 rounded-xl bg-[#0088FF] px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-600 transition-colors">
+                      <Camera className="h-4 w-4" /> Fotografiar comprobante
+                    </button>
                     <button
                       onClick={handleOpenNewTransactionModal}
                       className="flex items-center gap-2 bg-[#0088FF] hover:bg-blue-600 text-white text-xs md:text-sm font-bold px-4 py-2.5 rounded-xl shadow-md shadow-blue-500/20 transition-all cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
@@ -531,192 +605,296 @@ export const App: React.FC = () => {
                   </div>
                 }
               />
-              {transactionError && <p role="alert" className="mb-3 rounded-xl border border-red-500 p-3 text-sm text-red-700 dark:text-red-300">{transactionError}</p>}
+
+              {transactionError && (
+                <p role="alert" className="rounded-xl border border-red-500 p-3 text-sm text-red-700 dark:text-red-300">
+                  {transactionError}
+                </p>
+              )}
+
+              {/* Saldos de Tesorería */}
+              {accountsLoading ? (
+                <p role="status" className="text-sm text-gray-500">Cargando saldos contables…</p>
+              ) : accountsError || dbAccounts.length === 0 ? (
+                <p role="alert" className="rounded-xl border border-amber-500 p-4 text-sm text-amber-700 dark:text-amber-300">
+                  {accountsError || 'No hay plan de cuentas para mostrar saldos.'}
+                </p>
+              ) : (
+                <MainDashboardKPIs
+                  accountsReceivable={accountsReceivable}
+                  accountsPayable={accountsPayable}
+                  cashAvailable={cashAvailable}
+                  bankAvailable={bankAvailable}
+                  cardDebt={cardDebt}
+                />
+              )}
+
+              {/* Movimientos & Asientos */}
               <TransactionsPanel
                 transactions={transactions}
                 onEditTransaction={handleOpenEditTransactionModal}
                 onDeleteTransaction={handleDeleteTransaction}
                 paymentMethods={paymentMethods}
               />
-            </>
+            </div>
           )}
 
-          {/* MÓDULO FUENTES DE INGRESOS */}
-          {(currentTab === 'fuentes_ingresos' || currentTab === 'emprendimientos') && (
-            <VenturesPanel onVenturesChange={() => {
-              ventureRepo.getVentures(personaPadreId).then(v => setDbVentures(v));
-            }} />
-          )}
-
-          {/* MÓDULO ESTRUCTURA DE EGRESOS */}
-          {currentTab === 'egresos' && (
-            <ExpensesPanel />
-          )}
-
-          {/* MÓDULO REPORTES CONTABLES */}
-          {currentTab === 'seguimiento' && (
-            <>
+          {/* 2. MÓDULO PLANIFICADOR & TARJETAS */}
+          {(currentTab === 'planificador' || currentTab === 'egresos' || currentTab === 'fuentes_ingresos' || currentTab === 'escenario' || currentTab === 'atrasos') && (
+            <div>
               <PageHeader
-                title="Reportes y Dashboard"
-                subtitle="Indicadores financieros, reportes contables y atrasos"
-                icon={BookOpen}
-                iconBgColor="bg-[#0f8a5f]"
+                title="Planificador & Tarjetas"
+                subtitle="Cuotas, vencimientos mensuales y estructura presupuestaria"
+                icon={Receipt}
+                iconBgColor="bg-[#F59E0B]"
               />
-              <div className="mb-5 grid grid-cols-1 gap-2 rounded-2xl bg-gray-200/80 p-1.5 dark:bg-[#1E293B] sm:inline-grid sm:grid-cols-3 sm:min-w-[32rem]">
+
+              <div className="mb-5 inline-flex rounded-2xl bg-gray-200/80 p-1.5 dark:bg-[#1E293B]">
                 <button
                   type="button"
-                  onClick={() => setReportsView('summary')}
-                  aria-pressed={reportsView === 'summary'}
-                  className={`rounded-xl px-3 py-2.5 text-xs font-bold transition-colors ${reportsView === 'summary' ? 'bg-[#12355b] text-white shadow-sm dark:bg-[#0088FF]' : 'text-gray-700 hover:bg-white/50 dark:text-gray-300 dark:hover:bg-gray-800'}`}
+                  onClick={() => setPlannerView('tarjetas')}
+                  aria-pressed={plannerView === 'tarjetas'}
+                  className={`rounded-xl px-4 py-2 text-xs font-bold transition-colors ${plannerView === 'tarjetas' ? 'bg-[#F59E0B] text-white shadow-sm' : 'text-gray-700 hover:bg-white/50 dark:text-gray-300 dark:hover:bg-gray-800'}`}
                 >
-                  Dashboard
+                  Tarjetas & Cuotas
                 </button>
                 <button
                   type="button"
-                  onClick={() => setReportsView('accounting')}
-                  aria-pressed={reportsView === 'accounting'}
-                  className={`rounded-xl px-3 py-2.5 text-xs font-bold transition-colors ${reportsView === 'accounting' ? 'bg-[#12355b] text-white shadow-sm dark:bg-[#0088FF]' : 'text-gray-700 hover:bg-white/50 dark:text-gray-300 dark:hover:bg-gray-800'}`}
+                  onClick={() => setPlannerView('vencimientos')}
+                  aria-pressed={plannerView === 'vencimientos'}
+                  className={`rounded-xl px-4 py-2 text-xs font-bold transition-colors ${plannerView === 'vencimientos' ? 'bg-[#F59E0B] text-white shadow-sm' : 'text-gray-700 hover:bg-white/50 dark:text-gray-300 dark:hover:bg-gray-800'}`}
                 >
-                  Reportes contables
+                  Vencimientos & Atrasos
                 </button>
                 <button
                   type="button"
-                  onClick={() => setReportsView('overdues')}
-                  aria-pressed={reportsView === 'overdues'}
-                  className={`rounded-xl px-3 py-2.5 text-xs font-bold transition-colors ${reportsView === 'overdues' ? 'bg-[#12355b] text-white shadow-sm dark:bg-[#0088FF]' : 'text-gray-700 hover:bg-white/50 dark:text-gray-300 dark:hover:bg-gray-800'}`}
+                  onClick={() => setPlannerView('presupuesto')}
+                  aria-pressed={plannerView === 'presupuesto'}
+                  className={`rounded-xl px-4 py-2 text-xs font-bold transition-colors ${plannerView === 'presupuesto' ? 'bg-[#F59E0B] text-white shadow-sm' : 'text-gray-700 hover:bg-white/50 dark:text-gray-300 dark:hover:bg-gray-800'}`}
                 >
-                  Pendientes
+                  Estructura Presupuestaria
                 </button>
               </div>
-              {reportsView === 'summary' ? (
-                <div>
-                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                    <h2 className="text-lg font-bold text-[#172033] dark:text-white">Resumen financiero</h2>
-                    <button
-                      type="button"
-                      onClick={() => setIsRxTModalOpen(true)}
-                      className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#059669] px-4 py-2 text-xs font-bold text-white hover:bg-[#047857]"
-                    >
-                      <TrendingUp className="h-4 w-4" aria-hidden="true" />
-                      Revaluar activos (RxT)
-                    </button>
-                  </div>
-                  {accountsLoading ? (
-                    <p role="status" className="mb-4 text-sm text-gray-500">Cargando saldos contables…</p>
-                  ) : accountsError || dbAccounts.length === 0 ? (
-                    <p role="alert" className="mb-4 rounded-xl border border-amber-500 p-4 text-sm text-amber-700 dark:text-amber-300">
-                      {accountsError || 'No hay plan de cuentas para mostrar saldos.'}
-                    </p>
+
+              {plannerView === 'tarjetas' && (
+                <MonthlyCashPanel
+                  personaPadreId={personaPadreId}
+                  repository={monthlyCashRepo}
+                  cardDebt={accountsLoading || accountsError ? null : cardDebt}
+                  onTransactions={() => handleTabChange('transacciones')}
+                />
+              )}
+
+              {plannerView === 'vencimientos' && (
+                <div className="space-y-6">
+                  <OverduesPanel transactions={transactions} />
+                </div>
+              )}
+
+              {plannerView === 'presupuesto' && (
+                <div className="space-y-8">
+                  <ExpensesPanel />
+                  <VenturesPanel onVenturesChange={() => {
+                    ventureRepo.getVentures(personaPadreId).then(v => setDbVentures(v));
+                  }} />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 3. MÓDULO PATRIMONIO & BIENES */}
+          {(currentTab === 'patrimonio' || currentTab === 'bienes_uso' || currentTab === 'bienes_cambio' || currentTab === 'productos_consumo') && (
+            <div>
+              <PageHeader
+                title="Patrimonio & Bienes"
+                subtitle="Bienes de uso, amortizaciones RT 54 y gestión de consumo"
+                icon={Building2}
+                iconBgColor="bg-[#8B5CF6]"
+              />
+
+              <div className="mb-5 inline-flex rounded-2xl bg-gray-200/80 p-1.5 dark:bg-[#1E293B]">
+                <button
+                  type="button"
+                  onClick={() => setAssetsView('bienes_uso')}
+                  aria-pressed={assetsView === 'bienes_uso'}
+                  className={`rounded-xl px-4 py-2 text-xs font-bold transition-colors ${assetsView === 'bienes_uso' ? 'bg-[#8B5CF6] text-white shadow-sm' : 'text-gray-700 hover:bg-white/50 dark:text-gray-300 dark:hover:bg-gray-800'}`}
+                >
+                  Bienes de Uso (RT 54)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAssetsView('consumo')}
+                  aria-pressed={assetsView === 'consumo'}
+                  className={`rounded-xl px-4 py-2 text-xs font-bold transition-colors ${assetsView === 'consumo' ? 'bg-[#8B5CF6] text-white shadow-sm' : 'text-gray-700 hover:bg-white/50 dark:text-gray-300 dark:hover:bg-gray-800'}`}
+                >
+                  Productos & Consumo
+                </button>
+              </div>
+
+              {assetsView === 'bienes_uso' ? (
+                <FixedAssetsPanel />
+              ) : (
+                <div className="space-y-6">
+                  <ProductsConsumptionPanel
+                    personaPadreId={personaPadreId}
+                    repository={consumptionRepo}
+                    onPhoto={openReceiptCamera}
+                    onNewPurchase={() => { handleOpenNewTransactionModal(); setNewPurchase(true); }}
+                    onOpenTransaction={id => {
+                      const transaction = transactions.find(item => item.id === id);
+                      if (!transaction) { setTransactionError('Actualizá Transacciones para abrir ese comprobante.'); handleTabChange('transacciones'); return; }
+                      setReceiptDraft(null); setNewPurchase(false); setEditingTransaction(transaction);
+                      setTransactionModalMode('ver'); setIsTransactionModalOpen(true);
+                    }}
+                  />
+                  <InventoryPanel />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 4. MÓDULO TABLERO CONTABLE RT 6 */}
+          {(currentTab === 'contable' || currentTab === 'seguimiento' || currentTab === 'parametros') && (
+            <div>
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <PageHeader
+                  title="Tablero Contable RT 6"
+                  subtitle="Estados contables, ajuste por inflación (RECPAM) y tenencia (RxT)"
+                  icon={BookOpen}
+                  iconBgColor="bg-[#059669]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setIsRxTModalOpen(true)}
+                  className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#059669] px-4 py-2 text-xs font-bold text-white hover:bg-[#047857] shadow-md shadow-emerald-500/20"
+                >
+                  <TrendingUp className="h-4 w-4" aria-hidden="true" />
+                  Revaluar activos (RxT)
+                </button>
+              </div>
+
+              <div className="mb-5 inline-flex rounded-2xl bg-gray-200/80 p-1.5 dark:bg-[#1E293B]">
+                <button
+                  type="button"
+                  onClick={() => setAccountingView('balance')}
+                  aria-pressed={accountingView === 'balance'}
+                  className={`rounded-xl px-4 py-2 text-xs font-bold transition-colors ${accountingView === 'balance' ? 'bg-[#059669] text-white shadow-sm' : 'text-gray-700 hover:bg-white/50 dark:text-gray-300 dark:hover:bg-gray-800'}`}
+                >
+                  Balance & Resultados
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAccountingView('cierre_rt6')}
+                  aria-pressed={accountingView === 'cierre_rt6'}
+                  className={`rounded-xl px-4 py-2 text-xs font-bold transition-colors ${accountingView === 'cierre_rt6' ? 'bg-[#059669] text-white shadow-sm' : 'text-gray-700 hover:bg-white/50 dark:text-gray-300 dark:hover:bg-gray-800'}`}
+                >
+                  Ajuste RT 6 & Cierre
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAccountingView('parametros')}
+                  aria-pressed={accountingView === 'parametros'}
+                  className={`rounded-xl px-4 py-2 text-xs font-bold transition-colors ${accountingView === 'parametros' ? 'bg-[#059669] text-white shadow-sm' : 'text-gray-700 hover:bg-white/50 dark:text-gray-300 dark:hover:bg-gray-800'}`}
+                >
+                  Parámetros & IPC
+                </button>
+              </div>
+
+              {accountingView === 'balance' && (
+                <div className="space-y-6">
+                  {projectionError ? (
+                    <div role="alert" className="rounded-xl border border-amber-500 p-4 text-sm">{projectionError}</div>
                   ) : (
-                    <MainDashboardKPIs
-                      accountsReceivable={accountsReceivable}
-                      accountsPayable={accountsPayable}
-                      cashAvailable={cashAvailable}
-                      bankAvailable={bankAvailable}
-                      cardsAvailable={cardsAvailable}
+                    <FinancialChart
+                      months={projectionMonths}
+                      income={projection.income}
+                      expense={projection.expense}
+                      net={projection.net}
                     />
                   )}
-                  {projectionError ? <div role="alert" className="rounded-xl border border-amber-500 p-4 text-sm">{projectionError}</div> : <FinancialChart
+                  <ActualTrackingPanel
+                    adjustments={adjustments}
+                    nodes={nodes}
                     months={projectionMonths}
-                    income={projection.income}
-                    expense={projection.expense}
-                    net={projection.net}
-                  />}
+                    selectedMethods={selectedMethods}
+                    onMethodChange={handleMethodChange}
+                    openingBalance={openingBalance}
+                    onOpeningBalanceChange={setOpeningBalance}
+                  />
                 </div>
-              ) : reportsView === 'accounting' ? (
-                <ActualTrackingPanel
-                  adjustments={adjustments}
-                  nodes={nodes}
-                  months={projectionMonths}
-                  selectedMethods={selectedMethods}
-                  onMethodChange={handleMethodChange}
-                  openingBalance={openingBalance}
-                  onOpeningBalanceChange={setOpeningBalance}
-                />
-              ) : (
-                <OverduesPanel transactions={transactions} />
               )}
-            </>
-          )}
 
-          {/* MÓDULO ESCENARIO SIN EXTRA */}
-          {currentTab === 'escenario' && (
-            <>
-              <PageHeader
-                title="Escenario de caja sin aporte adicional"
-                subtitle="Proyección desde fuentes y egresos registrados"
-                icon={BarChart3}
-                iconBgColor="bg-amber-600"
-              />
-              <NoExtraScenarioPanel months={projectionMonths} income={projection.income}
-                expense={projection.expense} openingBalance={openingBalance} loadError={projectionError} />
-            </>
-          )}
+              {accountingView === 'cierre_rt6' && (
+                <div className="space-y-6">
+                  <RecpamInflationSection />
+                  <FiscalYearsSection />
+                </div>
+              )}
 
-          {/* MÓDULO PARÁMETROS & IPC */}
-          {currentTab === 'parametros' && (
-            <>
-              <PageHeader
-                title="Configuración contable"
-                subtitle="Cuentas de pago y ejercicios económicos"
-                icon={Settings}
-                iconBgColor="bg-slate-700"
-              />
-              <ParametersPanel
-                paymentMethods={paymentMethods}
-              />
-            </>
+              {accountingView === 'parametros' && (
+                <ParametersPanel paymentMethods={paymentMethods} />
+              )}
+            </div>
           )}
-
-          {/* MÓDULO BIENES DE USO */}
-          {currentTab === 'bienes_uso' && (
-            <FixedAssetsPanel />
-          )}
-
-          {/* MÓDULO BIENES DE CAMBIO */}
-          {currentTab === 'bienes_cambio' && (
-            <InventoryPanel />
-          )}
+          </Suspense>
         </main>
       </div>
 
-      <DomesticVoicePanel voice={voice} onNewTransaction={handleOpenNewTransactionModal} />
+      <Suspense fallback={null}>
+        <DomesticVoicePanel voice={voice} onOpenReceipt={openReceiptCamera} />
+        {receiptFile && <ReceiptCaptureModal file={receiptFile} onClose={() => setReceiptFile(null)} onRetake={openReceiptCamera}
+          onDraft={draft => {
+            setReceiptDraft(draft); setReceiptFile(null); setEditingTransaction(null);
+            setTransactionModalMode('nuevo'); setIsTransactionModalOpen(true); handleTabChange('transacciones');
+          }} />}
+        {isTransactionModalOpen && (
+          <TransactionModal
+            isOpen={isTransactionModalOpen}
+            mode={transactionModalMode}
+            onClose={() => { setIsTransactionModalOpen(false); setReceiptDraft(null); setModalInitialData(undefined); }}
+            onSubmit={handleCreateOrUpdateTransaction}
+            paymentMethods={paymentMethods}
+            accounts={dbAccounts}
+            transactions={transactions}
+            initialData={receiptFields ?? (editingTransaction ? (editingTransaction as Partial<TransactionSubmitData>) : (modalInitialData ?? purchaseDefaults))}
+            receiptDraft={receiptDraft ?? undefined}
+          />
+        )}
+        {isAdjustmentModalOpen && (
+          <AdjustmentModal
+            isOpen={isAdjustmentModalOpen}
+            onClose={() => setIsAdjustmentModalOpen(false)}
+            onApplyAdjustment={handleApplyAdjustment}
+            accounts={dbAccounts}
+            liveValues={{
+              bank_available: verifiedAccountBalance('1.1.02.01'),
+              bank_accounts: verifiedAccountBalance('1.1.02.02'),
+              cash_available: verifiedAccountBalance('1.1.01.01'),
+              receivables: verifiedAccountBalance('1.1.03.01'),
+              payables: verifiedAccountBalance('2.1.01.01'),
+              card_installments: verifiedAccountBalance('2.1.01.04')
+            }}
+          />
+        )}
+        {isRxTModalOpen && (
+          <RxTRevaluationModal
+            isOpen={isRxTModalOpen}
+            onClose={() => setIsRxTModalOpen(false)}
+            accounts={dbAccounts}
+            onSuccess={() => {
+              setIsRxTModalOpen(false);
+              refreshAccounts();
+            }}
+          />
+        )}
+      </Suspense>
       <DomesticConfirmation />
-      <TransactionModal
-        isOpen={isTransactionModalOpen}
-        mode={transactionModalMode}
-        onClose={() => setIsTransactionModalOpen(false)}
-        onSubmit={handleCreateOrUpdateTransaction}
-        paymentMethods={paymentMethods}
-        accounts={dbAccounts}
-        transactions={transactions}
-        initialData={editingTransaction ? (editingTransaction as any) : undefined}
-      />
-
-      <AdjustmentModal
-        isOpen={isAdjustmentModalOpen}
-        onClose={() => setIsAdjustmentModalOpen(false)}
-        onApplyAdjustment={handleApplyAdjustment}
-        accounts={dbAccounts}
-        liveValues={{
-          bank_available: verifiedAccountBalance('1.1.02.01'),
-          bank_accounts: verifiedAccountBalance('1.1.02.02'),
-          cash_available: verifiedAccountBalance('1.1.01.01'),
-          receivables: verifiedAccountBalance('1.1.03.01'),
-          payables: verifiedAccountBalance('2.1.01.01'),
-          card_installments: verifiedAccountBalance('2.1.01.04')
-        }}
-      />
-
-      <RxTRevaluationModal
-        isOpen={isRxTModalOpen}
-        onClose={() => setIsRxTModalOpen(false)}
-        accounts={dbAccounts}
-        onSuccess={() => {
-          setIsRxTModalOpen(false);
-          refreshAccounts();
-        }}
-      />
+      <input ref={receiptInput} type="file" accept="image/*" capture="environment" className="hidden" aria-label="Foto de ticket o factura"
+        onChange={event => {
+          const file = event.target.files?.[0];
+          event.target.value = '';
+          if (file) setReceiptFile(file);
+        }} />
     </div>
   );
 };

@@ -1,3 +1,4 @@
+import { RecpamInflationSection } from './RecpamInflationSection';
 import React from 'react';
 import { CustomPaymentMethod } from '../../domain/shared/PaymentMethod';
 import { CreditCard, Building2, Wallet } from 'lucide-react';
@@ -101,7 +102,10 @@ export const ParametersPanel: React.FC<ParametersPanelProps> = ({
       </section>
 
 
-      {/* SECCIÓN 2: GESTIÓN DE EJERCICIOS ECONÓMICOS Y SALDOS INICIALES */}
+      {/* SECCIÓN 2: AJUSTE POR INFLACIÓN EN MONEDA HOMOGÉNEA (RT 6) */}
+      <RecpamInflationSection />
+
+      {/* SECCIÓN 3: GESTIÓN DE EJERCICIOS ECONÓMICOS Y SALDOS INICIALES */}
       <FiscalYearsSection />
 
     </div>

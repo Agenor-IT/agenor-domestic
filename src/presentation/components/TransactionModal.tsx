@@ -7,8 +7,10 @@ import {
   Save,
   FileText,
   CreditCard,
-  ShoppingCart,
-  TrendingUp,
+    TrendingUp,
+  TrendingDown,
+  ChevronDown,
+  ChevronUp,
   Info
 } from 'lucide-react';
 import { SupabaseDomExpenseRepository } from '../../infrastructure/SupabaseDomExpenseRepository';
@@ -21,6 +23,9 @@ import { SearchableStructureSelect, StructureOption } from './SearchableStructur
 import { TransactionItem } from './TransactionsPanel';
 import { argentinaDate } from '../../domain/shared/argentinaDate';
 import { DomAccountDTO } from '../../domain/repositories/IAccountingRepository';
+import { ReceiptDraft } from '../../domain/receipts/ReceiptDraft';
+import { PurchaseItemInput, validatePurchaseItems } from '../../domain/consumption/Consumption';
+import { PurchaseItemsEditor } from './PurchaseItemsEditor';
 
 export interface TransactionSubmitData {
   description: string;
@@ -38,6 +43,7 @@ export interface TransactionSubmitData {
   settlesTransactionId?: string | null;
   requestId: string;
   classificationAccountId?: number | null;
+  purchaseItems?: PurchaseItemInput[];
 }
 
 interface TransactionModalProps {
@@ -49,6 +55,7 @@ interface TransactionModalProps {
   accounts: DomAccountDTO[];
   transactions: TransactionItem[];
   initialData?: Partial<TransactionSubmitData> & { id?: string };
+  receiptDraft?: ReceiptDraft;
 }
 
 export const TransactionModal: React.FC<TransactionModalProps> = ({
@@ -59,7 +66,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   paymentMethods,
   accounts,
   transactions,
-  initialData
+  initialData,
+  receiptDraft
 }) => {
   const { personaPadreId } = useDomesticAccess();
   const activeMethods = paymentMethods.filter(pm => pm.active);
@@ -75,9 +83,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const [description, setDescription] = useState(initialData?.description || '');
   const [amount, setAmount] = useState(initialData?.amount || 0);
   const [direction, setDirection] = useState<'income' | 'expense'>(initialData?.direction || 'income');
-  const [paymentMethod, setPaymentMethod] = useState<string>(initialData?.paymentMethod || defaultMethodId);
-  const [occurredOn, setOccurredOn] = useState(initialData?.occurredOn || argentinaDate());
-  const [opNumber, setOpNumber] = useState(initialData?.opNumber || defaultOpNum);
+  const [paymentMethod, setPaymentMethod] = useState<string>(receiptDraft ? '' : initialData?.paymentMethod || defaultMethodId);
+  const [occurredOn, setOccurredOn] = useState(initialData?.occurredOn ?? argentinaDate());
+  const [opNumber, setOpNumber] = useState(initialData?.opNumber ?? defaultOpNum);
   const [counterparty, setCounterparty] = useState(initialData?.counterparty || '');
   const [operationType, setOperationType] = useState<TransactionSubmitData['operationType']>(
     initialData?.operationType || 'venta'
@@ -95,6 +103,23 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const [requestId, setRequestId] = useState(() => crypto.randomUUID());
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [receiptPaymentConfirmed, setReceiptPaymentConfirmed] = useState(false);
+  const [purchaseItems, setPurchaseItems] = useState<PurchaseItemInput[]>(initialData?.purchaseItems ?? []);
+  const [showAdvanced, setShowAdvanced] = useState(Boolean(receiptDraft || (initialData?.purchaseItems && initialData.purchaseItems.length > 0)));
+
+  const handleDirectionToggle = (dir: 'income' | 'expense') => {
+    if (dir === direction) return;
+    setDirection(dir);
+    if (dir === 'expense') {
+      setOperationType('compra');
+      setLinkedVentureId('');
+    } else {
+      setOperationType('venta');
+      setLinkedExpenseId('');
+    }
+    setClassificationAccountId('');
+    setSettlesTransactionId('');
+  };
 
   // Carga de egresos y fuentes de ingresos disponibles
   useEffect(() => {
@@ -114,9 +139,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setDescription(initialData?.description || '');
       setAmount(initialData?.amount || 0);
       setDirection(initialData?.direction || 'income');
-      setPaymentMethod(initialData?.paymentMethod || defaultMethodId);
-      setOccurredOn(initialData?.occurredOn || argentinaDate());
-      setOpNumber(initialData?.opNumber || `OP-${crypto.randomUUID().slice(0, 8).toUpperCase()}`);
+      setPaymentMethod(receiptDraft ? '' : initialData?.paymentMethod || defaultMethodId);
+      setOccurredOn(initialData?.occurredOn ?? argentinaDate());
+      setOpNumber(initialData?.opNumber ?? `OP-${crypto.randomUUID().slice(0, 8).toUpperCase()}`);
       setCounterparty(initialData?.counterparty || '');
       setOperationType(initialData?.operationType || 'venta');
       setPaymentCondition(initialData?.paymentCondition || 'contado');
@@ -126,8 +151,11 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setClassificationAccountId(initialData?.classificationAccountId ? String(initialData.classificationAccountId) : '');
       setRequestId(crypto.randomUUID());
       setSubmitError(null);
+      setReceiptPaymentConfirmed(false);
+      setPurchaseItems(initialData?.purchaseItems ?? []);
+      setShowAdvanced(Boolean(receiptDraft || (initialData?.purchaseItems && initialData.purchaseItems.length > 0)));
     }
-  }, [isOpen, initialData, defaultMethodId]);
+  }, [isOpen, initialData, defaultMethodId, receiptDraft]);
 
   const handleOperationTypeChange = (type: TransactionSubmitData['operationType']) => {
     setOperationType(type);
@@ -253,6 +281,10 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setSubmitError('Ingresá un importe positivo con hasta dos decimales.');
       return;
     }
+    if (receiptDraft && !receiptPaymentConfirmed) {
+      setSubmitError('Indicá si el comprobante está pagado o queda en cuenta corriente.');
+      return;
+    }
     if (!description.trim() || !counterparty.trim() || !opNumber.trim()) {
       setSubmitError('Completá concepto, contraparte y número de operación.');
       return;
@@ -265,6 +297,14 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setSubmitError('Seleccioná la cuenta contable del ingreso o gasto.');
       return;
     }
+    if (operationType !== 'compra' && purchaseItems.length) {
+      setSubmitError('El detalle de productos pertenece a una compra. Quitá los renglones antes de cambiar el tipo de operación.');
+      return;
+    }
+    let validatedItems: PurchaseItemInput[] | undefined;
+    try {
+      if (operationType === 'compra' && (purchaseItems.length || initialData?.purchaseItems !== undefined)) validatedItems = validatePurchaseItems(purchaseItems);
+    } catch (error) { setSubmitError(error instanceof Error ? error.message : 'Detalle de compra inválido.'); return; }
     setSaving(true);
     setSubmitError(null);
     try {
@@ -283,7 +323,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       linkedVentureId: linkedVentureId && linkedVentureId !== 'otro' ? linkedVentureId : undefined,
       settlesTransactionId: settlesTransactionId || null,
       requestId,
-      classificationAccountId: requiresClassification ? Number(classificationAccountId) : null
+      classificationAccountId: requiresClassification ? Number(classificationAccountId) : null,
+      purchaseItems: validatedItems
       });
       onClose();
     } catch (error) {
@@ -333,162 +374,105 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col text-xs">
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4 sm:space-y-5 sm:p-6">
-          {/* SECCIÓN 1: TIPO DE OPERACIÓN Y CONDICIÓN DE PAGO */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
-                Tipo de Operación *
-              </label>
-              <SearchableSelect
-                disabled={mode === 'ver'}
-                value={operationType}
-                onChange={(e) => handleOperationTypeChange(e.target.value as any)}
-                className="w-full font-bold border border-gray-300 dark:border-gray-700 rounded-xl p-2.5 outline-none bg-white dark:bg-[#1E293B] text-gray-900 dark:text-white focus:ring-2 focus:ring-[#0088FF]"
-              >
-                <optgroup label="Egresos y Compras">
-                  <option value="compra">Compra</option>
-                  <option value="pago">Pago</option>
-                  <option value="pago_tarjeta">Pago de tarjeta</option>
-                  <option value="alquiler_perdido">Alquiler pagado</option>
-                </optgroup>
-                <optgroup label="Ingresos y Ventas">
-                  <option value="venta">Venta</option>
-                  <option value="cobro">Cobro</option>
-                  <option value="alquiler_ganado">Alquiler cobrado</option>
-                  <option value="honorarios">Honorarios</option>
-                </optgroup>
-                <optgroup label="Otros">
-                  <option value="canje" disabled>Canje: requiere registro específico</option>
-                </optgroup>
-              </SearchableSelect>
-            </div>
+          {receiptDraft && <div role="status" className="space-y-1 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-100">
+            <p className="font-bold">Datos leídos del comprobante. Revisalos antes de guardar.</p>
+            <p>Completá los campos faltantes y elegí la cuenta contable y la condición de pago. Una factura no acredita un pago.</p>
+            {receiptDraft.currency !== 'ARS' && <p className="font-bold">Moneda detectada: {receiptDraft.currency ?? 'sin identificar'}. El importe quedó vacío: ingresá el valor en pesos que corresponda.</p>}
+          </div>}
 
-            <div>
-              <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
-                Condición de Pago / Imputación *
-              </label>
-              <SearchableSelect
-                disabled={mode === 'ver' || operationType === 'cobro' || operationType === 'pago' || operationType === 'pago_tarjeta'}
-                value={paymentCondition}
-                onChange={(e) => setPaymentCondition(e.target.value as any)}
-                className="w-full font-bold border border-gray-300 dark:border-gray-700 rounded-xl p-2.5 outline-none bg-white dark:bg-[#1E293B] text-gray-900 dark:text-white focus:ring-2 focus:ring-[#0088FF]"
-              >
-                <option value="contado">Pago inmediato o tarjeta</option>
-                <option value="cta_cte">Cuenta corriente</option>
-              </SearchableSelect>
-            </div>
+          {/* 1. SELECTOR SUPERIOR DIRECTO: GASTO vs INGRESO */}
+          <div className="grid grid-cols-2 gap-2 p-1.5 bg-gray-100 dark:bg-[#1E293B] rounded-2xl">
+            <button
+              type="button"
+              disabled={mode === 'ver'}
+              onClick={() => handleDirectionToggle('expense')}
+              className={`flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
+                direction === 'expense'
+                  ? 'bg-rose-600 text-white shadow-md'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              }`}
+            >
+              <TrendingDown className="w-4 h-4 shrink-0" />
+              <span>🔴 Registrar Gasto</span>
+            </button>
+            <button
+              type="button"
+              disabled={mode === 'ver'}
+              onClick={() => handleDirectionToggle('income')}
+              className={`flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all cursor-pointer ${
+                direction === 'income'
+                  ? 'bg-emerald-600 text-white shadow-md'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              }`}
+            >
+              <TrendingUp className="w-4 h-4 shrink-0" />
+              <span>🟢 Registrar Ingreso</span>
+            </button>
           </div>
 
-          {/* SECCIÓN 2: VÍNCULO CON ESTRUCTURA (COMPRA -> EGRESOS, VENTA -> FUENTES DE INGRESO) */}
-          {requiresClassification && (
-            <div>
-              <label htmlFor="transaction-classification" className="mb-1 block text-[11px] font-bold text-gray-700 dark:text-gray-300">
-                Cuenta contable del {direction === 'income' ? 'ingreso' : operationType === 'compra' ? 'gasto o bien' : 'gasto'} *
+          {/* 2. IMPORTE DESTACADO & CONCEPTO */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="sm:col-span-1">
+              <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                Importe Total ($ ARS) *
               </label>
-              <SearchableStructureSelect
-                id="transaction-classification"
-                value={classificationAccountId}
-                options={classificationOptions}
-                onChange={setClassificationAccountId}
-                placeholder="Buscar cuenta por código o nombre"
-                emptyLabel="No hay cuentas de resultado disponibles. Revisá el plan de cuentas."
+              <FormattedNumberInput
                 disabled={mode === 'ver'}
-                accent={direction === 'income' ? 'emerald' : 'rose'}
+                value={amount}
+                onChange={(val) => setAmount(val)}
+                placeholder="0,00"
+                className="w-full border border-gray-300 dark:border-gray-700 rounded-xl p-3 outline-none bg-white dark:bg-[#1E293B] text-gray-900 dark:text-white text-lg font-black focus:ring-2 focus:ring-[#0088FF]"
               />
             </div>
-          )}
-          <div className="bg-gray-50/70 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 rounded-xl p-3 sm:p-4 space-y-2.5">
-            {operationType === 'pago_tarjeta' ? (
-              <p className="text-xs font-semibold text-blue-700 dark:text-blue-300">
-                Cancela deuda de tarjeta contra efectivo o banco. No registra un gasto nuevo.
-              </p>
-            ) : operationType === 'cobro' || operationType === 'pago' ? (
-              <>
-                <label htmlFor="transaction-settlement-search" className="text-[11px] font-bold uppercase text-blue-600 dark:text-blue-400">
-                  Operación pendiente a cancelar *
-                </label>
-                <SearchableStructureSelect
-                  id="transaction-settlement-search"
-                  value={settlesTransactionId}
-                  options={settlementOptions}
-                  onChange={handleSelectSettlement}
-                  placeholder="Buscar por número, contraparte o concepto"
-                  emptyLabel="No hay operaciones pendientes compatibles."
-                  disabled={mode === 'ver'}
-                  accent={operationType === 'cobro' ? 'emerald' : 'rose'}
-                />
-                <p className="text-[10px] text-gray-500">Podés registrar un importe parcial. El pendiente se actualiza al guardar.</p>
-              </>
-            ) : direction === 'expense' ? (
-              <>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                  <label htmlFor="transaction-expense-search" className="text-[11px] font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1.5 uppercase tracking-wider">
-                    <ShoppingCart className="w-4 h-4 shrink-0" />
-                    <span>Autocompletar desde egresos</span>
-                  </label>
-                  <span className="text-[10px] text-gray-500">
-                    Copia los datos de referencia; no cambia el presupuesto.
-                  </span>
-                </div>
-                <SearchableStructureSelect
-                  id="transaction-expense-search"
-                  value={linkedExpenseId}
-                  options={expenseOptions}
-                  onChange={handleSelectExpense}
-                  placeholder="Buscar proveedor, concepto o categoría"
-                  emptyLabel="No hay egresos coincidentes."
-                  disabled={mode === 'ver'}
-                  accent="rose"
-                />
 
-                {selectedExpenseObj && (
-                  <div className="flex items-start sm:items-center gap-2 p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300 text-[11px] font-medium animate-in fade-in duration-150">
-                    <Info className="w-4 h-4 shrink-0 text-rose-500 mt-0.5 sm:mt-0" />
-                    <span>
-                      Se usarán los datos de <strong>"{selectedExpenseObj.supplierName} - {selectedExpenseObj.concept}"</strong> para completar la operación. El importe presupuestado no cambia.
-                    </span>
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                  <label htmlFor="transaction-venture-search" className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 uppercase tracking-wider">
-                    <TrendingUp className="w-4 h-4 shrink-0" />
-                    <span>Autocompletar desde ingresos</span>
-                  </label>
-                  <span className="text-[10px] text-gray-500">
-                    Copia los datos de referencia; no cambia el presupuesto.
-                  </span>
-                </div>
-                <SearchableStructureSelect
-                  id="transaction-venture-search"
-                  value={linkedVentureId}
-                  options={ventureOptions}
-                  onChange={handleSelectVenture}
-                  placeholder="Buscar cliente, proyecto o tipo de fuente"
-                  emptyLabel="No hay fuentes coincidentes."
+            <div className="sm:col-span-2">
+              <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                {direction === 'expense' ? '¿En qué gastaste? (Concepto) *' : 'Concepto del ingreso *'}
+              </label>
+              {receiptDraft ? (
+                <textarea
+                  required
                   disabled={mode === 'ver'}
-                  accent="emerald"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder={direction === 'expense' ? 'ej. Supermercado mensual, Nafta, Factura Luz' : 'ej. Sueldo del mes, Cobro honorarios'}
+                  rows={2}
+                  className="w-full border border-gray-300 dark:border-gray-700 rounded-xl p-3 outline-none bg-white dark:bg-[#1E293B] text-gray-900 dark:text-white text-sm font-semibold focus:ring-2 focus:ring-[#0088FF]"
                 />
-
-                {selectedVentureObj && (
-                  <div className="flex items-start sm:items-center gap-2 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[11px] font-medium animate-in fade-in duration-150">
-                    <Info className="w-4 h-4 shrink-0 text-emerald-500 mt-0.5 sm:mt-0" />
-                    <span>
-                      Se usarán los datos de <strong>"{selectedVentureObj.clientName} - {selectedVentureObj.projectName}"</strong> para completar la operación. El importe presupuestado no cambia.
-                    </span>
-                  </div>
-                )}
-              </>
-            )}
+              ) : (
+                <input
+                  type="text"
+                  required
+                  disabled={mode === 'ver'}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder={direction === 'expense' ? 'ej. Supermercado mensual, Nafta, Factura Luz' : 'ej. Sueldo del mes, Cobro honorarios'}
+                  className="w-full border border-gray-300 dark:border-gray-700 rounded-xl p-3 outline-none bg-white dark:bg-[#1E293B] text-gray-900 dark:text-white text-sm font-semibold focus:ring-2 focus:ring-[#0088FF]"
+                />
+              )}
+            </div>
           </div>
 
-          {/* SECCIÓN 3: FECHA, N° OP Y CONTRAPARTE */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* 3. LUGAR/PROVEEDOR Y FECHA */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
-                Fecha Operación *
+                {direction === 'expense' ? 'Comercio / Lugar / Proveedor *' : 'Cliente / Pagador / Origen *'}
+              </label>
+              <input
+                type="text"
+                required
+                disabled={mode === 'ver' || (['cobro', 'pago'].includes(operationType) && !!settlesTransactionId)}
+                value={counterparty}
+                onChange={(e) => setCounterparty(e.target.value)}
+                placeholder={direction === 'expense' ? 'ej. Coto, YPF, Movistar' : 'ej. Empresa Empleadora, Cliente'}
+                className="w-full border border-gray-300 dark:border-gray-700 rounded-xl p-2.5 outline-none bg-white dark:bg-[#1E293B] text-gray-900 dark:text-white font-medium focus:ring-2 focus:ring-[#0088FF]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                Fecha de la Operación *
               </label>
               <input
                 type="date"
@@ -497,61 +481,20 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 disabled={mode === 'ver'}
                 value={occurredOn}
                 onChange={(e) => setOccurredOn(e.target.value)}
-                className="w-full border border-gray-300 dark:border-gray-700 rounded-xl p-2.5 outline-none bg-white dark:bg-[#1E293B] text-gray-900 dark:text-white font-mono"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
-                N° Operación / Ref *
-              </label>
-              <input
-                type="text"
-                required
-                disabled={mode === 'ver'}
-                value={opNumber}
-                onChange={(e) => setOpNumber(e.target.value)}
-                placeholder="ej. OP-1002 / FC-0001"
-                className="w-full border border-gray-300 dark:border-gray-700 rounded-xl p-2.5 outline-none bg-white dark:bg-[#1E293B] text-gray-900 dark:text-white font-mono"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
-                Contraparte ({direction === 'income' ? 'Cliente / Pagador' : 'Proveedor / Beneficiario'}) *
-              </label>
-              <input
-                type="text"
-                required
-                disabled={mode === 'ver' || (['cobro', 'pago'].includes(operationType) && !!settlesTransactionId)}
-                value={counterparty}
-                onChange={(e) => setCounterparty(e.target.value)}
-                placeholder={direction === 'income' ? 'ej. Tupperware / Consumidor Final' : 'ej. EPEC / AFIP / Supermercado'}
-                className="w-full border border-gray-300 dark:border-gray-700 rounded-xl p-2.5 outline-none bg-white dark:bg-[#1E293B] text-gray-900 dark:text-white font-medium"
+                className="w-full border border-gray-300 dark:border-gray-700 rounded-xl p-2.5 outline-none bg-white dark:bg-[#1E293B] text-gray-900 dark:text-white font-mono focus:ring-2 focus:ring-[#0088FF]"
               />
             </div>
           </div>
 
-          {/* SECCIÓN 4: MONTO Y MEDIO DE PAGO */}
+          {/* 4. MEDIO DE PAGO Y CATEGORÍA CONTABLE */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
-                Monto Total ($ ARS) *
+                {paymentCondition === 'contado' ? '¿Cómo se pagó? (Medio de Pago) *' : 'Condición de Pago'}
               </label>
-              <FormattedNumberInput
-                disabled={mode === 'ver'}
-                value={amount}
-                onChange={(val) => setAmount(val)}
-                placeholder="0,00"
-                className="w-full border border-gray-300 dark:border-gray-700 rounded-xl p-2.5 outline-none bg-white dark:bg-[#1E293B] text-[#0088FF] dark:text-blue-400 text-base font-black"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
-                {paymentCondition === 'contado' ? 'Medio de Pago / Cuenta Tesorería *' : 'Imputación Contable Automática'}
-              </label>
-              {paymentCondition === 'contado' ? (
+              {receiptDraft && !receiptPaymentConfirmed ? (
+                <p className="rounded-xl bg-gray-50 p-2.5 text-gray-600 dark:bg-gray-800 dark:text-gray-300">Seleccioná la condición de pago.</p>
+              ) : paymentCondition === 'contado' ? (
                 <SearchableSelect
                   disabled={mode === 'ver'}
                   value={paymentMethod}
@@ -568,26 +511,184 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 <div className="p-2.5 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 rounded-xl text-[11px] font-semibold text-blue-700 dark:text-blue-300 flex items-center gap-2">
                   <CreditCard className="w-4 h-4 shrink-0" />
                   <span>
-                    {direction === 'income' ? 'Imputa a Activo: 1.1.03.01 Cuentas por Cobrar' : 'Imputa a Pasivo: 2.1.01.01 Cuentas por Pagar'}
+                    {direction === 'income' ? 'A cobrar (Cuenta Corriente 1.1.03.01)' : 'A pagar (Cuenta Corriente 2.1.01.01)'}
                   </span>
                 </div>
               )}
+              {operationType !== 'cobro' && operationType !== 'pago' && operationType !== 'pago_tarjeta' && (
+                <label className="mt-1.5 flex items-center gap-2 text-[11px] text-gray-500 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    disabled={mode === 'ver'}
+                    checked={paymentCondition === 'cta_cte'}
+                    onChange={(e) => {
+                      setPaymentCondition(e.target.checked ? 'cta_cte' : 'contado');
+                      setReceiptPaymentConfirmed(true);
+                    }}
+                    className="rounded text-[#0088FF]"
+                  />
+                  <span>Queda pendiente de pago (cuenta corriente)</span>
+                </label>
+              )}
             </div>
+
+            {requiresClassification && (
+              <div>
+                <label htmlFor="transaction-classification" className="mb-1 block text-[11px] font-bold text-gray-700 dark:text-gray-300">
+                  Categoría contable *
+                </label>
+                <SearchableStructureSelect
+                  id="transaction-classification"
+                  value={classificationAccountId}
+                  options={classificationOptions}
+                  onChange={setClassificationAccountId}
+                  placeholder={direction === 'expense' ? 'Elegí el rubro (Alimentos, Servicios, etc.)' : 'Elegí el rubro de ingreso'}
+                  emptyLabel="No hay cuentas de resultado disponibles."
+                  disabled={mode === 'ver'}
+                  accent={direction === 'income' ? 'emerald' : 'rose'}
+                />
+              </div>
+            )}
           </div>
 
-          {/* SECCIÓN 5: DESCRIPCIÓN */}
-          <div>
-            <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
-              Descripción / Leyenda Operativa
-            </label>
-            <input
-              type="text"
-              disabled={mode === 'ver'}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full border border-gray-300 dark:border-gray-700 rounded-xl p-2.5 outline-none bg-white dark:bg-[#1E293B] text-gray-900 dark:text-white font-medium"
-              placeholder="Ej: Factura de servicio / Pago mensual / Cobro honorarios"
-            />
+          {/* 5. OPCIONES AVANZADAS Y COMPROBANTE (COLAPSABLE) */}
+          <div className="border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden mt-2">
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-[#1E293B]/60 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1E293B] transition-colors cursor-pointer"
+            >
+              <span className="flex items-center gap-2">
+                <span>⚙️ Opciones avanzadas y comprobante</span>
+                {(opNumber !== defaultOpNum || linkedExpenseId || linkedVentureId || settlesTransactionId || purchaseItems.length > 0) && (
+                  <span className="w-2 h-2 rounded-full bg-[#0088FF]" />
+                )}
+              </span>
+              {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+
+            {showAdvanced && (
+              <div className="p-4 space-y-4 bg-white dark:bg-[#0F172A] border-t border-gray-200 dark:border-gray-800 animate-in fade-in duration-150">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                      N° Operación / Factura / Ticket
+                    </label>
+                    <input
+                      type="text"
+                      disabled={mode === 'ver'}
+                      value={opNumber}
+                      onChange={(e) => setOpNumber(e.target.value)}
+                      placeholder="ej. OP-1002 / FC-0001"
+                      className="w-full border border-gray-300 dark:border-gray-700 rounded-xl p-2.5 outline-none bg-white dark:bg-[#1E293B] text-gray-900 dark:text-white font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                      Tipo técnico de operación
+                    </label>
+                    <SearchableSelect
+                      disabled={mode === 'ver'}
+                      value={operationType}
+                      onChange={(e) => handleOperationTypeChange(e.target.value as any)}
+                      className="w-full font-bold border border-gray-300 dark:border-gray-700 rounded-xl p-2.5 outline-none bg-white dark:bg-[#1E293B] text-gray-900 dark:text-white"
+                    >
+                      <optgroup label="Egresos y Compras">
+                        <option value="compra">Compra habitual</option>
+                        <option value="pago">Pago de deuda previa</option>
+                        <option value="pago_tarjeta">Pago de resumen tarjeta</option>
+                        <option value="alquiler_perdido">Alquiler pagado</option>
+                      </optgroup>
+                      <optgroup label="Ingresos y Ventas">
+                        <option value="venta">Venta / Ingreso general</option>
+                        <option value="cobro">Cobro de cuenta corriente</option>
+                        <option value="alquiler_ganado">Alquiler cobrado</option>
+                        <option value="honorarios">Honorarios profesionales</option>
+                      </optgroup>
+                    </SearchableSelect>
+                  </div>
+                </div>
+
+                {/* Vínculo con presupuesto */}
+                {direction === 'expense' && operationType !== 'pago_tarjeta' && (
+                  <div>
+                    <label htmlFor="transaction-expense-search" className="text-[11px] font-bold text-rose-600 dark:text-rose-400 block mb-1">
+                      Vincular a presupuesto de egresos recurrente (opcional)
+                    </label>
+                    <SearchableStructureSelect
+                      id="transaction-expense-search"
+                      value={linkedExpenseId}
+                      options={expenseOptions}
+                      onChange={handleSelectExpense}
+                      placeholder="Buscar en presupuesto..."
+                      emptyLabel="No hay egresos en el presupuesto."
+                      disabled={mode === 'ver'}
+                      accent="rose"
+                    />
+                    {selectedExpenseObj && (
+                      <div className="mt-2 flex items-start sm:items-center gap-2 p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300 text-[11px] font-medium">
+                        <Info className="w-4 h-4 shrink-0 text-rose-500 mt-0.5 sm:mt-0" />
+                        <span>Se autocompleta desde <strong>"{selectedExpenseObj.supplierName} - {selectedExpenseObj.concept}"</strong>.</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {direction === 'income' && (
+                  <div>
+                    <label htmlFor="transaction-venture-search" className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 block mb-1">
+                      Vincular a fuente de ingreso presupuestada (opcional)
+                    </label>
+                    <SearchableStructureSelect
+                      id="transaction-venture-search"
+                      value={linkedVentureId}
+                      options={ventureOptions}
+                      onChange={handleSelectVenture}
+                      placeholder="Buscar en fuentes de ingreso..."
+                      emptyLabel="No hay fuentes presupuestadas."
+                      disabled={mode === 'ver'}
+                      accent="emerald"
+                    />
+                    {selectedVentureObj && (
+                      <div className="mt-2 flex items-start sm:items-center gap-2 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[11px] font-medium">
+                        <Info className="w-4 h-4 shrink-0 text-emerald-500 mt-0.5 sm:mt-0" />
+                        <span>Se autocompleta desde <strong>"{selectedVentureObj.clientName} - {selectedVentureObj.projectName}"</strong>.</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Cancelación de operaciones pendientes */}
+                {(operationType === 'cobro' || operationType === 'pago') && (
+                  <div>
+                    <label htmlFor="transaction-settlement-search" className="text-[11px] font-bold text-blue-600 dark:text-blue-400 block mb-1">
+                      Operación pendiente a cancelar *
+                    </label>
+                    <SearchableStructureSelect
+                      id="transaction-settlement-search"
+                      value={settlesTransactionId}
+                      options={settlementOptions}
+                      onChange={handleSelectSettlement}
+                      placeholder="Buscar pendiente por número o contraparte"
+                      emptyLabel="No hay operaciones pendientes compatibles."
+                      disabled={mode === 'ver'}
+                      accent={operationType === 'cobro' ? 'emerald' : 'rose'}
+                    />
+                  </div>
+                )}
+
+                {/* Detalle de ítems de compra */}
+                {(operationType === 'compra' || purchaseItems.length > 0) && (
+                  <PurchaseItemsEditor
+                    personaPadreId={personaPadreId}
+                    value={purchaseItems}
+                    onChange={setPurchaseItems}
+                    readOnly={mode === 'ver' || saving}
+                  />
+                )}
+              </div>
+            )}
           </div>
 
           </div>

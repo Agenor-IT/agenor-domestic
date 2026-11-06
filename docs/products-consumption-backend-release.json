@@ -1,0 +1,66 @@
+{
+  "date": "2026-10-26",
+  "project": "agenor-domestic",
+  "projectRef": "bjzvdgrtcveydpakgdkt",
+  "branch": "main",
+  "frontend": "local-only",
+  "migration": {
+    "version": "20261026153850",
+    "name": "dom_products_consumption",
+    "status": "applied"
+  },
+  "edge": {
+    "name": "dom-receipt",
+    "version": 4,
+    "status": "ACTIVE",
+    "artifactSha256": "93c016b8caf75670577823e5142ed3739637fea6961f8aa72246f737eb3668d6",
+    "authentication": "internal getUser and Domestic owner RPC"
+  },
+  "files": [
+    {
+      "file": "supabase/migrations/20261026153850_dom_products_consumption.sql",
+      "sha256": "be9caa3ae2b4da39e031f47742225a88b3e895262f2d41ae09887d263be2b2c5"
+    },
+    {
+      "file": "supabase/rollbacks/20261026153850_dom_products_consumption.sql",
+      "sha256": "de02a3abb6fa50f7fa48a95443bd18e8cb0de0b5242172df0d35b1b2aad6452d"
+    },
+    {
+      "file": "supabase/functions/dom-receipt/index.ts",
+      "sha256": "17e42684c5c8c1cb55efbb438f5c232281bb84e7edcf069b248443956d3a4542"
+    },
+    {
+      "file": "supabase/functions/dom-receipt/handler.ts",
+      "sha256": "93122d1dfb6b5c3a804d3d670f652ddfdb58c6532383ba1d7ec3513f1dd7ab8d"
+    },
+    {
+      "file": "src/domain/receipts/ReceiptDraft.ts",
+      "sha256": "b99e79c269945c6e81b3dd882baa68590c694dcf8949fd79a73a29db01537522"
+    },
+    {
+      "file": "src/domain/consumption/Consumption.ts",
+      "sha256": "894d62f15d8fe47e0fe98c2f1a71a50f5e70711e9a62153558438eb503a66b9c"
+    }
+  ],
+  "verification": {
+    "authenticatedModuleRead": "passed in actual Domestic browser session",
+    "tableRls": true,
+    "anonymousTableRead": false,
+    "authenticatedDirectDml": false,
+    "anonymousEdgeStatus": 401,
+    "foreignOriginStatus": 403,
+    "localhostOptionsStatus": 204,
+    "focusedTests": 92,
+    "typecheckDiagnostics": 0,
+    "productionTestRecordsCreated": 0
+  },
+  "pending": {
+    "successfulOcr": "Gemini HTTP 503, followed by TimeoutError in authenticated synthetic image test",
+    "realCamera": true,
+    "accountingSaveWithPostconditions": true
+  },
+  "existingProcedureSourceMd5": {
+    "dom_post_transaction": "7f036ac801e05deeb60e75722597a671",
+    "dom_void_transaction": "89a446e16b362dfc6ddffa59af72be53"
+  }
+}

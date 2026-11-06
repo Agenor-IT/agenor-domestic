@@ -38,7 +38,6 @@ export function useDomesticVoice(options: VoiceOptions) {
   const controller = useRef<VoiceCommandController | null>(null);
   const generation = useRef(0);
   const active = state !== 'idle' && state !== 'error';
-  const preferenceKey = `dom_voice_consent_v1:${options.personaPadreId}`;
 
   const stop = () => {
     generation.current++;
@@ -51,7 +50,6 @@ export function useDomesticVoice(options: VoiceOptions) {
     if (session.current) return;
     const attempt = ++generation.current;
     setVisible(true); setExpanded(true); setError(''); setTranscript(''); setAnswer(''); setState('connecting');
-    try { localStorage.setItem(preferenceKey, 'accepted'); } catch { /* optional device preference */ }
     const surface = new DomesticVoiceSurface(() => current.current.section, options.sections, section => current.current.onNavigate(section));
     const controls = new VoiceCommandController(surface);
     controller.current = controls;
@@ -130,9 +128,6 @@ export function useDomesticVoice(options: VoiceOptions) {
 
   const open = () => {
     setVisible(true); setExpanded(true);
-    let consented = false;
-    try { consented = localStorage.getItem(preferenceKey) === 'accepted'; } catch { /* show the disclosure */ }
-    if (consented && !session.current) void start();
   };
   const close = () => { stop(); setVisible(false); };
   useEffect(() => {

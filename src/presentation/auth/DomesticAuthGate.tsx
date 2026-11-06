@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { LockKeyhole, LogIn, RefreshCw, Wallet } from 'lucide-react';
+import { LockKeyhole, LogIn, RefreshCw, Wallet, Clipboard } from 'lucide-react';
 import { supabase } from '../../infrastructure/supabaseClient';
 
 interface DomesticAccess {
@@ -25,6 +25,60 @@ export const DomesticAuthGate: React.FC<{ children: React.ReactNode }> = ({ chil
   const [state, setState] = useState<GateState>({ status: 'checking' });
   const [refreshKey, setRefreshKey] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [sessionInput, setSessionInput] = useState('');
+  const [sessionLoading, setSessionLoading] = useState(false);
+
+  const handleApplySession = async (raw: string) => {
+    if (!raw.trim()) return;
+    setSessionLoading(true);
+    try {
+      let token = raw.trim();
+      let accessToken = '';
+      let refreshToken = '';
+
+      if (token.startsWith('{')) {
+        const parsed = JSON.parse(token);
+        accessToken = parsed.access_token || parsed.currentSession?.access_token || '';
+        refreshToken = parsed.refresh_token || parsed.currentSession?.refresh_token || '';
+      } else if (token.includes('access_token=')) {
+        const hash = token.includes('#') ? token.split('#')[1] : token;
+        const params = new URLSearchParams(hash);
+        accessToken = params.get('access_token') || '';
+        refreshToken = params.get('refresh_token') || '';
+      } else {
+        accessToken = token;
+      }
+
+      if (!accessToken) {
+        throw new Error('No se encontró un access_token válido.');
+      }
+
+      const { error } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken || accessToken,
+      });
+
+      if (error) throw error;
+      setRefreshKey(p => p + 1);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Token inválido';
+      setState({ status: 'error', message: 'Error al vincular sesión: ' + message });
+    } finally {
+      setSessionLoading(false);
+    }
+  };
+
+  const handlePasteAndApply = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        setSessionInput(text);
+        await handleApplySession(text);
+      }
+    } catch {
+      setState({ status: 'error', message: 'Pegá manualmente el token en el recuadro inferior.' });
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -156,6 +210,40 @@ export const DomesticAuthGate: React.FC<{ children: React.ReactNode }> = ({ chil
               <LogIn className="h-5 w-5" aria-hidden="true" />
               {submitting ? 'Abriendo Google...' : 'Continuar con Google'}
             </button>
+
+            <div className="relative my-4 flex items-center justify-center">
+              <span className="w-full border-t border-[#1E293B]"></span>
+              <span className="bg-[#0B1329] px-2 text-[10px] uppercase tracking-wider text-[#64748B]">O VINCULAR SESIÓN EXISTENTE</span>
+              <span className="w-full border-t border-[#1E293B]"></span>
+            </div>
+
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => void handlePasteAndApply()}
+                disabled={sessionLoading}
+                className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#334155] bg-[#1E293B] px-4 text-xs font-semibold text-white transition-colors hover:bg-[#334155] disabled:opacity-60"
+              >
+                <Clipboard className="h-4 w-4 text-[#38BDF8]" aria-hidden="true" />
+                {sessionLoading ? 'Vinculando...' : 'Pegar sesión del portapapeles'}
+              </button>
+              <form onSubmit={e => { e.preventDefault(); void handleApplySession(sessionInput); }} className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="O pegar token / URL aquí..."
+                  value={sessionInput}
+                  onChange={e => setSessionInput(e.target.value)}
+                  className="flex-1 rounded-xl border border-[#334155] bg-[#070D1B] px-3 py-2 text-xs text-white placeholder-[#64748B] focus:border-[#0088FF] focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={sessionLoading || !sessionInput.trim()}
+                  className="rounded-xl bg-[#0088FF] px-3 py-2 text-xs font-bold text-white hover:bg-blue-600 disabled:opacity-50"
+                >
+                  Usar
+                </button>
+              </form>
+            </div>
             {(state.status === 'error' || state.status === 'denied') && (
               <button
                 type="button"

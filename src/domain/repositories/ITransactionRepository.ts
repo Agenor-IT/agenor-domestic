@@ -1,4 +1,5 @@
 import { Money } from '../shared/Money';
+import { PurchaseItemInput } from '../consumption/Consumption';
 
 export interface TransactionDTO {
   id?: string;
@@ -19,6 +20,7 @@ export interface TransactionDTO {
   paymentCondition?: 'contado' | 'cta_cte';
   settlesTransactionId?: string | null;
   classificationAccountId?: number | null;
+  purchaseItems?: PurchaseItemInput[];
 }
 
 export interface ITransactionRepository {

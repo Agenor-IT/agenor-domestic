@@ -1,17 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import {
   LayoutDashboard,
-  Briefcase,
   Receipt,
-  BarChart3,
-  Settings,
   Sun,
   Moon,
   Wallet,
-  ArrowLeftRight,
   BookOpen,
   Building2,
-  Package,
   X,
   LogOut,
   LucideIcon
@@ -37,14 +32,10 @@ export interface NavigationItem {
 
 export const NAVIGATION_ITEMS: NavigationItem[] = [
   { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
-  { id: 'transacciones', label: 'Transacciones', icon: ArrowLeftRight },
-  { id: 'fuentes_ingresos', label: 'Fuentes de Ingresos', icon: Briefcase },
-  { id: 'egresos', label: 'Estructura de Egresos', icon: Receipt },
-  { id: 'seguimiento', label: 'Reportes y Dashboard', icon: BookOpen },
-  { id: 'bienes_uso', label: 'Bienes de Uso', icon: Building2 },
-  { id: 'bienes_cambio', label: 'Bienes de Cambio', icon: Package },
-  { id: 'escenario', label: 'Escenario Sin Extra', icon: BarChart3 },
-  { id: 'parametros', label: 'Parámetros & IPC', icon: Settings },
+  { id: 'billetera', label: 'Billetera & Diario', icon: Wallet },
+  { id: 'planificador', label: 'Planificador & Tarjetas', icon: Receipt },
+  { id: 'patrimonio', label: 'Patrimonio & Bienes', icon: Building2 },
+  { id: 'contable', label: 'Tablero Contable RT 6', icon: BookOpen },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({

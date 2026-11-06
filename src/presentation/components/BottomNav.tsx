@@ -1,19 +1,20 @@
 import React from 'react';
-import { LayoutDashboard, Menu, Mic, SlidersHorizontal, TrendingUp } from 'lucide-react';
+import { Camera, LayoutDashboard, Menu, Mic, PlusCircle } from 'lucide-react';
 
 interface BottomNavProps {
   currentTab: string;
   onTabChange: (tab: string) => void;
   onNewAdjustment: () => void;
+  onNewTransaction?: () => void;
   onOpenVoice: () => void;
   voiceActive: boolean;
   voiceVisible: boolean;
-  onOpenRevaluation: () => void;
+  onOpenCamera: () => void;
   onOpenMore: () => void;
   moreOpen: boolean;
 }
 
-export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange, onNewAdjustment, onOpenVoice, voiceActive, voiceVisible, onOpenRevaluation, onOpenMore, moreOpen }) => {
+export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange, onNewAdjustment, onNewTransaction, onOpenVoice, voiceActive, voiceVisible, onOpenCamera, onOpenMore, moreOpen }) => {
   const isMoreActive = moreOpen || currentTab !== 'dashboard';
 
   return (
@@ -35,12 +36,12 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange, o
 
       <button
         type="button"
-        onClick={onNewAdjustment}
-        aria-label="Nuevo ajuste"
+        onClick={onNewTransaction || onNewAdjustment}
+        aria-label="Nuevo movimiento"
         className="flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-0.5 text-[10px] font-semibold leading-tight text-[#94A3B8] transition-colors hover:text-white"
       >
-        <SlidersHorizontal className="h-5 w-5 shrink-0" aria-hidden="true" />
-        <span>Ajuste</span>
+        <PlusCircle className="h-5 w-5 shrink-0 text-[#0088FF]" aria-hidden="true" />
+        <span>+ Nuevo</span>
       </button>
 
       <button
@@ -60,12 +61,12 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange, o
 
       <button
         type="button"
-        onClick={onOpenRevaluation}
-        aria-label="Revaluar activos"
+        onClick={onOpenCamera}
+        aria-label="Fotografiar comprobante"
         className="flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-0.5 text-[10px] font-semibold leading-tight text-[#94A3B8] transition-colors hover:text-white"
       >
-        <TrendingUp className="h-5 w-5 shrink-0" aria-hidden="true" />
-        <span className="max-w-full truncate">Revaluación</span>
+        <Camera className="h-5 w-5 shrink-0" aria-hidden="true" />
+        <span className="max-w-full truncate">Cámara</span>
       </button>
 
       <button

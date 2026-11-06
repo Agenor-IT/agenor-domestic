@@ -1,6 +1,8 @@
 import { ITransactionRepository, TransactionDTO } from '../domain/repositories/ITransactionRepository';
 import { supabase } from './supabaseClient';
 import { Money } from '../domain/shared/Money';
+import { ConsumptionNotEnabledError, fetchPurchaseHistory } from './SupabaseDomConsumptionRepository';
+import { validatePurchaseItems, PurchaseObservation } from '../domain/consumption/Consumption';
 
 export class SupabaseDomTransactionRepository implements ITransactionRepository {
   public async saveTransaction(
@@ -11,7 +13,9 @@ export class SupabaseDomTransactionRepository implements ITransactionRepository 
     expectedRevision: number
   ): Promise<TransactionDTO> {
     const id = tx.id || crypto.randomUUID();
-    const { data, error } = await supabase.rpc('dom_post_transaction', {
+    const purchaseItems = tx.purchaseItems === undefined ? undefined : validatePurchaseItems(tx.purchaseItems);
+    if (purchaseItems !== undefined && tx.operationType !== 'compra') throw new Error('El detalle de productos sólo corresponde a compras.');
+    const { data, error } = await supabase.rpc(purchaseItems === undefined ? 'dom_post_transaction' : 'dom_post_purchase_transaction', {
       p_persona_padre_id: tx.personaPadreId,
       p_id: id,
       p_expected_revision: expectedRevision,
@@ -30,6 +34,7 @@ export class SupabaseDomTransactionRepository implements ITransactionRepository 
         settles_transaction_id: tx.settlesTransactionId || null,
         classification_account_id: tx.classificationAccountId || null
       },
+      ...(purchaseItems === undefined ? {} : { p_purchase_items: purchaseItems }),
       p_lines: lines.map(line => ({
         account_id: line.accountId,
         debit: line.debit,
@@ -38,6 +43,7 @@ export class SupabaseDomTransactionRepository implements ITransactionRepository 
       }))
     });
     if (error || !data?.success) {
+      if (purchaseItems !== undefined && error?.code === 'PGRST202') throw new ConsumptionNotEnabledError();
       throw new Error(error?.message || 'No se pudo registrar la operación y su asiento.');
     }
     return {
@@ -76,6 +82,9 @@ export class SupabaseDomTransactionRepository implements ITransactionRepository 
       rows.push(...(data || []));
       if ((data || []).length < pageSize) break;
     }
+    let history: PurchaseObservation[] | undefined;
+    try { history = await fetchPurchaseHistory(personaPadreId); }
+    catch (error) { if (!(error instanceof ConsumptionNotEnabledError)) throw error; }
     return rows.map(item => ({
       id: item.id,
       personaPadreId: item.persona_padre_id,
@@ -94,7 +103,13 @@ export class SupabaseDomTransactionRepository implements ITransactionRepository 
       operationType: item.operation_type,
       paymentCondition: item.payment_condition,
       settlesTransactionId: item.settles_transaction_id,
-      classificationAccountId: item.classification_account_id == null ? null : Number(item.classification_account_id)
+      classificationAccountId: item.classification_account_id == null ? null : Number(item.classification_account_id),
+      ...(history === undefined || item.operation_type !== 'compra' ? {} : {
+        purchaseItems: history.filter(row => row.transactionId === item.id).map(row => ({
+          productId: row.productId, rawName: row.rawName, name: row.name, presentation: row.presentation,
+          unit: row.unit, kind: row.kind, quantity: row.quantity, lineTotal: row.lineTotal
+        }))
+      })
     }));
   }
 }

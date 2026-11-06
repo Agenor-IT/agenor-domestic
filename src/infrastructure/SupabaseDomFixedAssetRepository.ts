@@ -1,3 +1,4 @@
+import { SupabaseDomAccountingRepository } from './SupabaseDomAccountingRepository';
 import { supabase } from './supabaseClient';
 import { IFixedAssetRepository } from '../domain/repositories/IFixedAssetRepository';
 import { DomFixedAssetDTO } from '../domain/assets/DomFixedAsset';
@@ -175,9 +176,55 @@ export class SupabaseDomFixedAssetRepository implements IFixedAssetRepository {
     date: string,
     periodDescription: string
   ): Promise<{ success: boolean; entryNumber: number; message: string }> {
-    // El catálogo vive en el navegador. Un asiento remoto seguido de una actualización
-    // local no es atómico y puede dejar el Libro Diario sin su bien de respaldo.
-    void personaPadreId; void assetId; void amount; void date; void periodDescription;
-    throw new Error('La amortización contable está pausada hasta que los bienes y el asiento se registren juntos en la base. El catálogo local se conserva.');
+    const assets = await this.getFixedAssets(personaPadreId);
+    const asset = assets.find(a => a.id === assetId);
+    if (!asset) {
+      throw new Error(`Bien de uso no encontrado: ${assetId}`);
+    }
+
+    const accountingRepo = new SupabaseDomAccountingRepository();
+    const accounts = await accountingRepo.getAccounts(personaPadreId);
+
+    // Resolver cuentas de amortización
+    let expenseAccountId = asset.depreciationExpenseAccountId;
+    let accumulatedAccountId = asset.accumulatedDepreciationAccountId;
+
+    if (!expenseAccountId || !accumulatedAccountId) {
+      const codeMap: Record<string, { exp: string; acc: string }> = {
+        inmuebles: { exp: '5.1.04.01', acc: '1.2.02.01' },
+        vehiculos: { exp: '5.1.04.02', acc: '1.2.02.02' },
+        tecnologia: { exp: '5.1.04.03', acc: '1.2.02.03' },
+        muebles: { exp: '5.1.04.04', acc: '1.2.02.04' },
+        maquinaria: { exp: '5.1.04.05', acc: '1.2.02.05' },
+        instalaciones: { exp: '5.1.04.06', acc: '1.2.02.06' },
+      };
+      const mapping = codeMap[asset.category] || codeMap.tecnologia;
+      const expAcc = accounts.find(a => a.code === mapping.exp);
+      const accAcc = accounts.find(a => a.code === mapping.acc);
+      if (!expAcc || !accAcc) {
+        throw new Error('Faltan cuentas de amortización en el plan contable.');
+      }
+      expenseAccountId = expAcc.id;
+      accumulatedAccountId = accAcc.id;
+    }
+
+    const res = await accountingRepo.recordJournalEntry({
+      personaPadreId,
+      entryDate: date,
+      description: `[AMORTIZACIÓN RT 54] ${periodDescription} - ${asset.name}`,
+      referenceId: `AMORT-${assetId}-${Date.now()}`,
+      lines: [
+        { personaPadreId, accountId: expenseAccountId, debit: amount, credit: 0, memo: `Amortización ${asset.name}` },
+        { personaPadreId, accountId: accumulatedAccountId, debit: 0, credit: amount, memo: `Amortización acumulada ${asset.name}` }
+      ]
+    });
+
+    if (res.success) {
+      const nextAcc = Number((Number(asset.accumulatedDepreciation || 0) + amount).toFixed(2));
+      asset.accumulatedDepreciation = nextAcc;
+      await this.updateFixedAsset(asset.id, { accumulatedDepreciation: nextAcc });
+    }
+
+    return res;
   }
 }

@@ -1,0 +1,111 @@
+{
+  "projectId": "bjzvdgrtcveydpakgdkt",
+  "date": "2026-10-26",
+  "migration": {
+    "name": "dom_monthly_cash_plans",
+    "version": "20261026183435"
+  },
+  "functions": [
+    {
+      "name": "dom_allocate_card_cash_payment",
+      "sourceMatches": true,
+      "digest": "7fd70527e6f128feaf08afe7a0f4a6fc"
+    },
+    {
+      "name": "dom_monthly_cash_snapshot",
+      "sourceMatches": true,
+      "digest": "8beef690ecc7ffc30b81ba0751d0a028"
+    },
+    {
+      "name": "dom_save_card_cash_plan",
+      "sourceMatches": true,
+      "digest": "049c3db735ce72c247075ac2d56a8ffb"
+    },
+    {
+      "name": "dom_save_cash_card",
+      "sourceMatches": true,
+      "digest": "f15d825a35d4cceb7ca5de93575eca0e"
+    },
+    {
+      "name": "dom_schedule_cash_bill",
+      "sourceMatches": true,
+      "digest": "a38482c7126086455cda26dca4036a2e"
+    }
+  ],
+  "sha256": "4F1157EDF2428B729376197A3875B30E8005E7D110C301256D876A5C01F8FC9B",
+  "rollbackSha256": "E8092B141DBCF41821492B818562974AD656B2DCA2B9A19F307054AE3D0AE320",
+  "postgresVersion": "17.6",
+  "metadataValidation": {
+    "result": "passed",
+    "transaction": "rolled_back",
+    "financialFixtures": false,
+    "script": "supabase/tests/dom_monthly_cash_plans_metadata.sql",
+    "checks": [
+      "owner_metadata_writes",
+      "partial_below_minimum_preserved",
+      "unknown_minimum_and_plan_preserved",
+      "explicit_zero_plan",
+      "stale_edit_rejection",
+      "invalid_values_rejection",
+      "direct_client_DML_denied",
+      "anonymous_RPC_denied_by_ACL",
+      "foreign_tenant_and_unknown_caller_denied",
+      "unknown_financial_records_rejected"
+    ]
+  },
+  "postconditions": {
+    "financialUnchanged": true,
+    "baseRPCUnchanged": true,
+    "authGuardUnchanged": true,
+    "cardsUnchanged": true,
+    "journalsUnchanged": true,
+    "planningRows": {
+      "bills": 0,
+      "plans": 0,
+      "allocations": 0
+    }
+  },
+  "authenticatedOwnerBrowserRead": true,
+  "frontendProductionPublished": false,
+  "limitations": [
+    "No confirmed financial transactions exist, so positive allocation of an actual payment and scheduling of an actual invoice were not executed. No financial fixtures were created.",
+    "Cross-session concurrency stress was not performed; stale revisions and owner isolation were verified."
+  ],
+  "securityAdvisors": [
+    {
+      "lint": "authenticated_security_definer_function_executable",
+      "level": "WARN",
+      "object": "dom_allocate_card_cash_payment",
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable",
+      "detail": "Function `public.dom_allocate_card_cash_payment(p_persona_padre_id integer, p_plan_id uuid, p_transaction_id uuid, p_amount numeric, p_expected_revision integer)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/dom_allocate_card_cash_payment`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional."
+    },
+    {
+      "lint": "authenticated_security_definer_function_executable",
+      "level": "WARN",
+      "object": "dom_monthly_cash_snapshot",
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable",
+      "detail": "Function `public.dom_monthly_cash_snapshot(p_persona_padre_id integer)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/dom_monthly_cash_snapshot`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional."
+    },
+    {
+      "lint": "authenticated_security_definer_function_executable",
+      "level": "WARN",
+      "object": "dom_save_card_cash_plan",
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable",
+      "detail": "Function `public.dom_save_card_cash_plan(p_persona_padre_id integer, p_plan jsonb)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/dom_save_card_cash_plan`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional."
+    },
+    {
+      "lint": "authenticated_security_definer_function_executable",
+      "level": "WARN",
+      "object": "dom_save_cash_card",
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable",
+      "detail": "Function `public.dom_save_cash_card(p_persona_padre_id integer, p_card jsonb)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/dom_save_cash_card`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional."
+    },
+    {
+      "lint": "authenticated_security_definer_function_executable",
+      "level": "WARN",
+      "object": "dom_schedule_cash_bill",
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable",
+      "detail": "Function `public.dom_schedule_cash_bill(p_persona_padre_id integer, p_transaction_id uuid, p_due_date date, p_expense_id bigint, p_budget_month date, p_expected_revision integer)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/dom_schedule_cash_bill`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional."
+    }
+  ]
+}

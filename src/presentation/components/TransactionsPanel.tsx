@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useDeferredValue, useEffect } from 'react';
 import { Money } from '../../domain/shared/Money';
+import { PurchaseItemInput } from '../../domain/consumption/Consumption';
 import { CustomPaymentMethod } from '../../domain/shared/PaymentMethod';
 import {
   Pencil,
@@ -10,10 +11,12 @@ import {
   Building2,
   Wallet,
   Search,
-  X
+  X,
+  PlusCircle
 } from 'lucide-react';
 
 export interface TransactionItem {
+  purchaseItems?: PurchaseItemInput[];
   id: string;
   description: string;
   amount: number;
@@ -35,27 +38,47 @@ interface TransactionsPanelProps {
   onEditTransaction: (tx: TransactionItem) => void;
   onDeleteTransaction: (id: string) => void;
   paymentMethods: CustomPaymentMethod[];
+  onNewTransaction?: () => void;
 }
 
 export const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
   transactions,
   onEditTransaction,
   onDeleteTransaction,
-  paymentMethods
+  paymentMethods,
+  onNewTransaction
 }) => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const PAGE_SIZE = 25;
 
-  const filteredTransactions = transactions.filter((tx) => {
-    const searchLower = searchTerm.trim().toLowerCase();
-    const matchesSearch = tx.description.toLowerCase().includes(searchLower) ||
-      (tx.counterparty || '').toLowerCase().includes(searchLower) ||
-      (tx.opNumber || '').toLowerCase().includes(searchLower) ||
-      tx.occurredOn.includes(searchLower) ||
-      tx.amount.toString().includes(searchLower);
-    const matchesType = filterType === 'all' || tx.direction === filterType;
-    return matchesSearch && matchesType;
-  });
+  const deferredSearch = useDeferredValue(searchTerm);
+
+  const filteredTransactions = useMemo(() => {
+    const searchLower = deferredSearch.trim().toLowerCase();
+    if (!searchLower && filterType === 'all') return transactions;
+    return transactions.filter((tx) => {
+      const matchesSearch = !searchLower ||
+        tx.description.toLowerCase().includes(searchLower) ||
+        (tx.counterparty || '').toLowerCase().includes(searchLower) ||
+        (tx.opNumber || '').toLowerCase().includes(searchLower) ||
+        tx.occurredOn.includes(searchLower) ||
+        tx.amount.toString().includes(searchLower);
+      const matchesType = filterType === 'all' || tx.direction === filterType;
+      return matchesSearch && matchesType;
+    });
+  }, [transactions, deferredSearch, filterType]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [deferredSearch, filterType]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / PAGE_SIZE));
+  const paginatedTransactions = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filteredTransactions.slice(start, start + PAGE_SIZE);
+  }, [filteredTransactions, currentPage]);
 
   const getMethodName = (methodId: string, condition?: string) => {
     if (condition === 'cta_cte' || methodId === 'cta_cte') return 'Cuenta Corriente';
@@ -101,7 +124,18 @@ export const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
               </button>
             )}
           </div>
-          <div role="group" aria-label="Filtrar transacciones" className="grid w-full grid-cols-3 gap-1 rounded-xl bg-gray-100 p-1 dark:bg-[#1E293B] md:w-auto md:min-w-64">
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            {onNewTransaction && (
+              <button
+                type="button"
+                onClick={onNewTransaction}
+                className="flex items-center gap-1.5 bg-[#0088FF] hover:bg-blue-600 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all shadow-sm shrink-0"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>+ Nuevo</span>
+              </button>
+            )}
+            <div role="group" aria-label="Filtrar transacciones" className="grid flex-1 grid-cols-3 gap-1 rounded-xl bg-gray-100 p-1 dark:bg-[#1E293B] md:w-auto md:min-w-64">
             {([['all', 'Todas'], ['income', 'Ingresos'], ['expense', 'Egresos']] as const).map(([value, label]) => (
               <button
                 key={value}
@@ -113,6 +147,7 @@ export const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
                 {label}
               </button>
             ))}
+            </div>
           </div>
         </div>
 
@@ -125,7 +160,7 @@ export const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
             </div>
           ) : (
             <ul className="divide-y divide-gray-200 dark:divide-gray-800">
-              {filteredTransactions.map((tx) => (
+              {paginatedTransactions.map((tx) => (
                 <li key={tx.id} className="min-w-0 space-y-3 p-4">
                   <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                     <div className="min-w-0 flex-1">
@@ -179,7 +214,7 @@ export const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
                   </td>
                 </tr>
               ) : (
-                filteredTransactions.map((tx) => (
+                paginatedTransactions.map((tx) => (
                   <tr key={tx.id} className="record-row hover:bg-gray-50/80 dark:hover:bg-[#1E293B]/50 transition-colors">
                     <td data-label="N° OP" data-mobile-hidden="true" className="py-3.5 px-4 font-mono font-bold text-[#0088FF] dark:text-blue-400 whitespace-nowrap sticky left-0 z-10 bg-white dark:bg-[#0F172A] lg:static lg:bg-transparent lg:dark:bg-transparent">
                       {tx.opNumber || `OP-${tx.id.slice(-4)}`}
@@ -246,9 +281,37 @@ export const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
           </table>
         </div>
 
-        {transactions.length > 0 && <p className="border-t border-gray-200 px-4 py-3 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
-          {filteredTransactions.length} de {transactions.length} transacciones
-        </p>}
+        {/* Barra de paginación y resumen */}
+        {transactions.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-gray-200 px-4 py-3 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400 bg-gray-50/50 dark:bg-[#0F172A]/80">
+            <span>
+              Mostrando <strong className="text-gray-900 dark:text-white">{(currentPage - 1) * PAGE_SIZE + 1}</strong> - <strong className="text-gray-900 dark:text-white">{Math.min(currentPage * PAGE_SIZE, filteredTransactions.length)}</strong> de <strong className="text-gray-900 dark:text-white">{filteredTransactions.length}</strong> operaciones {filteredTransactions.length < transactions.length ? `(filtradas de ${transactions.length})` : ''}
+            </span>
+            {totalPages > 1 && (
+              <div className="inline-flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-2.5 py-1 rounded-lg border border-gray-200 dark:border-gray-700 font-semibold text-gray-700 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                >
+                  Anterior
+                </button>
+                <span className="px-2 py-0.5 text-gray-600 dark:text-gray-400 font-medium">
+                  {currentPage} / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-2.5 py-1 rounded-lg border border-gray-200 dark:border-gray-700 font-semibold text-gray-700 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                >
+                  Siguiente
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
