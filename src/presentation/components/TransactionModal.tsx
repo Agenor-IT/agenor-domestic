@@ -26,6 +26,7 @@ import { DomAccountDTO } from '../../domain/repositories/IAccountingRepository';
 import { ReceiptDraft } from '../../domain/receipts/ReceiptDraft';
 import { PurchaseItemInput, validatePurchaseItems } from '../../domain/consumption/Consumption';
 import { PurchaseItemsEditor } from './PurchaseItemsEditor';
+import { validPlanDate } from '../../domain/cashflow/MonthlyCashPlan';
 
 export interface TransactionSubmitData {
   description: string;
@@ -44,6 +45,8 @@ export interface TransactionSubmitData {
   requestId: string;
   classificationAccountId?: number | null;
   purchaseItems?: PurchaseItemInput[];
+  billDueDate?: string | null;
+  billScheduleRevision?: number;
 }
 
 interface TransactionModalProps {
@@ -85,6 +88,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const [direction, setDirection] = useState<'income' | 'expense'>(initialData?.direction || 'income');
   const [paymentMethod, setPaymentMethod] = useState<string>(receiptDraft ? '' : initialData?.paymentMethod || defaultMethodId);
   const [occurredOn, setOccurredOn] = useState(initialData?.occurredOn ?? argentinaDate());
+  const [billDueDate, setBillDueDate] = useState(initialData?.billDueDate ?? '');
   const [opNumber, setOpNumber] = useState(initialData?.opNumber ?? defaultOpNum);
   const [counterparty, setCounterparty] = useState(initialData?.counterparty || '');
   const [operationType, setOperationType] = useState<TransactionSubmitData['operationType']>(
@@ -141,6 +145,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setDirection(initialData?.direction || 'income');
       setPaymentMethod(receiptDraft ? '' : initialData?.paymentMethod || defaultMethodId);
       setOccurredOn(initialData?.occurredOn ?? argentinaDate());
+      setBillDueDate(initialData?.billDueDate ?? '');
       setOpNumber(initialData?.opNumber ?? `OP-${crypto.randomUUID().slice(0, 8).toUpperCase()}`);
       setCounterparty(initialData?.counterparty || '');
       setOperationType(initialData?.operationType || 'venta');
@@ -285,6 +290,10 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setSubmitError('Indicá si el comprobante está pagado o queda en cuenta corriente.');
       return;
     }
+    if (operationType === 'compra' && paymentCondition === 'cta_cte' && billDueDate && !validPlanDate(billDueDate)) {
+      setSubmitError('Revisá la fecha de vencimiento.');
+      return;
+    }
     if (!description.trim() || !counterparty.trim() || !opNumber.trim()) {
       setSubmitError('Completá concepto, contraparte y número de operación.');
       return;
@@ -324,7 +333,11 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       settlesTransactionId: settlesTransactionId || null,
       requestId,
       classificationAccountId: requiresClassification ? Number(classificationAccountId) : null,
-      purchaseItems: validatedItems
+      purchaseItems: validatedItems,
+      ...(operationType === 'compra' && paymentCondition === 'cta_cte' ? {
+        billDueDate: billDueDate || null,
+        billScheduleRevision: initialData?.billScheduleRevision ?? 0
+      } : {})
       });
       onClose();
     } catch (error) {
@@ -550,6 +563,18 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               </div>
             )}
           </div>
+
+          {operationType === 'compra' && paymentCondition === 'cta_cte' && <div>
+            <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1" htmlFor="bill-due-date">
+              Vencimiento de la factura
+            </label>
+            <input id="bill-due-date" aria-describedby="bill-due-date-help" type="date" disabled={mode === 'ver' || saving}
+              value={billDueDate} onChange={event => setBillDueDate(event.target.value)}
+              className="w-full border border-gray-300 dark:border-gray-700 rounded-xl p-2.5 outline-none bg-white dark:bg-[#1E293B] text-gray-900 dark:text-white font-mono" />
+            <p id="bill-due-date-help" className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+              Revisá la fecha leída. Si queda vacía, no habrá aviso de esta factura en Inicio.
+            </p>
+          </div>}
 
           {/* 5. OPCIONES AVANZADAS Y COMPROBANTE (COLAPSABLE) */}
           <div className="border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden mt-2">

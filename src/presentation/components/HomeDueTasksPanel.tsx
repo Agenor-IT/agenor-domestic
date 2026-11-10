@@ -1,57 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { DomExpenseDTO } from '../../domain/expenses/DomExpense';
-import { DomExpenseReceipt } from '../../domain/expenses/DomExpenseReceipt';
-import { Money } from '../../domain/shared/Money';
 import { SupabaseDomExpenseReceiptRepository } from '../../infrastructure/SupabaseDomExpenseReceiptRepository';
 import { SupabaseDomExpenseRepository } from '../../infrastructure/SupabaseDomExpenseRepository';
 import { HomeTask, HomeTaskList } from './HomeTaskList';
 import { useDomesticAccess } from '../auth/DomesticAuthGate';
+import { SupabaseDomMonthlyCashRepository } from '../../infrastructure/SupabaseDomMonthlyCashRepository';
+import { loadHomeDueTasks } from '../../application/home/HomeDueTasks';
 
 const completedTasksKey = (personaPadreId: number) => `dom_due_tasks_completed_${personaPadreId}`;
-
-const validDueDate = (date?: string): date is string => {
-  if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
-  const parsed = new Date(`${date}T00:00:00`);
-  return parsed.getFullYear() === Number(date.slice(0, 4)) &&
-    parsed.getMonth() + 1 === Number(date.slice(5, 7)) &&
-    parsed.getDate() === Number(date.slice(8, 10));
-};
-
-const taskTitle = (expense: DomExpenseDTO): string =>
-  [expense.supplierName.trim(), expense.concept.trim()].filter(Boolean).join(' · ') || 'Egreso sin descripción';
-
-const buildDueTasks = (expenses: DomExpenseDTO[], receipts: DomExpenseReceipt[]): HomeTask[] => {
-  const expensesById = new Map(expenses.map(expense => [expense.id, expense]));
-  const receiptsWithDueDate = receipts.filter(receipt => receipt.paymentCondition === 'cuenta_corriente' && validDueDate(receipt.dueDate));
-  const expensesWithReceipts = new Set(receiptsWithDueDate.map(receipt => receipt.expenseId));
-
-  const receiptTasks: HomeTask[] = receiptsWithDueDate.flatMap(receipt => {
-    const expense = expensesById.get(receipt.expenseId);
-    if (!expense || !receipt.dueDate) return [];
-    return [{
-      id: `receipt:${receipt.id}:${receipt.dueDate}`,
-      title: taskTitle(expense),
-      detail: `Comprobante · ${Money.fromAmount(receipt.amount).toFormattedString()}`,
-      dueDate: receipt.dueDate,
-      completed: false
-    }];
-  });
-
-  const expenseTasks: HomeTask[] = expenses.flatMap(expense => {
-    if (expense.paymentCondition !== 'cuenta_corriente' || !validDueDate(expense.dueDate) || expensesWithReceipts.has(expense.id) || expense.status === 'finalizado') return [];
-    return [{
-      id: `expense:${expense.id}:${expense.dueDate}`,
-      title: taskTitle(expense),
-      detail: `Egreso · ${Money.fromAmount(expense.baseMonthlyAmount).toFormattedString()}`,
-      dueDate: expense.dueDate,
-      completed: false
-    }];
-  });
-
-  return [...receiptTasks, ...expenseTasks].sort((first, second) =>
-    (first.dueDate || '').localeCompare(second.dueDate || '') || first.title.localeCompare(second.title, 'es')
-  );
-};
 
 const readCompletedTasks = (personaPadreId: number): Set<string> => {
   try {
@@ -64,12 +19,14 @@ const readCompletedTasks = (personaPadreId: number): Set<string> => {
 
 interface HomeDueTasksPanelProps {
   onOpenExpenses: () => void;
+  refreshKey?: number;
 }
 
-export const HomeDueTasksPanel: React.FC<HomeDueTasksPanelProps> = ({ onOpenExpenses }) => {
+export const HomeDueTasksPanel: React.FC<HomeDueTasksPanelProps> = ({ onOpenExpenses, refreshKey = 0 }) => {
   const { personaPadreId } = useDomesticAccess();
   const expenseRepository = useMemo(() => new SupabaseDomExpenseRepository(), []);
   const receiptRepository = useMemo(() => new SupabaseDomExpenseReceiptRepository(), []);
+  const monthlyRepository = useMemo(() => new SupabaseDomMonthlyCashRepository(), []);
   const [dueTasks, setDueTasks] = useState<HomeTask[]>([]);
   const [completedTaskIds, setCompletedTaskIds] = useState(() => readCompletedTasks(personaPadreId));
   const [loading, setLoading] = useState(true);
@@ -87,14 +44,16 @@ export const HomeDueTasksPanel: React.FC<HomeDueTasksPanelProps> = ({ onOpenExpe
 
   useEffect(() => {
     let active = true;
-    Promise.all([
-      expenseRepository.getAllExpenses(personaPadreId),
-      receiptRepository.list(personaPadreId),
-    ])
-      .then(([expenses, receipts]) => {
+    setLoading(true);
+    loadHomeDueTasks(personaPadreId, {
+      expenses: owner => expenseRepository.getAllExpenses(owner),
+      receipts: owner => receiptRepository.list(owner).then(result => result.items),
+      bills: owner => monthlyRepository.getSnapshot(owner).then(result => result.bills)
+    })
+      .then(result => {
         if (!active) return;
-        setDueTasks(buildDueTasks(expenses, receipts.items));
-        setError(undefined);
+        setDueTasks(result.items);
+        setError(result.error);
       })
       .catch(() => {
         if (active) setError('No se pudieron cargar los vencimientos.');
@@ -103,7 +62,7 @@ export const HomeDueTasksPanel: React.FC<HomeDueTasksPanelProps> = ({ onOpenExpe
         if (active) setLoading(false);
       });
     return () => { active = false; };
-  }, [expenseRepository, receiptRepository, personaPadreId]);
+  }, [expenseRepository, receiptRepository, monthlyRepository, personaPadreId, refreshKey]);
 
   const toggleTask = (id: string) => {
     setCompletedTaskIds(previous => {

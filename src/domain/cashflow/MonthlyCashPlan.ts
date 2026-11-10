@@ -32,6 +32,9 @@ export interface MonthlyCashRow {
 }
 const nonNegative = (value: Money) => value.isNegative() ? Money.zero() : value;
 const sum = (values: number[]) => values.reduce((a, b) => a.add(b), Money.zero());
+export function pendingBillAmount(bill: PendingBill): Money {
+  return nonNegative(Money.fromAmount(bill.amount).subtract(sum(bill.payments.map(payment => payment.amount))));
+}
 export function validPlanDate(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(value + 'T12:00:00Z');

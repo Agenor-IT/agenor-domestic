@@ -17,6 +17,8 @@ import {
 
 export interface TransactionItem {
   purchaseItems?: PurchaseItemInput[];
+  billDueDate?: string | null;
+  billScheduleRevision?: number;
   id: string;
   description: string;
   amount: number;

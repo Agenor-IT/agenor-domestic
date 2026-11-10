@@ -216,7 +216,9 @@ export const App: React.FC = () => {
             classificationAccountId: item.classificationAccountId,
             revision: item.revision,
             journalEntryId: item.journalEntryId,
-            purchaseItems: item.purchaseItems
+            purchaseItems: item.purchaseItems,
+            billDueDate: item.billDueDate,
+            billScheduleRevision: item.billScheduleRevision
           }));
           setTransactions(mapped);
       })
@@ -428,7 +430,9 @@ export const App: React.FC = () => {
       paymentCondition: condition,
       settlesTransactionId: data.settlesTransactionId || null,
       classificationAccountId: classification?.id || null,
-      purchaseItems: data.purchaseItems
+      purchaseItems: data.purchaseItems,
+      billDueDate: data.billDueDate,
+      billScheduleRevision: data.billScheduleRevision
     }, [
       { accountId: debitAccount.id, debit: amount.toAmount(), credit: 0, memo: data.description },
       { accountId: creditAccount.id, debit: 0, credit: amount.toAmount(), memo: data.description }
@@ -449,7 +453,9 @@ export const App: React.FC = () => {
       classificationAccountId: saved.classificationAccountId,
       revision: saved.revision,
       journalEntryId: saved.journalEntryId,
-      purchaseItems: saved.purchaseItems
+      purchaseItems: saved.purchaseItems,
+      billDueDate: saved.billDueDate,
+      billScheduleRevision: saved.billScheduleRevision
     };
     setTransactions(previous => editingTransaction
       ? previous.map(tx => tx.id === item.id ? item : tx)
@@ -569,7 +575,7 @@ export const App: React.FC = () => {
         <main id="main-content" className="flex-1 min-w-0 w-full px-3 pt-[max(1rem,env(safe-area-inset-top))] pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-5 sm:pt-5 lg:px-6 lg:pt-6 lg:pb-8 xl:px-8 2xl:px-10">
           {/* 0. MÓDULO HOME (TODO LIST MINIMALISTA) */}
           {currentTab === 'dashboard' && (
-            <HomeDueTasksPanel onOpenExpenses={() => handleTabChange('egresos')} />
+            <HomeDueTasksPanel onOpenExpenses={() => handleTabChange('egresos')} refreshKey={adjustments._refresh || 0} />
           )}
 
           <Suspense fallback={<PanelSkeleton />}>

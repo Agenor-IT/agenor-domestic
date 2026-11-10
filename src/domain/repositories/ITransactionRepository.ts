@@ -1,6 +1,8 @@
 import { Money } from '../shared/Money';
 import { PurchaseItemInput } from '../consumption/Consumption';
 
+export const PURCHASE_DUE_DATE_CONTRACT = 'purchase_due_date_v1';
+
 export interface TransactionDTO {
   id?: string;
   personaPadreId: number;
@@ -21,6 +23,8 @@ export interface TransactionDTO {
   settlesTransactionId?: string | null;
   classificationAccountId?: number | null;
   purchaseItems?: PurchaseItemInput[];
+  billDueDate?: string | null;
+  billScheduleRevision?: number;
 }
 
 export interface ITransactionRepository {

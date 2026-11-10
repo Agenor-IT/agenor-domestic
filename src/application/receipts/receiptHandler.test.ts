@@ -24,6 +24,9 @@ describe('Lectura de comprobantes Domestic', () => {
     const [url, options] = f.fetch.mock.calls[0];
     expect(url).toBe('https://generativelanguage.googleapis.com/v1beta/interactions');
     const body = JSON.parse(String(options?.body));
+    expect(body.generation_config).toEqual({ max_output_tokens: 16384, thinking_level: 'low' });
+    expect(body.response_format.schema.properties.items).not.toHaveProperty('maxItems');
+    expect(body.response_format.schema.properties.dueDate.type).toEqual(['string', 'null']);
     expect(body.store).toBe(false); expect(body.input[0]).toEqual({ type: 'image', mime_type: 'image/jpeg', data: image.split(',')[1] });
     expect(body).not.toHaveProperty('tools'); expect(body).not.toHaveProperty('previous_interaction_id');
     expect(response.headers.get('Cache-Control')).toBe('no-store');
@@ -87,24 +90,68 @@ describe('Lectura de comprobantes Domestic', () => {
     const f = fixture(); f.fetch.mockResolvedValueOnce(new Response('', { status: 429 }));
     const response = await f.handler(request()); expect(response.status).toBe(429); expect(f.fetch).toHaveBeenCalledTimes(1);
   });
-  it('recupera un 503 transitorio con espera y sin duplicar una respuesta completada', async () => {
+  it('diagnostica parámetros rechazados sin registrar el mensaje privado del proveedor',async()=>{
+    const f=fixture();f.fetch.mockResolvedValueOnce(new Response(JSON.stringify({error:{message:'thinking_level unsupported; private test-server-key'}}),{status:400}));
+    const response=await f.handler(request());expect(response.status).toBe(503);expect(f.fetch).toHaveBeenCalledTimes(1);
+    expect(f.report).toHaveBeenCalledWith({stage:'provider',model:'gemini-3.8-flash',status:400,rejectedField:'thinking_config'});
+    expect(JSON.stringify(f.report.mock.calls)).not.toContain('private');
+  });
+  it('recupera un 503 con otro modelo Gemini y conserva imagen, secreto y privacidad', async () => {
     const f=fixture();f.fetch.mockResolvedValueOnce(new Response('',{status:503}));
     const response=await f.handler(request());expect(response.status).toBe(200);
     expect(f.fetch).toHaveBeenCalledTimes(2);expect(f.sleep).toHaveBeenCalledWith(500);
+    const first=JSON.parse(String(f.fetch.mock.calls[0][1]?.body));
+    const fallback=JSON.parse(String(f.fetch.mock.calls[1][1]?.body));
+    expect(first.model).toBe('gemini-3.8-flash');expect(fallback.model).toBe('gemini-3.1-flash-lite');
+    expect(fallback.generation_config).toEqual({max_output_tokens:16384,thinking_level:'minimal'});
+    expect(fallback.input).toEqual(first.input);expect(fallback.store).toBe(false);
+    expect(f.fetch.mock.calls[1][1]?.headers).toEqual(f.fetch.mock.calls[0][1]?.headers);
+    expect(fallback.response_format).toEqual(first.response_format);
     expect(await response.json()).toEqual({draft});
   });
-  it('limita la saturación a tres intentos con el mismo plazo y conserva el error explícito', async () => {
+  it('limita la saturación a tres intentos y reserva plazos independientes para el alternativo', async () => {
     const f=fixture();f.fetch.mockImplementation(async()=>new Response('',{status:503}));
     const response=await f.handler(request());expect(response.status).toBe(503);
     expect(await response.json()).toEqual({code:'DOM_RECEIPT_PROVIDER_BUSY'});
     expect(f.fetch).toHaveBeenCalledTimes(3);expect(f.sleep.mock.calls).toEqual([[500],[1000]]);
-    expect(f.fetch.mock.calls[0][1]?.signal).toBe(f.fetch.mock.calls[2][1]?.signal);
+    expect(f.fetch.mock.calls[0][1]?.signal).not.toBe(f.fetch.mock.calls[1][1]?.signal);
+    expect(f.fetch.mock.calls[1][1]?.signal).not.toBe(f.fetch.mock.calls[2][1]?.signal);
+  });
+  it('recupera saturación transitoria del alternativo con espera acotada y sin cambiar la extracción',async()=>{
+    const f=fixture();f.fetch.mockResolvedValueOnce(new Response('',{status:503})).mockResolvedValueOnce(new Response('',{status:503}));
+    const response=await f.handler(request());expect(response.status).toBe(200);expect(await response.json()).toEqual({draft});
+    expect(f.fetch.mock.calls.map(call=>JSON.parse(String(call[1]?.body)).model)).toEqual(['gemini-3.8-flash','gemini-3.1-flash-lite','gemini-3.1-flash-lite']);
+    expect(f.sleep.mock.calls).toEqual([[500],[1000]]);
+  });
+  it('recupera un timeout del primer modelo sin repetirlo ni dejar el segundo con una señal abortada', async()=>{
+    const f=fixture();f.fetch.mockRejectedValueOnce(new DOMException('private','TimeoutError'));
+    const response=await f.handler(request());expect(response.status).toBe(200);
+    expect(f.fetch).toHaveBeenCalledTimes(2);
+    expect(JSON.parse(String(f.fetch.mock.calls[1][1]?.body)).model).toBe('gemini-3.1-flash-lite');
+    expect(f.fetch.mock.calls[1][1]?.signal?.aborted).toBe(false);
+    expect(f.sleep).not.toHaveBeenCalled();
   });
   it('distingue un plazo agotado sin exponer el cuerpo ni los detalles del proveedor', async () => {
-    const f=fixture();f.fetch.mockRejectedValueOnce(new DOMException('sensitive provider diagnostics','TimeoutError'));
+    const f=fixture();f.fetch.mockRejectedValue(new DOMException('sensitive provider diagnostics','TimeoutError'));
     const response=await f.handler(request());expect(response.status).toBe(504);
     expect(await response.json()).toEqual({code:'DOM_RECEIPT_TIMEOUT'});
     expect(f.report).toHaveBeenCalledWith({stage:'provider',model:'gemini-3.8-flash',errorName:'TimeoutError'});
     expect(JSON.stringify(f.report.mock.calls)).not.toContain('sensitive provider diagnostics');
+  });
+  it('no vuelve a consultar si el segundo modelo devuelve datos ilegibles',async()=>{
+    const f=fixture();f.fetch.mockResolvedValueOnce(new Response('',{status:503})).mockResolvedValueOnce(provider(JSON.stringify({...draft,total:-10})));
+    expect((await f.handler(request())).status).toBe(422);expect(f.fetch).toHaveBeenCalledTimes(2);
+  });
+  it('evita repetir el mismo modelo cuando está configurado como principal y alternativo',async()=>{
+    const f=fixture();f.env.mockImplementation(name=>name==='DOMESTIC_GEMINI_API_KEY'?'test-server-key':name==='DOMESTIC_RECEIPT_MODEL'?'gemini-3.1-flash-lite':undefined);
+    f.fetch.mockResolvedValue(new Response('',{status:503}));
+    expect((await f.handler(request())).status).toBe(503);expect(f.fetch).toHaveBeenCalledTimes(1);
+  });
+  it('permite desactivar el modelo alternativo y rechaza una configuración inválida',async()=>{
+    const f=fixture();f.env.mockImplementation(name=>name==='DOMESTIC_GEMINI_API_KEY'?'test-server-key':name==='DOMESTIC_RECEIPT_FALLBACK_MODEL'?'':undefined);
+    f.fetch.mockRejectedValue(new DOMException('private','TimeoutError'));
+    expect((await f.handler(request())).status).toBe(504);expect(f.fetch).toHaveBeenCalledTimes(1);
+    const bad=fixture();bad.env.mockImplementation(name=>name==='DOMESTIC_GEMINI_API_KEY'?'test-server-key':name==='DOMESTIC_RECEIPT_FALLBACK_MODEL'?'https://foreign.invalid':undefined);
+    expect((await bad.handler(request())).status).toBe(503);expect(bad.fetch).not.toHaveBeenCalled();
   });
 });

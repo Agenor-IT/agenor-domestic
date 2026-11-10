@@ -8,6 +8,7 @@ export interface ReceiptProductLine {
 export interface ReceiptDraft {
   supplier: string | null;
   date: string | null;
+  dueDate?: string | null;
   number: string | null;
   currency: string | null;
   total: number | null;
@@ -25,10 +26,15 @@ export function parseReceiptDraft(value: unknown): ReceiptDraft {
     return field.trim() || null;
   };
   const date = text('date', 10);
-  if (date && (!/^\d{4}-\d{2}-\d{2}$/.test(date) ||
-      !Number.isFinite(Date.parse(`${date}T12:00:00Z`)) || new Date(`${date}T12:00:00Z`).toISOString().slice(0, 10) !== date)) {
-    throw new Error('La fecha detectada no es válida. Volvé a fotografiar el comprobante.');
-  }
+  const dueDate = record.dueDate === undefined ? undefined : text('dueDate', 10);
+  const validateDate = (value: string | null | undefined, message: string) => {
+    if (value && (!/^\d{4}-\d{2}-\d{2}$/.test(value) || !Number.isFinite(Date.parse(`${value}T12:00:00Z`)) ||
+        new Date(`${value}T12:00:00Z`).toISOString().slice(0, 10) !== value)) {
+      throw new Error(message);
+    }
+  };
+  validateDate(date, 'La fecha detectada no es válida. Volvé a fotografiar el comprobante.');
+  validateDate(dueDate, 'El vencimiento detectado no es válido. Volvé a fotografiar el comprobante.');
   const total = record.total;
   if (total !== null && (typeof total !== 'number' || !Number.isFinite(total) || total <= 0 ||
       !Number.isSafeInteger(Math.round(total * 100)) || Math.abs(total * 100 - Math.round(total * 100)) > 0.000001)) {
@@ -36,7 +42,7 @@ export function parseReceiptDraft(value: unknown): ReceiptDraft {
   }
   const currency = text('currency', 3);
   if (currency && !/^[A-Z]{3}$/.test(currency)) throw new Error('Moneda del comprobante inválida.');
-  const result = { supplier: text('supplier', 300), date, number: text('number', 100), currency,
+  const result = { supplier: text('supplier', 300), date, ...(dueDate !== undefined ? { dueDate } : {}), number: text('number', 100), currency,
     total: total as number | null, detail: text('detail', 5000) };
   if (!result.supplier && !result.detail && !result.total) throw new Error('No se encontró un comprobante legible. Sacá otra foto con buena luz.');
   if (record.items === undefined) return result; // Compatibility with older OCR responses.
@@ -70,6 +76,7 @@ export function receiptTransactionFields(draft: ReceiptDraft) {
     // Domestic records amounts in pesos. A foreign or unknown currency needs manual review.
     amount: draft.currency === 'ARS' ? draft.total ?? 0 : 0,
     counterparty: draft.supplier ?? '', occurredOn: draft.date ?? '', opNumber: draft.number ?? '',
+    ...(draft.dueDate !== undefined ? { billDueDate: draft.dueDate } : {}),
     direction: 'expense' as const, operationType: 'compra' as const,
     paymentMethod: '', paymentCondition: 'cta_cte' as const,
     ...(draft.items?.length ? { purchaseItems: draft.items.map<PurchaseItemInput>(item => ({
