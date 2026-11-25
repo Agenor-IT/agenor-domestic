@@ -14,6 +14,8 @@ import type { TransactionSubmitData } from './presentation/components/Transactio
 import type { TransactionItem } from './presentation/components/TransactionsPanel';
 
 // Lazy-loaded secondary panels and heavy modals
+const DebtsPage = React.lazy(() => import('../deudas/presentation/DebtsPage').then(m => ({ default: m.DebtsPage })));
+const CreditorsPage = React.lazy(() => import('../acreedores/presentation/CreditorsPage').then(m => ({ default: m.CreditorsPage })));
 const MonthlyCashPanel = React.lazy(() => import('./presentation/components/MonthlyCashPanel').then(m => ({ default: m.MonthlyCashPanel })));
 const ProductsConsumptionPanel = React.lazy(() => import('./presentation/components/ProductsConsumptionPanel').then(m => ({ default: m.ProductsConsumptionPanel })));
 const FixedAssetsPanel = React.lazy(() => import('./presentation/components/FixedAssetsPanel').then(m => ({ default: m.FixedAssetsPanel })));
@@ -545,6 +547,9 @@ export const App: React.FC = () => {
         onCloseMobile={() => setMobileMenuOpen(false)}
         userEmail={email}
         onSignOut={() => void signOut()}
+        onOpenVoice={voice.open}
+        voiceActive={voice.active}
+        voiceVisible={voice.visible}
       />
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -567,6 +572,8 @@ export const App: React.FC = () => {
           )}
 
           <Suspense fallback={<PanelSkeleton />}>
+          {currentTab === 'deudas' && <DebtsPage key={personaPadreId} personaPadreId={personaPadreId} />}
+          {currentTab === 'acreedores' && <CreditorsPage key={personaPadreId} tenant={personaPadreId} />}
 
           {/* 1. MÓDULO BILLETERA & DIARIO (SALDOS + MOVIMIENTOS INTEGRADOS) */}
           {(currentTab === 'billetera' || currentTab === 'transacciones') && (

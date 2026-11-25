@@ -38,6 +38,6 @@ describe('Acceso simple a comprobantes y voz', () => {
     expect(html).toContain('Expandir asistente');
     expect(html).toContain('Cerrar y detener micrófono');
     expect(html).not.toContain('Cargar factura o ticket');
-    expect(render({ visible: false })).not.toContain('<aside');
+    expect(render({ visible: false })).toBe('');
   });
 });

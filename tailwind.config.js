@@ -4,6 +4,8 @@ export default {
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
+    "./deudas/**/*.{ts,tsx}",
+    "./acreedores/**/*.{ts,tsx}",
   ],
   theme: {
     extend: {

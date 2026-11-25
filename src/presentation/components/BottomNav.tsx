@@ -20,7 +20,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange, o
   return (
     <nav
       aria-label="Navegación móvil principal"
-      className="lg:hidden fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 h-[calc(4.5rem+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)] border-t border-[#1E293B] bg-[#0B1329]/95 px-1 text-white shadow-[0_-2px_16px_rgba(0,0,0,0.18)] backdrop-blur-xl"
+      className="lg:hidden fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 md:grid-cols-4 h-[calc(4.5rem+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)] border-t border-[#1E293B] bg-[#0B1329]/95 px-1 text-white shadow-[0_-2px_16px_rgba(0,0,0,0.18)] backdrop-blur-xl"
     >
       <button
         type="button"
@@ -51,7 +51,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange, o
         aria-pressed={voiceActive}
         aria-expanded={voiceVisible}
         aria-controls="domestic-voice-panel"
-        className="relative -top-3 flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 text-[10px] font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#38BDF8]"
+        className="relative -top-3 flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 text-[10px] font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#38BDF8] md:hidden"
       >
         <span className="flex h-12 w-12 items-center justify-center rounded-2xl border-4 border-[#0B1329] bg-[#0088FF] shadow-lg shadow-blue-500/30">
           <Mic className={`h-6 w-6 ${voiceActive ? 'animate-pulse' : ''}`} aria-hidden="true" />

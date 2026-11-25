@@ -1,0 +1,34 @@
+.debt-module {
+  --debt-field-bg: #f8fafc;
+  --debt-field-text: #172033;
+  --debt-field-border: #cbd5e1;
+  --debt-placeholder: #475569;
+  --debt-heading-bg: #eaf0f8;
+  --debt-heading-text: #1e3a5f;
+}
+
+.dark .debt-module {
+  color-scheme: dark;
+  --debt-field-bg: #141f36;
+  --debt-field-text: #f1f5f9;
+  --debt-field-border: #405374;
+  --debt-placeholder: #aab8cf;
+  --debt-heading-bg: #1a2a45;
+  --debt-heading-text: #e2eaf8;
+}
+
+.debt-module .debt-field {
+  background-color: var(--debt-field-bg);
+  border-color: var(--debt-field-border);
+  color: var(--debt-field-text);
+}
+
+.debt-module .debt-field::placeholder {
+  color: var(--debt-placeholder);
+  opacity: 1;
+}
+
+.debt-module .debt-table-heading {
+  background-color: var(--debt-heading-bg);
+  color: var(--debt-heading-text);
+}

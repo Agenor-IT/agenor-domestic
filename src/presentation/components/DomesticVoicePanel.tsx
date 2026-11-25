@@ -5,9 +5,6 @@ import { DomesticVoice } from '../hooks/useDomesticVoice';
 const labels = { idle: 'Comprobantes y voz', connecting: 'Conectando…', listening: 'Te escucho', working: 'Resolviendo…', speaking: 'Respondiendo', error: 'Comprobantes y voz' };
 
 export const DomesticVoicePanel: React.FC<{ voice: DomesticVoice; onOpenReceipt(): void }> = ({ voice, onOpenReceipt }) => <>
-  <button type="button" data-voice-ignore onClick={voice.open} aria-label="Abrir asistente por voz" aria-pressed={voice.active} aria-expanded={voice.visible} aria-controls="domestic-voice-panel" className="fixed bottom-6 right-6 z-[60] hidden min-h-14 items-center gap-2 rounded-2xl bg-[#0088FF] px-5 font-bold text-white shadow-xl shadow-blue-500/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-400 lg:flex">
-    <Mic className={`h-6 w-6 ${voice.active ? 'animate-pulse' : ''}`} aria-hidden="true" />Voz
-  </button>
   {voice.visible && <aside id="domestic-voice-panel" data-voice-ignore aria-label="Asistente de voz de Domestic" onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); voice.close(); } }} className={`fixed inset-x-3 z-[90] mx-auto w-auto max-w-md overflow-hidden rounded-2xl border border-blue-300 bg-white text-gray-900 shadow-2xl dark:border-blue-900 dark:bg-[#0F172A] dark:text-white lg:left-auto lg:right-6 lg:w-96 ${voice.dialogOpen && !voice.expanded ? 'top-[max(0.5rem,env(safe-area-inset-top))] bottom-auto' : 'bottom-[calc(5.5rem+env(safe-area-inset-bottom))] lg:bottom-24'}`}>
     <div className="flex min-h-14 items-center gap-2 px-3 py-2">
       <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${voice.active && !voice.muted ? 'bg-blue-500/15 text-blue-500' : 'bg-gray-100 text-gray-500 dark:bg-gray-800'}`}>

@@ -9,6 +9,11 @@ import {
   Building2,
   X,
   LogOut,
+  Landmark,
+  Users,
+  Mic,
+  Maximize,
+  Minimize,
   LucideIcon
 } from 'lucide-react';
 
@@ -22,6 +27,9 @@ interface SidebarProps {
   onCloseMobile?: () => void;
   userEmail: string;
   onSignOut: () => void;
+  onOpenVoice: () => void;
+  voiceActive: boolean;
+  voiceVisible: boolean;
 }
 
 export interface NavigationItem {
@@ -34,6 +42,8 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
   { id: 'billetera', label: 'Billetera & Diario', icon: Wallet },
   { id: 'planificador', label: 'Planificador & Tarjetas', icon: Receipt },
+  { id: 'deudas', label: 'Deudas', icon: Landmark },
+  { id: 'acreedores', label: 'Acreedores', icon: Users },
   { id: 'patrimonio', label: 'Patrimonio & Bienes', icon: Building2 },
   { id: 'contable', label: 'Tablero Contable RT 6', icon: BookOpen },
 ];
@@ -47,12 +57,45 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCloseMobile,
   userEmail,
   onSignOut,
+  onOpenVoice,
+  voiceActive,
+  voiceVisible,
 }) => {
   const [collapsedDesktop, setCollapsedDesktop] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+  const [fullscreenError, setFullscreenError] = useState('');
+  const fullscreenAvailable = typeof document !== 'undefined' && document.fullscreenEnabled;
+  const fullscreenLabel = fullscreen ? 'Salir de pantalla completa' : 'Pantalla completa';
+  const FullscreenIcon = fullscreen ? Minimize : Maximize;
   // En mobile el drawer siempre se muestra expandido
   const collapsed = collapsedDesktop && !mobileOpen;
 
   const navigationItems = NAVIGATION_ITEMS;
+
+  useEffect(() => {
+    if (!fullscreenAvailable) return;
+    const syncFullscreen = () => {
+      setFullscreen(Boolean(document.fullscreenElement));
+      setFullscreenError('');
+    };
+    syncFullscreen();
+    document.addEventListener('fullscreenchange', syncFullscreen);
+    return () => document.removeEventListener('fullscreenchange', syncFullscreen);
+  }, [fullscreenAvailable]);
+
+  const toggleFullscreen = async () => {
+    setFullscreenError('');
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await document.documentElement.requestFullscreen();
+      }
+      onCloseMobile?.();
+    } catch {
+      setFullscreenError('No se pudo cambiar el modo de pantalla. Intentá de nuevo.');
+    }
+  };
 
   // Cerrar con Escape y bloquear scroll del body mientras el drawer está abierto
   useEffect(() => {
@@ -154,6 +197,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </button>
                 );
               })}
+              <button
+                type="button"
+                data-voice-ignore
+                onClick={() => { onCloseMobile?.(); onOpenVoice(); }}
+                aria-label="Abrir asistente por voz"
+                aria-pressed={voiceActive}
+                aria-expanded={voiceVisible}
+                aria-controls="domestic-voice-panel"
+                title={collapsed ? 'Voz' : undefined}
+                className={`hidden min-h-11 w-full items-center gap-3 rounded-xl px-3.5 py-3 text-xs font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#38BDF8] ${mobileOpen ? 'md:flex' : 'lg:flex'} ${collapsed ? 'justify-center px-0' : ''} ${voiceVisible ? 'bg-[#0088FF]/20 text-[#38BDF8]' : 'text-[#94A3B8] hover:bg-[#1E293B]/70 hover:text-white'}`}
+              >
+                <Mic className={`h-4 w-4 shrink-0 ${voiceActive ? 'animate-pulse' : ''}`} aria-hidden="true" />
+                {!collapsed && <span>Voz</span>}
+              </button>
             </nav>
           </div>
         </div>
@@ -163,6 +220,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {!collapsed && (
           <p className="truncate px-3.5 text-[11px] text-[#94A3B8]" title={userEmail}>
             {userEmail}
+          </p>
+        )}
+        {fullscreenAvailable && (
+          <button
+            type="button"
+            onClick={() => void toggleFullscreen()}
+            aria-label={fullscreenLabel}
+            title={fullscreenLabel}
+            className={`flex min-h-11 w-full items-center gap-2 rounded-xl px-3.5 text-xs font-medium text-[#94A3B8] transition-colors hover:bg-[#1E293B]/70 hover:text-white ${collapsed ? 'justify-center' : ''}`}
+          >
+            <FullscreenIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
+            {!collapsed && <span>{fullscreenLabel}</span>}
+          </button>
+        )}
+        {fullscreenError && (
+          <p role="alert" className={collapsed ? 'sr-only' : 'px-3.5 text-xs text-rose-300'}>
+            {fullscreenError}
           </p>
         )}
         {!collapsed && (

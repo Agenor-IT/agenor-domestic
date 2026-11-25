@@ -47,6 +47,8 @@ describe('Comprobante en el formulario existente', () => {
     const html = renderToStaticMarkup(<BottomNav currentTab="dashboard" onTabChange={() => {}} onNewAdjustment={() => {}}
       onOpenVoice={() => {}} voiceActive={false} voiceVisible={false} onOpenCamera={() => {}} onOpenMore={() => {}} moreOpen={false} />);
     expect(html).toContain('Fotografiar comprobante'); expect(html).toContain('Cámara'); expect(html).toContain('Voz');
+    expect(html).toContain('md:grid-cols-4');
+    expect(html).toMatch(/aria-label="Abrir asistente por voz"[^>]*md:hidden/);
     expect(html).not.toContain('Revaluación');
   });
 });
