@@ -63,7 +63,7 @@ export class SupabaseDomVentureRepository implements IVentureRepository {
     const query = venture.id
       ? table.update(payload).eq('id', venture.id).eq('persona_padre_id', personaPadreId)
       : table.insert(payload);
-    const { data, error } = await query.select().single().overrideTypes<VentureRow, { merge: false }>();
+    const { data, error } = await query.select().single<VentureRow>();
     if (error) throw error;
     return mapVenture(data);
   }
