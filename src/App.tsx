@@ -41,8 +41,8 @@ const PanelSkeleton: React.FC = () => (
   </div>
 );
 import { useDarkMode } from './presentation/hooks/useDarkMode';
-import { SupabaseDomVentureRepository } from './infrastructure/SupabaseDomVentureRepository';
-import { DomVentureDTO } from './domain/ventures/DomVenture';
+import { useQuery } from '@tanstack/react-query';
+import { useDomesticVentures } from './presentation/hooks/useDomesticVentures';
 import { SupabaseDomExpenseRepository } from './infrastructure/SupabaseDomExpenseRepository';
 import { DomExpenseDTO } from './domain/expenses/DomExpense';
 import { FlowNode } from './domain/cashflow/CashFlowProjectionService';
@@ -157,12 +157,15 @@ export const App: React.FC = () => {
   const consumptionRepo = useMemo(() => new SupabaseDomConsumptionRepository(), []);
   const monthlyCashRepo = useMemo(() => new SupabaseDomMonthlyCashRepository(), []);
   const accountingRepo = useMemo(() => new SupabaseDomAccountingRepository(), []);
-  const ventureRepo = useMemo(() => new SupabaseDomVentureRepository(), []);
   const expenseRepo = useMemo(() => new SupabaseDomExpenseRepository(), []);
 
-  const [dbVentures, setDbVentures] = useState<DomVentureDTO[]>([]);
-  const [dbExpenses, setDbExpenses] = useState<DomExpenseDTO[]>([]);
-  const [projectionError, setProjectionError] = useState<string | null>(null);
+  const venturesQuery = useDomesticVentures(personaPadreId);
+  const dbVentures = useMemo(() => venturesQuery.isSuccess ? venturesQuery.data : [], [venturesQuery.isSuccess, venturesQuery.data]);
+  const budgetExpenses = useQuery({
+    queryKey: ['domestic', 'budget-expenses', personaPadreId],
+    queryFn: () => expenseRepo.getExpenses(personaPadreId),
+  });
+  const dbExpenses = useMemo<DomExpenseDTO[]>(() => budgetExpenses.data ?? [], [budgetExpenses.data]);
 
   const refreshAccounts = () => {
     setAccountsLoading(true);
@@ -181,21 +184,6 @@ export const App: React.FC = () => {
   useEffect(() => {
     refreshAccounts();
   }, [accountingRepo, personaPadreId]);
-
-  // Presupuestos separados del Libro Diario y de los cobros/pagos efectivamente registrados.
-  useEffect(() => {
-    Promise.all([
-      ventureRepo.getVentures(personaPadreId),
-      expenseRepo.getExpenses(personaPadreId)
-    ]).then(([ventures, expenses]) => {
-      setDbVentures(ventures);
-      setDbExpenses(expenses);
-      setProjectionError(null);
-    }).catch(err => {
-      console.error('Error al cargar fuentes del presupuesto:', err);
-      setProjectionError('No se pudo cargar el presupuesto. La proyección no está disponible.');
-    });
-  }, [ventureRepo, expenseRepo, personaPadreId]);
 
   // CARGAR TRANSACCIONES DESDE SUPABASE AL INICIAR
   useEffect(() => {
@@ -700,9 +688,7 @@ export const App: React.FC = () => {
               {plannerView === 'presupuesto' && (
                 <div className="space-y-8">
                   <ExpensesPanel />
-                  <VenturesPanel onVenturesChange={() => {
-                    ventureRepo.getVentures(personaPadreId).then(v => setDbVentures(v));
-                  }} />
+                  <VenturesPanel key={personaPadreId} />
                 </div>
               )}
             </div>
@@ -808,8 +794,16 @@ export const App: React.FC = () => {
 
               {accountingView === 'balance' && (
                 <div className="space-y-6">
-                  {projectionError ? (
-                    <div role="alert" className="rounded-xl border border-amber-500 p-4 text-sm">{projectionError}</div>
+                  {venturesQuery.isError ? (
+                    <div role="alert" className="rounded-xl border border-amber-500 p-4 text-sm">
+                      No se pudieron cargar las fuentes de ingresos.
+                      <button type="button" className="ml-2 font-semibold underline" disabled={venturesQuery.isFetching}
+                        onClick={() => void venturesQuery.refetch()}>Reintentar</button>
+                    </div>
+                  ) : budgetExpenses.isError ? (
+                    <div role="alert" className="rounded-xl border border-amber-500 p-4 text-sm">No se pudo cargar el presupuesto. La proyección no está disponible.</div>
+                  ) : venturesQuery.isPending || budgetExpenses.isPending ? (
+                    <p role="status">Cargando presupuesto…</p>
                   ) : (
                     <FinancialChart
                       months={projectionMonths}

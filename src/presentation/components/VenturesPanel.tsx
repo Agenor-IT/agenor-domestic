@@ -26,7 +26,7 @@ import {
   MoreHorizontal,
   ChevronRight
 } from 'lucide-react';
-import { SupabaseDomVentureRepository } from '../../infrastructure/SupabaseDomVentureRepository';
+import { domesticVentureRepository as repository, useDomesticVentures } from '../hooks/useDomesticVentures';
 import { DomVentureDTO, DomVenture, IncomeSourceType, IncomeNatureType } from '../../domain/ventures/DomVenture';
 import { Money } from '../../domain/shared/Money';
 import { INITIAL_MONTHS } from '../../domain/shared/initialSeedData';
@@ -49,14 +49,10 @@ const CATEGORIES = [
   'Otro'
 ];
 
-interface VenturesPanelProps {
-  onVenturesChange?: () => void;
-}
-
-export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }) => {
+export const VenturesPanel: React.FC = () => {
   const { personaPadreId } = useDomesticAccess();
-  const [ventures, setVentures] = useState<DomVentureDTO[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const query = useDomesticVentures(personaPadreId);
+  const loading = query.isPending;
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [activeSourceTab, setActiveSourceTab] = useState<'todos' | IncomeSourceType>('todos');
   const tableSectionRef = useRef<HTMLDivElement>(null);
@@ -108,26 +104,7 @@ export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
-  const repository = useMemo(() => new SupabaseDomVentureRepository(), []);
-
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const fetched = await repository.getVentures(personaPadreId);
-      setVentures(fetched);
-      onVenturesChange?.();
-    } catch (err) {
-      console.error('Error al cargar fuentes de ingresos:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-  }, [repository, personaPadreId]);
-
-  const domainVentures = useMemo(() => ventures.map(v => new DomVenture(v)), [ventures]);
+  const domainVentures = useMemo(() => (query.data ?? []).map(v => new DomVenture(v)), [query.data]);
 
   // KPIs
   const sourceCounts = useMemo(() => {
@@ -280,7 +257,7 @@ export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }
       await repository.saveVenture(payload, personaPadreId);
       setFeedback({ text: `Ingreso ${modalMode === 'nuevo' ? 'registrado' : 'actualizado'} correctamente.`, type: 'success' });
       setIsModalOpen(false);
-      await loadData();
+      await query.refetch();
     } catch (err) {
       setFeedback({ text: 'Error al guardar la fuente de ingreso.', type: 'error' });
     } finally {
@@ -292,9 +269,9 @@ export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }
     if (!await confirmDomesticAction(`¿Eliminar el registro "${name}"?`)) return;
 
     try {
-      await repository.deleteVenture(id, 1);
+      await repository.deleteVenture(id, personaPadreId);
       setFeedback({ text: 'Registro eliminado correctamente.', type: 'success' });
-      await loadData();
+      await query.refetch();
     } catch (err) {
       setFeedback({ text: 'Error al eliminar el registro.', type: 'error' });
     }
@@ -311,7 +288,7 @@ export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }
         text: `Fuente "${v.clientName}" ${nextStatus === 'activo' ? 'activada' : 'desactivada'} correctamente.`,
         type: 'success'
       });
-      await loadData();
+      await query.refetch();
     } catch (err) {
       setFeedback({ text: 'Error al cambiar estado de la fuente.', type: 'error' });
     }
@@ -356,7 +333,7 @@ export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }
       );
       setIsProjectionGridOpen(false);
       setFeedback({ text: 'Proyección mensual actualizada.', type: 'success' });
-      await loadData();
+      await query.refetch();
     } catch (err) {
       setFeedback({ text: 'Error al actualizar proyecciones.', type: 'error' });
     } finally {
@@ -420,6 +397,16 @@ export const VenturesPanel: React.FC<VenturesPanelProps> = ({ onVenturesChange }
         return null;
     }
   };
+
+  if (query.isError) {
+    return (
+      <div role="alert" className="rounded-xl border border-amber-500 p-4 text-sm">
+        No se pudieron cargar las fuentes de ingresos.
+        <button type="button" className="ml-2 font-semibold underline" disabled={query.isFetching}
+          onClick={() => void query.refetch()}>Reintentar</button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

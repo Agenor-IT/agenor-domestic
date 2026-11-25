@@ -27,6 +27,8 @@ export const DomesticAuthGate: React.FC<{ children: React.ReactNode }> = ({ chil
   const [submitting, setSubmitting] = useState(false);
   const [sessionInput, setSessionInput] = useState('');
   const [sessionLoading, setSessionLoading] = useState(false);
+  const [demoEmail, setDemoEmail] = useState('');
+  const [demoPassword, setDemoPassword] = useState('');
 
   const handleApplySession = async (raw: string) => {
     if (!raw.trim()) return;
@@ -151,6 +153,30 @@ export const DomesticAuthGate: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  const signInDemo = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (submitting) return;
+    const email = demoEmail.trim().toLowerCase();
+    if (email !== 'admin.demo@agenor-domestic.com' && email !== 'admin.demo2@agenor-domestic.com') {
+      setDemoPassword('');
+      setState({ status: 'error', message: 'Usá una de las cuentas DEMO habilitadas de Domestic.' });
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password: demoPassword,
+      });
+      if (error) throw error;
+    } catch {
+      setState({ status: 'error', message: 'No pudimos iniciar sesión en DEMO. Revisá el correo y la contraseña.' });
+    } finally {
+      setDemoPassword('');
+      setSubmitting(false);
+    }
+  };
+
   if (state.status === 'authorized') {
     return (
       <DomesticAccessContext.Provider
@@ -189,7 +215,7 @@ export const DomesticAuthGate: React.FC<{ children: React.ReactNode }> = ({ chil
                 </h2>
                 <p className="mt-1 text-sm text-[#94A3B8]">
                   {state.status === 'denied'
-                    ? `La sesión de ${state.email} no tiene acceso. Ingresá con la cuenta de Google habilitada.`
+                    ? `La sesión de ${state.email} no tiene acceso. Usá una cuenta habilitada de Domestic.`
                     : 'Sólo las cuentas habilitadas pueden ver tus datos.'}
                 </p>
               </div>
@@ -208,8 +234,30 @@ export const DomesticAuthGate: React.FC<{ children: React.ReactNode }> = ({ chil
               className="flex min-h-12 w-full items-center justify-center gap-3 rounded-xl bg-[#0088FF] px-4 font-semibold text-white transition-colors hover:bg-blue-600 disabled:opacity-60"
             >
               <LogIn className="h-5 w-5" aria-hidden="true" />
-              {submitting ? 'Abriendo Google...' : 'Continuar con Google'}
+              Continuar con Google
             </button>
+
+            {state.status !== 'denied' && (
+              <details className="mt-3 rounded-xl border border-[#334155] px-3 py-2">
+                <summary className="cursor-pointer py-1 text-sm font-semibold">Ingresar a DEMO con contraseña</summary>
+                <form className="mt-2 space-y-3" onSubmit={event => void signInDemo(event)}>
+                  <label className="block text-xs font-medium">Correo DEMO
+                    <input type="email" autoComplete="username" value={demoEmail} required
+                      onChange={event => setDemoEmail(event.target.value)}
+                      className="mt-1 block min-h-11 w-full rounded-xl border border-[#334155] bg-[#070D1B] px-3 text-sm" />
+                  </label>
+                  <label className="block text-xs font-medium">Contraseña DEMO
+                    <input type="password" autoComplete="current-password" value={demoPassword} required
+                      onChange={event => setDemoPassword(event.target.value)}
+                      className="mt-1 block min-h-11 w-full rounded-xl border border-[#334155] bg-[#070D1B] px-3 text-sm" />
+                  </label>
+                  <button type="submit" disabled={submitting}
+                    className="min-h-11 w-full rounded-xl bg-[#334155] px-4 text-sm font-semibold disabled:opacity-50">
+                    Entrar a DEMO
+                  </button>
+                </form>
+              </details>
+            )}
 
             <div className="relative my-4 flex items-center justify-center">
               <span className="w-full border-t border-[#1E293B]"></span>

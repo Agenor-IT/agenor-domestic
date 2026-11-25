@@ -14,9 +14,8 @@ import {
   Info
 } from 'lucide-react';
 import { SupabaseDomExpenseRepository } from '../../infrastructure/SupabaseDomExpenseRepository';
-import { SupabaseDomVentureRepository } from '../../infrastructure/SupabaseDomVentureRepository';
+import { useDomesticVentures } from '../hooks/useDomesticVentures';
 import { DomExpenseDTO } from '../../domain/expenses/DomExpense';
-import { DomVentureDTO } from '../../domain/ventures/DomVenture';
 import { Money } from '../../domain/shared/Money';
 import { useDomesticAccess } from '../auth/DomesticAuthGate';
 import { SearchableStructureSelect, StructureOption } from './SearchableStructureSelect';
@@ -78,10 +77,12 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const defaultOpNum = `OP-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 
   const expenseRepo = useMemo(() => new SupabaseDomExpenseRepository(), []);
-  const ventureRepo = useMemo(() => new SupabaseDomVentureRepository(), []);
+  const venturesQuery = useDomesticVentures(personaPadreId);
 
   const [expensesList, setExpensesList] = useState<DomExpenseDTO[]>([]);
-  const [venturesList, setVenturesList] = useState<DomVentureDTO[]>([]);
+  const venturesList = useMemo(() => venturesQuery.isSuccess
+    ? venturesQuery.data.filter(venture => venture.status === 'activo')
+    : [], [venturesQuery.isSuccess, venturesQuery.data]);
 
   const [description, setDescription] = useState(initialData?.description || '');
   const [amount, setAmount] = useState(initialData?.amount || 0);
@@ -132,11 +133,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         .then(data => setExpensesList(data.filter(e => e.status === 'activo')))
         .catch(err => console.error('Error cargando dom_expenses en modal:', err));
 
-      ventureRepo.getVentures(personaPadreId)
-        .then(data => setVenturesList(data.filter(v => v.status === 'activo')))
-        .catch(err => console.error('Error cargando dom_ventures en modal:', err));
     }
-  }, [isOpen, expenseRepo, ventureRepo, personaPadreId]);
+  }, [isOpen, expenseRepo, personaPadreId]);
 
   useEffect(() => {
     if (isOpen) {
@@ -672,9 +670,15 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                       onChange={handleSelectVenture}
                       placeholder="Buscar en fuentes de ingreso..."
                       emptyLabel="No hay fuentes presupuestadas."
-                      disabled={mode === 'ver'}
+                      disabled={mode === 'ver' || !venturesQuery.isSuccess}
                       accent="emerald"
                     />
+                    {venturesQuery.isPending && <p role="status" className="text-xs">Cargando fuentes de ingresos…</p>}
+                    {venturesQuery.isError && <div role="alert" className="text-sm">
+                      No se pudieron cargar las fuentes de ingresos.
+                      <button type="button" className="ml-2 font-semibold underline" disabled={venturesQuery.isFetching}
+                        onClick={() => void venturesQuery.refetch()}>Reintentar</button>
+                    </div>}
                     {selectedVentureObj && (
                       <div className="mt-2 flex items-start sm:items-center gap-2 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[11px] font-medium">
                         <Info className="w-4 h-4 shrink-0 text-emerald-500 mt-0.5 sm:mt-0" />

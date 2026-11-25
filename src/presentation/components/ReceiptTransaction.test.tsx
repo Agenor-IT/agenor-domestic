@@ -1,4 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
 import { TransactionModal } from './TransactionModal';
 import { BottomNav } from './BottomNav';
@@ -10,8 +11,10 @@ vi.mock('../../infrastructure/SupabaseDomVentureRepository', () => ({ SupabaseDo
 
 const draft: ReceiptDraft = { supplier: 'Comercio sintético', date: '2026-10-20', number: '0001-00000001', total: 123.45, currency: 'ARS', detail: '2 unidades de prueba; IVA incluido' };
 function renderDraft(receipt: ReceiptDraft) {
-  return renderToStaticMarkup(<TransactionModal isOpen mode="nuevo" onClose={() => {}} onSubmit={async () => {}}
-    paymentMethods={[]} accounts={[]} transactions={[]} initialData={receiptTransactionFields(receipt)} receiptDraft={receipt} />);
+  return renderToStaticMarkup(<QueryClientProvider client={new QueryClient()}>
+    <TransactionModal isOpen mode="nuevo" onClose={() => {}} onSubmit={async () => {}}
+      paymentMethods={[]} accounts={[]} transactions={[]} initialData={receiptTransactionFields(receipt)} receiptDraft={receipt} />
+  </QueryClientProvider>);
 }
 describe('Comprobante en el formulario existente', () => {
   it('presenta proveedor, fecha, número y detalle en una compra revisable', () => {
