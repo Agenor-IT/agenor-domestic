@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { LockKeyhole, LogIn, RefreshCw, Wallet, Clipboard } from 'lucide-react';
+import { AlertCircle, ArrowRight, CalendarDays, Clipboard, Eye, EyeOff, Landmark, LockKeyhole, LogIn, Mail, RefreshCw, Wallet } from 'lucide-react';
 import { supabase } from '../../infrastructure/supabaseClient';
 
 interface DomesticAccess {
@@ -15,6 +15,8 @@ type GateState =
 
 const DomesticAccessContext = createContext<DomesticAccess | null>(null);
 
+const loginInputClass = 'h-14 w-full rounded-md border border-[#334155] bg-[#1E293B] pl-12 text-base text-white shadow-none placeholder:text-[#94A3B8] focus-visible:border-[#0088FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0088FF]/20 disabled:opacity-60';
+
 export const useDomesticAccess = (): DomesticAccess => {
   const access = useContext(DomesticAccessContext);
   if (!access) throw new Error('Domestic requiere una sesión autorizada.');
@@ -29,6 +31,7 @@ export const DomesticAuthGate: React.FC<{ children: React.ReactNode }> = ({ chil
   const [sessionLoading, setSessionLoading] = useState(false);
   const [demoEmail, setDemoEmail] = useState('');
   const [demoPassword, setDemoPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleApplySession = async (raw: string) => {
     if (!raw.trim()) return;
@@ -188,122 +191,151 @@ export const DomesticAuthGate: React.FC<{ children: React.ReactNode }> = ({ chil
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-[#070D1B] px-4 py-8 text-white">
-      <section className="w-full max-w-sm rounded-3xl border border-[#1E293B] bg-[#0B1329] p-6 shadow-2xl sm:p-8" aria-live="polite">
-        <div className="mb-6 flex items-center gap-3">
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0088FF]">
-            <Wallet className="h-6 w-6" aria-hidden="true" />
-          </span>
-          <div>
-            <h1 className="text-xl font-bold">Agenor Domestic</h1>
-            <p className="text-sm text-[#94A3B8]">Tus finanzas personales</p>
+    <div className="flex min-h-dvh bg-[#070D1B] text-white">
+      <aside className="relative hidden min-h-dvh w-[58%] shrink-0 overflow-hidden lg:flex">
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: "url('/login/domestic-workspace.webp')" }}
+        />
+        <div
+          aria-hidden="true"
+          className="absolute inset-0"
+          style={{ background: 'linear-gradient(180deg, rgba(7,13,27,.28), rgba(7,13,27,.50) 50%, rgba(7,13,27,.85))' }}
+        />
+        <div className="relative flex w-full flex-col justify-between gap-14 p-[clamp(48px,5vw,96px)]">
+          <div className="flex items-center gap-4">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-[#0088FF] shadow-lg">
+              <Wallet className="h-7 w-7" aria-hidden="true" />
+            </span>
+            <span className="text-2xl font-semibold tracking-tight">Agenor Domestic</span>
           </div>
-        </div>
 
-        {state.status === 'checking' ? (
-          <p className="flex items-center gap-2 text-sm text-[#CBD5E1]">
-            <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" />
-            Verificando acceso...
+          <p className="max-w-xl text-5xl font-semibold leading-none tracking-tight xl:text-6xl">
+            Tus finanzas personales
           </p>
-        ) : (
-          <>
-            <div className="mb-5 flex items-start gap-3">
-              <LockKeyhole className="mt-0.5 h-5 w-5 shrink-0 text-[#38BDF8]" aria-hidden="true" />
-              <div>
-                <h2 className="font-semibold">
-                  {state.status === 'denied' ? 'Cuenta no autorizada' : 'Ingresá con Google'}
-                </h2>
-                <p className="mt-1 text-sm text-[#94A3B8]">
+
+          <ul className="grid w-full max-w-2xl grid-cols-3 gap-5 border-t border-white/20 pt-7 text-xs font-semibold uppercase text-[#CBD5E1]">
+            <li><Wallet className="mb-3 h-9 w-9 text-white" aria-hidden="true" />Billetera</li>
+            <li><CalendarDays className="mb-3 h-9 w-9 text-white" aria-hidden="true" />Presupuesto</li>
+            <li><Landmark className="mb-3 h-9 w-9 text-white" aria-hidden="true" />Patrimonio</li>
+          </ul>
+        </div>
+      </aside>
+
+      <section className="relative flex min-h-dvh min-w-0 flex-1 flex-col bg-[#070D1B]">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#1E293B]/60 via-[#0B1329]/20 to-transparent" />
+        <div className="relative flex min-h-dvh flex-1 flex-col px-[clamp(24px,4.2vw,80px)] py-[clamp(28px,4.2vw,80px)]">
+          <div className="flex items-center gap-3 lg:hidden">
+            <span className="flex h-11 w-11 items-center justify-center rounded-md bg-[#0088FF]">
+              <Wallet className="h-6 w-6" aria-hidden="true" />
+            </span>
+            <span className="text-xl font-semibold">Agenor Domestic</span>
+          </div>
+
+          <main className="flex flex-1 items-center justify-center py-10">
+            <div className="w-full max-w-[560px]">
+              <header className="mb-8 lg:mb-10">
+                <h1 className="text-3xl font-semibold tracking-tight lg:text-4xl">
+                  {state.status === 'denied' ? 'Cuenta no autorizada' : 'Bienvenido'}
+                </h1>
+                <p className="mt-3 text-base leading-6 text-[#CBD5E1]">
                   {state.status === 'denied'
                     ? `La sesión de ${state.email} no tiene acceso. Usá una cuenta habilitada de Domestic.`
-                    : 'Sólo las cuentas habilitadas pueden ver tus datos.'}
+                    : 'Ingresá a Agenor Domestic.'}
                 </p>
-              </div>
+              </header>
+
+              {state.status === 'checking' ? (
+                <p role="status" className="flex items-center gap-2 text-sm text-[#CBD5E1]">
+                  <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  Verificando acceso...
+                </p>
+              ) : (
+                <>
+                  {state.status === 'error' && (
+                    <div role="alert" className="mb-6 flex items-start gap-3 rounded-md border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-200">
+                      <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+                      <p>{state.message}</p>
+                    </div>
+                  )}
+
+                  {state.status !== 'denied' && (
+                    <form className="space-y-5" onSubmit={event => void signInDemo(event)} aria-labelledby="dom-demo-login">
+                      <p id="dom-demo-login" className="text-sm font-semibold text-[#CBD5E1]">Ingresar a DEMO con contraseña</p>
+                      <div className="space-y-2">
+                        <label htmlFor="dom-demo-email" className="block text-xs font-semibold uppercase text-[#94A3B8]">Correo DEMO</label>
+                        <div className="relative">
+                          <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#94A3B8]" aria-hidden="true" />
+                          <input id="dom-demo-email" type="email" autoComplete="username" value={demoEmail} required disabled={submitting}
+                            onChange={event => setDemoEmail(event.target.value)} className={`${loginInputClass} pr-4`} />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label htmlFor="dom-demo-password" className="block text-xs font-semibold uppercase text-[#94A3B8]">Contraseña DEMO</label>
+                        <div className="relative">
+                          <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#94A3B8]" aria-hidden="true" />
+                          <input id="dom-demo-password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={demoPassword}
+                            required disabled={submitting} onChange={event => setDemoPassword(event.target.value)} className={`${loginInputClass} pr-12`} />
+                          <button type="button" onClick={() => setShowPassword(visible => !visible)}
+                            aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                            className="absolute right-1.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-md text-[#94A3B8] hover:text-white focus-visible:ring-2 focus-visible:ring-[#0088FF]">
+                            {showPassword ? <EyeOff className="h-5 w-5" aria-hidden="true" /> : <Eye className="h-5 w-5" aria-hidden="true" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <button type="submit" disabled={submitting}
+                        className="flex h-14 w-full items-center justify-center gap-3 rounded-md bg-blue-600 px-4 text-base font-semibold text-white shadow-lg shadow-black/30 hover:bg-blue-700 disabled:opacity-50">
+                        Entrar a DEMO <ArrowRight className="h-5 w-5" aria-hidden="true" />
+                      </button>
+                    </form>
+                  )}
+
+                  <div className="mt-6 space-y-3 border-t border-[#334155] pt-6">
+                    <button type="button" onClick={() => void signIn()} disabled={submitting}
+                      className="flex min-h-12 w-full items-center justify-center gap-3 rounded-md border border-[#334155] bg-[#1E293B] px-4 text-sm font-semibold hover:bg-[#334155] disabled:opacity-60">
+                      <LogIn className="h-5 w-5 text-[#38BDF8]" aria-hidden="true" /> Continuar con Google
+                    </button>
+
+                    <details className="rounded-md border border-[#334155] px-3 py-2">
+                      <summary className="cursor-pointer py-1.5 text-sm font-semibold text-[#CBD5E1]">Vincular sesión existente</summary>
+                      <div className="mt-2 space-y-2">
+                        <button type="button" onClick={() => void handlePasteAndApply()} disabled={sessionLoading}
+                          className="flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-[#1E293B] px-3 text-xs font-semibold hover:bg-[#334155] disabled:opacity-60">
+                          <Clipboard className="h-4 w-4 text-[#38BDF8]" aria-hidden="true" />
+                          {sessionLoading ? 'Vinculando...' : 'Pegar sesión del portapapeles'}
+                        </button>
+                        <form onSubmit={event => { event.preventDefault(); void handleApplySession(sessionInput); }} className="flex gap-2">
+                          <input type="text" aria-label="Token o URL de sesión" placeholder="O pegar token / URL aquí..." value={sessionInput}
+                            onChange={event => setSessionInput(event.target.value)}
+                            className="min-w-0 flex-1 rounded-md border border-[#334155] bg-[#070D1B] px-3 py-2 text-xs placeholder:text-[#94A3B8] focus-visible:border-[#0088FF] focus-visible:outline-none" />
+                          <button type="submit" disabled={sessionLoading || !sessionInput.trim()}
+                            className="min-h-11 rounded-md bg-blue-600 px-4 text-xs font-semibold hover:bg-blue-700 disabled:opacity-50">
+                            Usar
+                          </button>
+                        </form>
+                      </div>
+                    </details>
+                  </div>
+
+                  {(state.status === 'error' || state.status === 'denied') && (
+                    <button type="button"
+                      onClick={() => state.status === 'denied' ? void signOut() : setRefreshKey(previous => previous + 1)}
+                      className="mt-3 min-h-11 w-full rounded-md text-sm font-medium text-[#CBD5E1] hover:text-white">
+                      {state.status === 'denied' ? 'Usar otra cuenta' : 'Reintentar'}
+                    </button>
+                  )}
+                </>
+              )}
             </div>
-
-            {state.status === 'error' && (
-              <p role="alert" className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200">
-                {state.message}
-              </p>
-            )}
-
-            <button
-              type="button"
-              onClick={() => void signIn()}
-              disabled={submitting}
-              className="flex min-h-12 w-full items-center justify-center gap-3 rounded-xl bg-[#0088FF] px-4 font-semibold text-white transition-colors hover:bg-blue-600 disabled:opacity-60"
-            >
-              <LogIn className="h-5 w-5" aria-hidden="true" />
-              Continuar con Google
-            </button>
-
-            {state.status !== 'denied' && (
-              <details className="mt-3 rounded-xl border border-[#334155] px-3 py-2">
-                <summary className="cursor-pointer py-1 text-sm font-semibold">Ingresar a DEMO con contraseña</summary>
-                <form className="mt-2 space-y-3" onSubmit={event => void signInDemo(event)}>
-                  <label className="block text-xs font-medium">Correo DEMO
-                    <input type="email" autoComplete="username" value={demoEmail} required
-                      onChange={event => setDemoEmail(event.target.value)}
-                      className="mt-1 block min-h-11 w-full rounded-xl border border-[#334155] bg-[#070D1B] px-3 text-sm" />
-                  </label>
-                  <label className="block text-xs font-medium">Contraseña DEMO
-                    <input type="password" autoComplete="current-password" value={demoPassword} required
-                      onChange={event => setDemoPassword(event.target.value)}
-                      className="mt-1 block min-h-11 w-full rounded-xl border border-[#334155] bg-[#070D1B] px-3 text-sm" />
-                  </label>
-                  <button type="submit" disabled={submitting}
-                    className="min-h-11 w-full rounded-xl bg-[#334155] px-4 text-sm font-semibold disabled:opacity-50">
-                    Entrar a DEMO
-                  </button>
-                </form>
-              </details>
-            )}
-
-            <div className="relative my-4 flex items-center justify-center">
-              <span className="w-full border-t border-[#1E293B]"></span>
-              <span className="bg-[#0B1329] px-2 text-[10px] uppercase tracking-wider text-[#64748B]">O VINCULAR SESIÓN EXISTENTE</span>
-              <span className="w-full border-t border-[#1E293B]"></span>
-            </div>
-
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() => void handlePasteAndApply()}
-                disabled={sessionLoading}
-                className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#334155] bg-[#1E293B] px-4 text-xs font-semibold text-white transition-colors hover:bg-[#334155] disabled:opacity-60"
-              >
-                <Clipboard className="h-4 w-4 text-[#38BDF8]" aria-hidden="true" />
-                {sessionLoading ? 'Vinculando...' : 'Pegar sesión del portapapeles'}
-              </button>
-              <form onSubmit={e => { e.preventDefault(); void handleApplySession(sessionInput); }} className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="O pegar token / URL aquí..."
-                  value={sessionInput}
-                  onChange={e => setSessionInput(e.target.value)}
-                  className="flex-1 rounded-xl border border-[#334155] bg-[#070D1B] px-3 py-2 text-xs text-white placeholder-[#64748B] focus:border-[#0088FF] focus:outline-none"
-                />
-                <button
-                  type="submit"
-                  disabled={sessionLoading || !sessionInput.trim()}
-                  className="rounded-xl bg-[#0088FF] px-3 py-2 text-xs font-bold text-white hover:bg-blue-600 disabled:opacity-50"
-                >
-                  Usar
-                </button>
-              </form>
-            </div>
-            {(state.status === 'error' || state.status === 'denied') && (
-              <button
-                type="button"
-                onClick={() => state.status === 'denied' ? void signOut() : setRefreshKey((previous) => previous + 1)}
-                className="mt-3 min-h-11 w-full rounded-xl text-sm font-medium text-[#94A3B8] hover:text-white"
-              >
-                {state.status === 'denied' ? 'Usar otra cuenta' : 'Reintentar'}
-              </button>
-            )}
-          </>
-        )}
+          </main>
+          <footer className="flex flex-wrap items-center justify-between gap-4 text-xs font-semibold uppercase text-[#94A3B8]">
+            <span>© {new Date().getFullYear()} Agenor Domestic</span>
+          </footer>
+        </div>
       </section>
-    </main>
+    </div>
   );
 };
